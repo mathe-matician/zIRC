@@ -1,0 +1,8 @@
+ChatClient
+Chat_Server/node_modules
+Chat_Server/Chilkat
+Chat_Client_CLI
+Auth_Server/node_modules
+Auth_Server/Chilkat
+.env
+*.pem

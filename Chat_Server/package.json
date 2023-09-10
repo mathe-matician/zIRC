@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "dotenv": "^16.0.3",
+    "mongodb": "^3.7.3",
+    "uuid": "^9.0.0"
+  }
+}

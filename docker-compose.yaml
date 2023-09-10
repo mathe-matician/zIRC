@@ -1,0 +1,35 @@
+version: '3'
+services:
+  zirc_chat_server:
+    container_name: zirc_chat_server
+    # image: zirc_chat_server
+    build:
+      context: ./Chat_Server
+      dockerfile: Dockerfile
+    ports:
+      - "6667:6667"
+
+  zirc_auth_server:
+    container_name: zirc_auth_server
+    # image: zirc_auth_server
+    build:
+      context: ./Auth_Server
+      dockerfile: Dockerfile
+    ports:
+      - "54666:54666"
+
+  zirc_mongo:
+    container_name: zirc_mongo
+    image: mongo:7.0
+    ports:
+      - "27017:27017"
+    volumes:
+      - /opt/homebrew/var/mongodb:/data/db
+
+  zirc_postgres:
+    container_name: zirc_postgres
+    image: postgres:15.4
+    ports:
+      - "5432:5432"
+    volumes:
+      - $HOME/postgres:/var/lib/postgresql/data
