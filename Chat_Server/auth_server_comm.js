@@ -2,6 +2,8 @@ const net = require('node:net');
 const tls = require('tls');
 // const chilkatManager = require('./Chilkat/chilkat_manager');
 require('dotenv').config();
+const _logger = require('pino')();
+const logger = _logger.child({ Service: 'Chat Server', Module: "auth_server_comm.js" });
 
 const AuthServer = () => {
 
@@ -17,22 +19,22 @@ const AuthServer = () => {
                 "data": _args
             }
             const args = JSON.stringify(argsObj);
-            console.log(`AuthServer.Send() before sending: ${args}`)
-            // console.log(`AuthServer.Send() before encrypt: ${args}`)
+            logger.info(`AuthServer.Send() before sending: ${args}`)
+            // logger.info(`AuthServer.Send() before encrypt: ${args}`)
             // const encryptedArgs = chilkatManager.encrypt_decrypt_AES(args, true);
             // client.write(encryptedArgs);
             client.write(args);
         });
         client.on('connect', async () => {
-            console.log("Connected to Auth Server");
+            logger.info("Connected to Auth Server");
         });
         client.on('data', async (data) => {
-            console.log(`Auth Server response: ${data.toString()}`);
+            logger.info(`Auth Server response: ${data.toString()}`);
             resolve(data.toString())
             client.end();
         });
         client.on('error', async (error) => {
-            console.log("AuthServer error");
+            logger.info("AuthServer error");
             reject(error);
         });
     });
