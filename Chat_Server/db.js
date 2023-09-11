@@ -7,6 +7,8 @@ const cryptoManager = require('./Crypto/crypto_manager');
 const { SCHEMA_CAPState } = require('./db/schema/chatuser.schema');
 
 require('dotenv').config();
+const _logger = require('pino')();
+const logger = _logger.child({ Service: 'Chat Server', Module: "db.js" });
 
 const DEFAULT_COLLECTION = process.env.MONGODB_CHAT_USERS_COLLECTION_NAME;
 const DEFAULT_DB = process.env.MONGODB_NAME;
@@ -25,19 +27,19 @@ const GetMongoConn = () => {
 }
 
 const Find = async (query, options, collectionName=DEFAULT_COLLECTION, database=DEFAULT_DB) => {
-  console.log(`Find start: ${query}`);
+  logger.info(`Find start: ${query}`);
     const mongoClient = GetMongoConn();
     try {
         await mongoClient.connect();
         const db = await mongoClient.db(database);
         const findRes = await db.collection(collectionName).find(query, options);
-        console.log(`Find res = ${findRes}`);
+        logger.info(`Find res = ${findRes}`);
         if (!findRes) {
-          console.log(`No channels`);
+          logger.info(`No channels`);
         }
         return findRes
     } catch (error) {
-        console.log(`Find ERROR == ${error}`);
+        logger.info(`Find ERROR == ${error}`);
         return {"err": Numerics["ERR_UNKNOWNERROR"]()};
     } finally {
       await mongoClient.close();
@@ -56,12 +58,12 @@ const FindOne = async (
         const db = await mongoClient.db(database);
         const findRes = await db.collection(collectionName).findOne(query, options);
         // if (insertRes.hasWriteError() || insertRes.hasWriteConcernError()) {
-        //     console.log(`InsertCAPState error: ${insertRes}`);
+        //     logger.info(`InsertCAPState error: ${insertRes}`);
         //     return {"err": Numerics["ERR_UNKNOWNERROR"]("CAP")};
         // }
         return findRes
     } catch (error) {
-        console.log(`FindOne ERROR: ${error}, Query: ${JSON.stringify(query)}, Database: ${database}, Collection: ${collectionName}`);
+        logger.info(`FindOne ERROR: ${error}, Query: ${JSON.stringify(query)}, Database: ${database}, Collection: ${collectionName}`);
         return {"err": Numerics["ERR_UNKNOWNERROR"]()};
     } finally {
       await mongoClient.close();
@@ -69,7 +71,7 @@ const FindOne = async (
 };
 
 const InsertCAPState = async (deviceUID=null, clientIP=null, requestedServerVersion=null) => {
-    console.log(`InsertCAPState start. deviceUID: ${deviceUID}, clientIP: ${clientIP}, requestedServerVersion: ${requestedServerVersion}`)
+    logger.info(`InsertCAPState start. deviceUID: ${deviceUID}, clientIP: ${clientIP}, requestedServerVersion: ${requestedServerVersion}`)
     if (!deviceUID || !clientIP || !requestedServerVersion) {
         return null;
     }
@@ -81,14 +83,14 @@ const InsertCAPState = async (deviceUID=null, clientIP=null, requestedServerVers
         const insertRes = await db.collection(
           process.env.MONGODB_CHAT_USERS_COLLECTION_NAME)
           .insertOne(SCHEMA_CAPState(deviceUID, clientIP, requestedServerVersion), {"upsert": true});
-        console.log(`Insert res = ${insertRes}`);
+        logger.info(`Insert res = ${insertRes}`);
         // if (insertRes.hasWriteError() || insertRes.hasWriteConcernError()) {
-        //     console.log(`InsertCAPState error: ${insertRes}`);
+        //     logger.info(`InsertCAPState error: ${insertRes}`);
         //     return {"err": Numerics["ERR_UNKNOWNERROR"]("CAP")};
         // }
         return true; // just to make sure error isn't thrown when returned
     } catch (error) {
-        console.log(`RegisterClient ERROR == ${error}`);
+        logger.info(`RegisterClient ERROR == ${error}`);
         return {"err": Numerics["ERR_UNKNOWNERROR"]()};
     } finally {
       await mongoClient.close();
@@ -118,7 +120,7 @@ const MongoDB = async () => {
               }
             });              
         } catch (error) {
-            console.log(`RegisterClient ERROR == ${error}`);
+            logger.info(`RegisterClient ERROR == ${error}`);
             return {"err": Numerics["ERR_UNKNOWNERROR"]()};
         } finally {
           await mongoClient.close();
@@ -133,21 +135,21 @@ const InsertOne = async (
   collection=process.env.MONGODB_CHAT_USERS_COLLECTION_NAME,
   database=process.env.MONGODB_NAME
   ) => {
-  console.log(`InsertOne start. filter: ${Object.keys(doc)}}`);
+  logger.info(`InsertOne start. filter: ${Object.keys(doc)}}`);
 
   const mongoClient = GetMongoConn();
   try {
       await mongoClient.connect();
       const db = await mongoClient.db(database);
       const insertRes = await db.collection(collection).insertOne(doc);
-      console.log(`Insert res = ${insertRes}`);
+      logger.info(`Insert res = ${insertRes}`);
       // if (insertRes.hasWriteError() || insertRes.hasWriteConcernError()) {
-      //     console.log(`InsertCAPState error: ${insertRes}`);
+      //     logger.info(`InsertCAPState error: ${insertRes}`);
       //     return {"err": Numerics["ERR_UNKNOWNERROR"](command)};
       // }
       return true; // just so error isn't thrown
   } catch (error) {
-      console.log(`RegisterClient ERROR == ${error}`);
+      logger.info(`RegisterClient ERROR == ${error}`);
       return {"err": Numerics["ERR_UNKNOWNERROR"]()};
   } finally {
     await mongoClient.close();
@@ -161,21 +163,21 @@ const UpdateOne = async (
   collection=process.env.MONGODB_CHAT_USERS_COLLECTION_NAME,
   database=process.env.MONGODB_NAME
   ) => {
-    console.log(`UpdateOne start. filter: ${Object.keys(filter)}, keyValues=${Object.keys(keyValues)}, options=${Object.keys(options)}`);
+    logger.info(`UpdateOne start. filter: ${Object.keys(filter)}, keyValues=${Object.keys(keyValues)}, options=${Object.keys(options)}`);
 
     const mongoClient = GetMongoConn();
     try {
         await mongoClient.connect();
         const db = await mongoClient.db(database);
         const insertRes = await db.collection(collection).updateOne(filter, keyValues, options);
-        console.log(`Insert res = ${insertRes}`);
+        logger.info(`Insert res = ${insertRes}`);
         // if (insertRes.hasWriteError() || insertRes.hasWriteConcernError()) {
-        //     console.log(`InsertCAPState error: ${insertRes}`);
+        //     logger.info(`InsertCAPState error: ${insertRes}`);
         //     return {"err": Numerics["ERR_UNKNOWNERROR"](command)};
         // }
         return true; // just so error isn't thrown
     } catch (error) {
-        console.log(`RegisterClient ERROR == ${error}`);
+        logger.info(`RegisterClient ERROR == ${error}`);
         return {"err": Numerics["ERR_UNKNOWNERROR"]()};
     } finally {
       await mongoClient.close();
@@ -183,7 +185,7 @@ const UpdateOne = async (
 };
 
 const RegisterClient = async (client, nickname, password) => {
-    console.log(`RegisterClient: nickname: ${nickname}, password: ${password}`);
+    logger.info(`RegisterClient: nickname: ${nickname}, password: ${password}`);
     const mongoClient = GetMongoConn();
     try {
         await mongoClient.connect();
@@ -198,9 +200,9 @@ const RegisterClient = async (client, nickname, password) => {
         // Let's examine the hash as a hex string.
         // var sb = new chilkat.StringBuilder();
         // sb.AppendEncoded(hashBytes, process.env.CHILKAT_ENCODING_TYPE);
-        // console.log("SHA256 hash = " + sb.GetAsString());
-        console.log("SHA256 hash = " + hashBytes);
-        console.log(`INSERTING TO ${process.env.MONGODB_CHAT_USERS_COLLECTION_NAME}`);
+        // logger.info("SHA256 hash = " + sb.GetAsString());
+        logger.info("SHA256 hash = " + hashBytes);
+        logger.info(`INSERTING TO ${process.env.MONGODB_CHAT_USERS_COLLECTION_NAME}`);
 
         //TODO
         // edit this insert to create a client db schema object to insert
@@ -209,12 +211,12 @@ const RegisterClient = async (client, nickname, password) => {
           process.env.MONGODB_CHAT_USERS_COLLECTION_NAME)
           .insertOne({ "user": client, "nickname": nickname, "password": hashBytes, "registered": true });
         if (!insertRes) {
-            console.log(`Error REGISTERING client`);
+            logger.info(`Error REGISTERING client`);
             return {"err": Numerics["ERR_UNKNOWNERROR"]("REGISTER")};
         } 
         return {"res": "registered all good"};
     } catch (error) {
-        console.log(`RegisterClient ERROR == ${error}`);
+        logger.info(`RegisterClient ERROR == ${error}`);
         return {"err": Numerics["ERR_UNKNOWNERROR"]()};
     } finally {
       await mongoClient.close();
@@ -234,7 +236,7 @@ const CheckDBForPassword = async (password, nickname, client="defaultClient") =>
         }
         return {"res": "all good"};
     } catch (error) {
-        console.log(`CheckDBForPassword ERROR == ${error}`);
+        logger.info(`CheckDBForPassword ERROR == ${error}`);
         return {"err": Numerics["ERR_UNKNOWNERROR"]()};
     } finally {
       await mongoClient.close();
@@ -243,7 +245,7 @@ const CheckDBForPassword = async (password, nickname, client="defaultClient") =>
 
 // Updates AND returns doc
 const FindOneAndUpdate = async (filter, query, options) => {
-  console.log(`FindOneAndUpdate start. filter: ${Object.keys(filter)}, keyValues=${Object.keys(query)}, options=${Object.keys(options)}`);
+  logger.info(`FindOneAndUpdate start. filter: ${Object.keys(filter)}, keyValues=${Object.keys(query)}, options=${Object.keys(options)}`);
 
   const mongoClient = GetMongoConn();
   try {
@@ -252,10 +254,10 @@ const FindOneAndUpdate = async (filter, query, options) => {
       const insertRes = await db.collection(
         process.env.MONGODB_CHAT_USERS_COLLECTION_NAME)
         .findOneAndUpdate(filter, query, options);
-      console.log(`FindOneAndUpdate res = ${insertRes}`);
+      logger.info(`FindOneAndUpdate res = ${insertRes}`);
       return insertRes;
   } catch (error) {
-      console.log(`FindOneAndUpdate ERROR == ${error}`);
+      logger.info(`FindOneAndUpdate ERROR == ${error}`);
       return {"err": Numerics["ERR_UNKNOWNERROR"]()};
   } finally {
     await mongoClient.close();
@@ -271,12 +273,12 @@ const CheckDBForNickName = async (nickname="zach", srcNick="srcNick") => {
           process.env.MONGODB_CHAT_USERS_COLLECTION_NAME)
           .findOne({ "nickname": nickname });
         if (searchNickRes) {
-            console.log(`INSIDE: nickname ${nickname} already in use`);
+            logger.info(`INSIDE: nickname ${nickname} already in use`);
             return {"err": Numerics["ERR_NICKNAMEINUSE"](nickname)};
         }
         return {"command": "NICK", "nick": nickname, "res": `:${srcNick} NICK ${nickname}`};
     } catch (error) {
-        console.log(`CheckDBForNickName ERROR == ${error}`);
+        logger.info(`CheckDBForNickName ERROR == ${error}`);
         return {"err": Numerics["ERR_UNKNOWNERROR"]()};
     } finally {
       await mongoClient.close();
@@ -298,19 +300,19 @@ const InsertClient = async (nickname, password, clientName) => {
         // Let's examine the hash as a hex string.
         // var sb = new chilkat.StringBuilder();
         // sb.AppendEncoded(hashBytes, process.env.CHILKAT_ENCODING_TYPE);
-        // console.log("SHA256 hash = " + sb.GetAsString());
-        console.log("SHA256 hash = " + hashBytes);
-        console.log(`Inserting to : ${process.env.MONGODB_CHAT_USERS_COLLECTION_NAME}`);
+        // logger.info("SHA256 hash = " + sb.GetAsString());
+        logger.info("SHA256 hash = " + hashBytes);
+        logger.info(`Inserting to : ${process.env.MONGODB_CHAT_USERS_COLLECTION_NAME}`);
         const insertRes = await db.collection(
           process.env.MONGODB_CHAT_USERS_COLLECTION_NAME)
           .insertOne({ "nickname": nickname, "password": hashBytes });
         if (!insertRes) {
-            console.log(`Error inserting client into database`);
+            logger.info(`Error inserting client into database`);
             return {"err": Numerics["ERR_UNKNOWNERROR"](command, subcommand)};
         }
         return {"res": "Insert successful!"};
     } catch (error) {
-        console.log(`InsertClient == ${error}`);
+        logger.info(`InsertClient == ${error}`);
         return {"err": Numerics["ERR_UNKNOWNERROR"](command, subcommand)};
     } finally {
       await mongoClient.close();
@@ -322,10 +324,10 @@ const CollectionExists = async (collectionName, database=process.env.MONGODB_CHA
     try {
         await mongoClient.connect();
         const db = await mongoClient.db(database);
-        console.log(`collectionName: ${collectionName}, collectionName type: ${typeof(collectionName)}`)
+        logger.info(`collectionName: ${collectionName}, collectionName type: ${typeof(collectionName)}`)
         const collections = await db.listCollections().toArray();
         for (const col of collections) {
-          console.log(`Searching for '${collectionName}' ?= '${col?.name}'`)
+          logger.info(`Searching for '${collectionName}' ?= '${col?.name}'`)
           if (col?.name === collectionName) {
             return true;
           }
@@ -333,7 +335,7 @@ const CollectionExists = async (collectionName, database=process.env.MONGODB_CHA
 
         return false;
     } catch (error) {
-        console.log(`CollectionExists == ${error}`);
+        logger.info(`CollectionExists == ${error}`);
         return false;
     } finally {
       await mongoClient.close();
