@@ -1,5 +1,7 @@
 const { Numerics } = require("../numerics");
 const { CRLF } = require("../constants");
+const _logger = require('pino')();
+const logger = _logger.child({ Service: 'Chat Server', Command: "JOIN" });
 
 /**
  * JOIN
@@ -45,7 +47,7 @@ const JOIN = (socket, client, channels, parameters) => {
     
     //   :dan-!d@localhost JOIN #test    ; dan- is joining the channel #test
         
-        console.log(`JOIN client: '${client}', parameters: '${parameters}'`);
+        logger.info(`JOIN client: '${client}', parameters: '${parameters}'`);
         if (!parameters || parameters === "" || parameters.length === 0) {
             // socket.write(`${client} JOIN ${ERR_NEEDMOREPARAMS} :Not enough parameters\r\n`);
             // return {"res": false};
@@ -61,7 +63,7 @@ const JOIN = (socket, client, channels, parameters) => {
             chan = parameters;
         }
         chan = String(chan);
-        console.log(`CHAN = ${chan}, TYPE OF CHAN = ${typeof(chan)}`);
+        logger.info(`CHAN = ${chan}, TYPE OF CHAN = ${typeof(chan)}`);
         if (chan === "0") {
             // special argument, as in, JOIN 0, or join nothing
             // server makes client leave all channels they are connected to.
@@ -92,10 +94,10 @@ const JOIN = (socket, client, channels, parameters) => {
             // Generally, the concept of channel ownership is not supported for local channels. 
             // Local channels also aren’t as widely available as regular channels. 
             // As well, some networks disable or disallow local channels as opers across the network can’t see nor administrate them.
-        console.log(`ChanMask = '${chanMask}', Type = ${typeof(chanMask)}`);
+        logger.info(`ChanMask = '${chanMask}', Type = ${typeof(chanMask)}`);
         if (chanMask !== "#" && chanMask !== "&") {
             // not a valid channel type, fail
-            console.log(`Channel Mask = ${chanMask}`);
+            logger.info(`Channel Mask = ${chanMask}`);
             // socket.write(`${chan} ${ERR_BADCHANMASK} :Bad Channel Mask\r\n`);
             return {"err": Numerics["ERR_BADCHANMASK"](chan)};
         }
@@ -143,8 +145,8 @@ const JOIN = (socket, client, channels, parameters) => {
         for (const client of Object.keys(channel.clients)) {
             if (client.length === 0 || typeof(client) !== String)
                 continue;
-            console.log(`Client = '${client}'`);
-            console.log(`Props = '${Object.keys(channel["clients"][client])}'`);
+            logger.info(`Client = '${client}'`);
+            logger.info(`Props = '${Object.keys(channel["clients"][client])}'`);
             const prefixes = channel["clients"][client]["prefixes"];
             for (const prefix of prefixes) {
                 membershipPrefixMapping += `${prefix}${client} `

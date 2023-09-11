@@ -2,6 +2,10 @@ const { InsertOne, CollectionExists, FindOne } = require("../db");
 const { Numerics } = require("../numerics");
 const { SCHEMA_ChatMsg } = require("../db/schema/chatmsg.schema");
 require('dotenv').config();
+
+const _logger = require('pino')();
+const logger = _logger.child({ Service: 'Chat Server', Command: "PRIVMSG" });
+
 /**
  * PRIVMSG
  * 
@@ -19,7 +23,7 @@ require('dotenv').config();
  * @returns 
  */
 const PRIVMSG = async (params, clients, clientSocket) => {
-    console.log(`PRIVMSG start:\nparams: ${params}`);
+    logger.info(`PRIVMSG start:\nparams: ${params}`);
     if (params.length !== 2) {
         return {"err": Numerics["ERR_NEEDMOREPARAMS"]("PRIVMSG")};
     }
@@ -39,10 +43,10 @@ const PRIVMSG = async (params, clients, clientSocket) => {
             // parse any ops before the channel
             const ops = target.substring(0, chanTypeIndex);
             const targetName = target.substring(chanTypeIndex, target.length);
-            console.log(`PRIVMSG: searching for collection ${targetName}`);
+            logger.info(`PRIVMSG: searching for collection ${targetName}`);
             const colExists = await CollectionExists(targetName);
             if (!colExists) {
-                console.log(`Collection '${targetName}' does not exist`);
+                logger.info(`Collection '${targetName}' does not exist`);
                 return {"err": Numerics["ERR_NOSUCHCHANNEL"](targetName)};
             }
             // insert message
@@ -61,16 +65,16 @@ const PRIVMSG = async (params, clients, clientSocket) => {
         }
 
         // check if destination nickname exists
-        console.log(`Searching users for nickname '${target}'`);
+        logger.info(`Searching users for nickname '${target}'`);
         const nicknameRes = await FindOne({nickname: target});
         if (!nicknameRes) {
-            console.log(`Nickname does not exist!`);
+            logger.info(`Nickname does not exist!`);
             return {"err": Numerics["ERR_NOSUCHNICK"](target)};
         }
-        console.log(`NicknameRes == ${JSON.stringify(nicknameRes)}`);
+        logger.info(`NicknameRes == ${JSON.stringify(nicknameRes)}`);
 
         // get source nickname from clientIP
-        console.log(`Searching for ${clientSocket.remoteAddress}'s nickname...`);
+        logger.info(`Searching for ${clientSocket.remoteAddress}'s nickname...`);
         const senderNicknameRes = await FindOne(
             {ip: clientSocket.remoteAddress},
             process.env.MONGODB_CHAT_USERS_COLLECTION_NAME, 
@@ -98,7 +102,7 @@ const PRIVMSG = async (params, clients, clientSocket) => {
         // return {"req": ["clients", "capabilities", "serverVersion", "isClient", "clientIP"], "callback": callback};
 
     } catch (error) {
-        console.log(`PRIVMSG error: ${error}`);
+        logger.info(`PRIVMSG error: ${error}`);
         return {"err": Numerics["ERR_CANNOTSENDTOCHAN"]()};
     }
 };

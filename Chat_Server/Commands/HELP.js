@@ -2,7 +2,8 @@ const { Numerics } = require("../numerics");
 const { FindOne } = require("../db");
 const { CRLF } = require("../constants");
 require('dotenv').config();
-
+const _logger = require('pino')();
+const logger = _logger.child({ Service: 'Chat Server', Command: "HELP" });
 
 // TODO
 // implement Trie here for more free text searching.
@@ -22,7 +23,7 @@ const Commands = {
 }
 
 const HELP_USERCMDS = (clientSocket) => {
-    console.log(`Help listing user commands`)
+    logger.info(`Help listing user commands`)
     clientSocket.write(Numerics["RPL_HELPSTART"]("** Help User Commands **") + "\n");
     clientSocket.write(Numerics["RPL_HELPTXT"]("") + "\n");
     const cmds = Object.keys(Commands);
@@ -38,7 +39,7 @@ const HELP_USERCMDS = (clientSocket) => {
 const HELP_DEFAULT = (clientSocket, addlMsgs) => {
     clientSocket.write(Numerics["RPL_HELPSTART"]() + "\n");
     if (!addlMsgs, addlMsgs.length !== 0) {
-        console.log(`Adding additional messages`)
+        logger.info(`Adding additional messages`)
         for (let i = 0; i < addlMsgs.length; i++) {
             clientSocket.write(Numerics["RPL_HELPTXT"](addlMsgs[i]) + "\n");
         }
@@ -52,13 +53,13 @@ const HELP_DEFAULT = (clientSocket, addlMsgs) => {
 }
 
 const HELP_SPECIFIC = async (cmd, clientSocket) => {
-    console.log(`Help specific command`)
+    logger.info(`Help specific command`)
     if (!(cmd in Commands)) {
         clientSocket.write(Numerics["ERR_HELPNOTFOUND"]() + "\n");
         HELP_DEFAULT(clientSocket, ["", "I do not know anything about this", ""]);
         return;
     }
-    console.log(`HELP_SPECIFIC searching for '${cmd}' typeof: ${typeof(cmd)}`)
+    logger.info(`HELP_SPECIFIC searching for '${cmd}' typeof: ${typeof(cmd)}`)
     const cmdRes = await FindOne(
         {"cmd": String(cmd)},
         process.env.MONGODB_CHAT_COMMAND_DESCRIPTIONS_COLLECTION_NAME,
@@ -82,9 +83,9 @@ const HELP_SPECIFIC = async (cmd, clientSocket) => {
 }
 
 const HELP = async (params, clients, clientSocket) => {
-    console.log(`HELP start. params: ${params}`);
+    logger.info(`HELP start. params: ${params}`);
     if (params.length > 0) {
-        console.log(`params.length > 0: '${params}'`)
+        logger.info(`params.length > 0: '${params}'`)
         if (params[0] === "USERCMDS") {
             HELP_USERCMDS(clientSocket);
         } else {

@@ -3,6 +3,9 @@ const { Numerics } = require("../numerics");
 const { CRLF } = require("../constants");
 require('dotenv').config();
 
+const _logger = require('pino')();
+const logger = _logger.child({ Service: 'Chat Server', Command: "LIST" });
+
 /**
  * ELIST object used for parsing
  */
@@ -18,7 +21,7 @@ const ELIST = async () => {
  * @returns 
  */
 const LIST = async (params, clients, clientSocket) => {
-    console.log(`LIST Start.`);
+    logger.info(`LIST Start.`);
     // Parameters: [<channel>{,<channel>}] [<elistcond>{,<elistcond>}]
     // both parameters are OPTIONAL
 

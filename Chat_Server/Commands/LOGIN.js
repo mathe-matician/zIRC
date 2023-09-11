@@ -3,15 +3,18 @@ const { PASS } = require("./PASS");
 const { Numerics } = require("../numerics");
 const { CRLF } = require("../constants");
 
+const _logger = require('pino')();
+const logger = _logger.child({ Service: 'Chat Server', Command: "LOGIN" });
+
 const LOGIN = async (parameters, clients, clientSocket, client) => {
     if (parameters.length !== 2) {
       return Numerics["ERR_NEEDMOREPARAMS"]("LOGIN");
     } else {
       try {
         const nickRes = await NICK(clients, parameters[0], "", clientSocket.remoteAddress);
-        console.log(`NICKRES == ${nickRes}`);
+        logger.info(`NICKRES == ${nickRes}`);
         if (nickRes?.err) {
-          console.log(`NICKRES ERROR: ${nickRes["err"]}`);
+          logger.info(`NICKRES ERROR: ${nickRes["err"]}`);
           return nickRes["err"];
         }
         const passRes = await PASS(parameters[1], parameters[0], client, clientSocket.remoteAddress);
@@ -32,7 +35,7 @@ const LOGIN = async (parameters, clients, clientSocket, client) => {
         clientSocket.write(nickRes.res + CRLF);
         return Numerics["RPL_WELCOME"](nickRes["nick"]);
       } catch (error) {
-        console.log(`LOGIN ERROR: ${error}`)
+        logger.info(`LOGIN ERROR: ${error}`)
         return {"err": Numerics["ERR_UNKNOWNERROR"]("LOGIN")};
       }
     }
