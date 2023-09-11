@@ -59,7 +59,7 @@ const Server = (
       testUsers
     );
 
-    console.log("Done creating channel");
+    logger.info("Done creating channel");
 
     const channels = {
       "Regular": {
@@ -90,7 +90,7 @@ const Server = (
     }
 
     const Configure = (options = {}, connListener = null) => {
-        console.log('configure');
+        logger.info('configure');
     }
 
     const TYPE_REGULAR = "#"; // known to all servers that are connected to the network
@@ -107,7 +107,7 @@ const Server = (
     //   // but the modes are completely up to the server
 
     //   if (channels.has(name)) {
-    //     console.log(`Channel ${name} already exists on server.`);
+    //     logger.info(`Channel ${name} already exists on server.`);
     //     return;
     //   }
 
@@ -128,7 +128,7 @@ const Server = (
       // SASL (if negotiated)
       // CAP END
       
-      console.log(`Register Client on server ${name}`)
+      logger.info(`Register Client on server ${name}`)
 
       // if NICK exists return ERR_NICKNAMEINUSE else return RPL_WELCOME
 
@@ -163,17 +163,17 @@ const Server = (
       // TODO auth for gymlete irc
       // TODO auth for user to server
       // TODO auth for user to channel
-      // console.log(`processMessage got data ${message}`);
-      // console.log(`TYPE OF = ${typeof(message)}`);
+      // logger.info(`processMessage got data ${message}`);
+      // logger.info(`TYPE OF = ${typeof(message)}`);
       // if (!message.isEncoding('utf8')) {
-      //   console.log("Client message not UTF8...");
+      //   logger.info("Client message not UTF8...");
       //   throw new Error("Client message not UTF8...");
       // }
 
       const tags = {};
       let source = "";
       message = message.trim();
-      console.log(`Raw message: '${message}'`);
+      logger.info(`Raw message: '${message}'`);
       const captureUntilSpace = /^[^\s]*/g;
 
       // TODO
@@ -186,28 +186,28 @@ const Server = (
         // need to get token, then check in db.
         // Actually I think we check the actual one after this - need to figure that out!
         if (message.startsWith("tokenPkg")) {
-          console.log(`message.startsWith("tokenPkg")`)
+          logger.info(`message.startsWith("tokenPkg")`)
           const tokenpkg = message.slice(0).match(captureUntilSpace);
           message = message.slice(tokenpkg[0].length+1);
-          console.log(`\nMessage after tokenPkg parsing:\n${message}\n`)
+          logger.info(`\nMessage after tokenPkg parsing:\n${message}\n`)
           _tokenPkg = tokenpkg[0];
           splitTokenPkg = tokenpkg[0].split("::");
           splitTokenPkg.shift(); // rm the string 'tokenPkg' so the array only contains the token and expr
-          console.log(`\nsplitTokenPkg: ${splitTokenPkg}\n`);
+          logger.info(`\nsplitTokenPkg: ${splitTokenPkg}\n`);
           // check whether token is expired
           const now = new Date();
           const expr = new Date(splitTokenPkg[1]);
           if (now > expr) {
-            console.log(`--- Client token expired!! ---`);
+            logger.info(`--- Client token expired!! ---`);
             // client must re-authenticate
             clientSocket.write(Numerics["RPL_LOGGEDOUT"]());
             return null;
           }
         }
       } catch (error) {
-        console.log(`Client message does not contain a token: ${error}`);
+        logger.info(`Client message does not contain a token: ${error}`);
       }
-      console.log(`tokenPkg == ${_tokenPkg}`);
+      logger.info(`tokenPkg == ${_tokenPkg}`);
 
 
 
@@ -223,16 +223,16 @@ const Server = (
         message = message.slice(rawTags[0].length+2);
         if (rawTags.length > MAX_TAG_DATA) {  
           // TOOOOOO BIG TAG DATA
-          console.log(`Tag data too big yo: ${rawTags.length} > ${MAX_TAG_DATA}`);
+          logger.info(`Tag data too big yo: ${rawTags.length} > ${MAX_TAG_DATA}`);
           return Numerics["ERR_INPUTTOOLONG"];
         }
-        console.log(`RawTags = ${rawTags}`);
+        logger.info(`RawTags = ${rawTags}`);
         const splitTags = rawTags.split(";");
-        console.log(`Tags = ${splitTags}`);
+        logger.info(`Tags = ${splitTags}`);
         for (const tag of splitTags) {
         	const t = tag.split("=");
           if (t.length != 2) {
-          	console.log(`ERROR PARSING TAG ${tag} DROP THIS SUCKA?`);
+          	logger.info(`ERROR PARSING TAG ${tag} DROP THIS SUCKA?`);
           } else {
             // add tags to tag object
             tags[t[0]] = t[1];
@@ -256,14 +256,14 @@ const Server = (
        * 
        */
 
-      console.log(`Checking for message source ${message}`);
+      logger.info(`Checking for message source ${message}`);
       if (message[0] === ":") {
-        console.log(`Source exists`)
+        logger.info(`Source exists`)
         // from a server
         // TODO check for out of bounds (if i+1 is out of bounds of array)
         const res = message.slice(1).match(captureUntilSpace);
         message = message.slice(res[0].length+2);
-        console.log(`\nMessage after source parsing:\n${message}\n`);
+        logger.info(`\nMessage after source parsing:\n${message}\n`);
         source = res;
       }
       
@@ -303,12 +303,12 @@ const Server = (
         source: (clientNick ? clientNick : "*") + formattedSource // wasteful, but saves doing this stupid logic checking later
       };
 
-      console.log(`clientIdentifiers source: ${clientIdentifiers.source}`);
+      logger.info(`clientIdentifiers source: ${clientIdentifiers.source}`);
 
       let parameters = [];
       // special parsing for PRIVMSG as the message can contain special characters like ":" and " "
       if (message.startsWith("PRIVMSG")) {
-        console.log(`Command == PRIVMSG`);
+        logger.info(`Command == PRIVMSG`);
         const messageIndex = message.indexOf(":");
         const msgStart = message.substring(0, messageIndex);
         const msg = message.substring(messageIndex, message.length);
@@ -318,19 +318,19 @@ const Server = (
       } else {
         parameters = message.split(" ");
       }
-      console.log(`SERVER parameters = ${parameters}`);
+      logger.info(`SERVER parameters = ${parameters}`);
     
       const cmd = parameters.shift(); // get command
       // REQUIRES CLIENT MESSAGE TO ALWAYS END WITH A SPACE TO BE ABLE TO POP \r\n
       // parameters.pop(); // get rid of the \r\n
-      console.log(`Message = '${message}', Command = '${cmd}', Parameters = '${parameters}', Token = ${splitTokenPkg[0]}`);
+      logger.info(`Message = '${message}', Command = '${cmd}', Parameters = '${parameters}', Token = ${splitTokenPkg[0]}`);
       // const resObj = {res: "", parameters: parameters, client: clientIdentifiers};
       if (cmd in Numerics) {
         // this is a message from a server
-        console.log("Message is numeric from server");
+        logger.info("Message is numeric from server");
       } else if (cmd in Commands) {
         // this is a command from a user
-        console.log("Message is command from user");
+        logger.info("Message is command from user");
 
         // TODO
         // Need to pass _tokenPkg in to all commands here.
@@ -345,16 +345,16 @@ const Server = (
           // This check should be different.
           // We shouldn't lookup by clientIP
           // we probably should be checking token here?
-          // or using client uuid as the client IP can change.
+          // or using client uuid as the client IP can change or be spoofed.
           const findRes = await FindOne(
             {ip: clientIP}, 
             process.env.MONGODB_CHAT_USERS_COLLECTION_NAME, 
             process.env.MONGODB_NAME, {$project: "state"});
-          console.log(`FIND RES === ${findRes}`);
-          console.log(`FIND RES === ${JSON.stringify(findRes)}`);
+          logger.info(`FIND RES === ${findRes}`);
+          logger.info(`FIND RES === ${JSON.stringify(findRes)}`);
           const authType = findRes?.state?.auth?.type;
           if (!authType) {
-            console.log(`No auth type set for client`);
+            logger.info(`No auth type set for client`);
             // no auth type set, so client has not authenticated.
             // let them know they MUST auth??
             // or fail silently?
@@ -363,15 +363,15 @@ const Server = (
           }
           // pass only the token
           const args = `#auth_${authType}::authcheck::${splitTokenPkg[0]}`;
-          console.log(`CHAT SERVER BEFORE AUTH CHECK: ${args}`);
+          logger.info(`CHAT SERVER BEFORE AUTH CHECK: ${args}`);
           let authServer = AuthServer();
           const authServerRes = await authServer.Write(args);
-          console.log(`Auth check res === ${authServerRes}`);
+          logger.info(`Auth check res === ${authServerRes}`);
           authServer = null; // mark for garbage collection.
           
           const authRes = JSON.parse(authServerRes);
           if (authRes?.err) {
-            console.log(`ERROR: AUTHENTICATE error with Auth Server: ${authRes["err"]}`);
+            logger.info(`ERROR: AUTHENTICATE error with Auth Server: ${authRes["err"]}`);
             return {"err": Numerics[authRes["err"]]()};
           }
         }
@@ -384,43 +384,43 @@ const Server = (
           return cmdRes["err"];
         }
         const req = {};
-        console.log(`callbackReqs[capabilities] === ${Object.keys(callbackReqs["capabilities"])}`)
+        logger.info(`callbackReqs[capabilities] === ${Object.keys(callbackReqs["capabilities"])}`)
         if (typeof(cmdRes) === "object" && "callback" in cmdRes && "req" in cmdRes) {
           for (const request of cmdRes["req"]) {
             // get requested params for callback and add them to req
             if (callbackReqs[request]) {
-              console.log(`Adding capability ${request}:${callbackReqs[request]}`);
+              logger.info(`Adding capability ${request}:${callbackReqs[request]}`);
               req[request] = callbackReqs[request];
             }
           }
-          console.log(`Before Callback: ${Object.keys(req)} value === ${req["capabilities"]}`);
+          logger.info(`Before Callback: ${Object.keys(req)} value === ${req["capabilities"]}`);
           const callbackRes = await cmdRes["callback"](req);
-          console.log(`callbackRes = ${callbackRes}`);
+          logger.info(`callbackRes = ${callbackRes}`);
           if (callbackRes?.err) {
-            console.log("CallbackRes ERROR");
+            logger.info("CallbackRes ERROR");
             return callbackRes["err"];
           }
           if (callbackRes?.res) {
             return callbackRes["res"];
           } 
           if (!callbackRes) {
-            console.log(`NO CALLBACKRES`);
+            logger.info(`NO CALLBACKRES`);
             return null;
           }
         } 
         // else {
-        //   console.log("Error when trying to execute callback");
+        //   logger.info("Error when trying to execute callback");
         //   return Numerics["ERR_UNKNOWNCOMMAND"](cmd);
         // }
 
         if (cmdRes?.res) {
-          console.log(`CMDRES == ${cmdRes.res}`);
+          logger.info(`CMDRES == ${cmdRes.res}`);
         }
         return clientIdentifiers.source ? clientIdentifiers.source + " " + cmdRes + CRLF : cmdRes + CRLF;
 
       } else {
         // else not a valid command or numeric
-        console.log("Not a valid command or numeric");
+        logger.info("Not a valid command or numeric");
         return Numerics["ERR_UNKNOWNCOMMAND"](cmd);
       }
 
@@ -458,15 +458,15 @@ const Server = (
         process.env.MONGODB_CHAT_SERVER_COLLECTION_NAME
         );
       if (!findRes) {
-        console.log(`COULD NOT FIND CAPABILITIES! FAILING TO START`);
+        logger.info(`COULD NOT FIND CAPABILITIES! FAILING TO START`);
         return;
       }
-      console.log(`findRes == ${findRes}`);
-      console.log(`findRes == ${JSON.stringify(findRes)}`);
+      logger.info(`findRes == ${findRes}`);
+      logger.info(`findRes == ${JSON.stringify(findRes)}`);
       capabilities = findRes["capabilities"];
       callbackReqs["capabilities"] = capabilities;
 
-      console.log(`CAPABILITIES == ${Object.keys(capabilities)}`);
+      logger.info(`CAPABILITIES == ${Object.keys(capabilities)}`);
 
       try {
         if (tls) {
@@ -482,7 +482,7 @@ const Server = (
           };
           
           const server = tls.createServer(options, (socket) => {
-            console.log('server connected',
+            logger.info('server connected',
                         socket.authorized ? 'authorized' : 'unauthorized');
             socket.setEncoding('utf8');
             // socket.pipe(socket);
@@ -492,27 +492,27 @@ const Server = (
 
               const client = data.toString();
               msg = client + " connected"
-              console.log(msg);
+              logger.info(msg);
               // socket.end(client);
             });
             server.on("error", (err) => {
-              console.log(`Server error: ${err}`);
+              logger.info(`Server error: ${err}`);
               throw err;
             });
             c.on("end", (client) => {
-              console.log(`${client} disconnected`);
+              logger.info(`${client} disconnected`);
             });
           });
           // });
           server.listen(process.env.IRC_TLS_PORT, host, () => {
-            console.log('server started:', server.address());
+            logger.info('server started:', server.address());
           });
         } else {
           const server = net.createServer(async (socket) => {
             socket.setEncoding('utf8');
             const insertRes = await UpdateOne({"ip": socket.remoteAddress}, { $set: {"ip": socket.remoteAddress, "state": {}}}, {"upsert": true});
             if (insertRes?.err) {
-              console.log(`ERROR ${insertRes["err"]}`);
+              logger.info(`ERROR ${insertRes["err"]}`);
               server.emit("end");
             }
             // socket.write(helloMsg);
@@ -533,18 +533,18 @@ const Server = (
               // const _data = data.toString();
               // msg = _data + " connected"
               // msg = "{" + socket.remoteAddress + "}: " + _data
-              // console.log(msg);
-              console.log(`processMessage response = '${response}'`);
+              // logger.info(msg);
+              logger.info(`processMessage response = '${response}'`);
               if (response)
                 socket.write(response);
               // socket.end(client); // closes the connection prematurely and throws and error?
             });
             server.on("error", (err) => {
-              console.log(`Server error: ${err}`);
+              logger.info(`Server error: ${err}`);
               throw err;
             });
             socket.on("end", async () => {
-              console.log(`client disconnected`);
+              logger.info(`client disconnected`);
               // clear all user state before disconnecting
               callbackReqs["clientSocket"] = null;
               const updateRes = await UpdateOne({ip: socket.remoteAddress}, {$set: {state: {}}});
@@ -552,22 +552,22 @@ const Server = (
               // check for errors from this res
             });
             socket.on("close", () => {
-              console.log(`client closed connection`);
+              logger.info(`client closed connection`);
             });
             socket.on("drain", () => {
               // can be used to throttle uploads
               // possible can be used for rate limiting requests
-              console.log(`drain event`);
+              logger.info(`drain event`);
             });
             socket.on("timeout", () => {
               // TODO
-              console.log(`connection timeout`);
+              logger.info(`connection timeout`);
             });
           });
 
           server.listen(process.env.IRC_PORT, host, () => {
-            console.log('server started:', server.address());
-            console.log(`Max connections = ${server.maxConnections}`);
+            logger.info('server started:', server.address());
+            logger.info(`Max connections = ${server.maxConnections}`);
           })
         }
         // if (e.code === 'EADDRINUSE') {
@@ -578,7 +578,7 @@ const Server = (
         //   }, 1000);
         // }
       } catch (e) {
-        console.log(e.message);
+        logger.info(e.message);
       }
     }
 
@@ -589,7 +589,7 @@ try {
   s = Server();
   s.Start();
 } catch (error) {
-  console.log(`Server error: ${error}`);
+  logger.info(`Server error: ${error}`);
 }
 
 
