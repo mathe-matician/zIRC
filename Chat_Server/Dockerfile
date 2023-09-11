@@ -5,7 +5,7 @@ COPY package.json package-lock.json \
     numerics.js operators.js server.js \
     db.js constants.js commands.js client.js \
     chat_schema.js channel.js capabilities.js \
-    auth.js auth_server_comm.js .env /chat_server/
+    auth.js auth_server_comm.js .env utils.js /chat_server/
     
 COPY Modes/ /chat_server/Modes/
 COPY db/ /chat_server/db/

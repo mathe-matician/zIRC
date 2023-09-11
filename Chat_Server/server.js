@@ -18,6 +18,8 @@ const { Client } = require("./client");
 const { UpdateOne, FindOne } = require('./db');
 const { AuthServer } = require("./auth_server_comm");
 require('dotenv').config();
+const _logger = require('pino')();
+const logger = _logger.child({ Service: 'Chat Server' });
 
 // Servers SHOULD pick a name which contains a dot character (".", 0x2E). 
 //This can help clients disambiguate between server names and nicknames in a message source.
@@ -222,7 +224,7 @@ const Server = (
         if (rawTags.length > MAX_TAG_DATA) {  
           // TOOOOOO BIG TAG DATA
           console.log(`Tag data too big yo: ${rawTags.length} > ${MAX_TAG_DATA}`);
-          return ERR_INPUTTOOLONG;
+          return Numerics["ERR_INPUTTOOLONG"];
         }
         console.log(`RawTags = ${rawTags}`);
         const splitTags = rawTags.split(";");
@@ -338,6 +340,12 @@ const Server = (
           // if it is not a command that can be run without authentication, authenticate.
           // TODO
           // get auth type form mongo. if there is no auth type in db then the user hasn't authenticated yet.
+          
+          // TODO
+          // This check should be different.
+          // We shouldn't lookup by clientIP
+          // we probably should be checking token here?
+          // or using client uuid as the client IP can change.
           const findRes = await FindOne(
             {ip: clientIP}, 
             process.env.MONGODB_CHAT_USERS_COLLECTION_NAME, 
@@ -357,19 +365,15 @@ const Server = (
           const args = `#auth_${authType}::authcheck::${splitTokenPkg[0]}`;
           console.log(`CHAT SERVER BEFORE AUTH CHECK: ${args}`);
           let authServer = AuthServer();
-          const authRes = await authServer.Write(args);
-          console.log(`Auth check res === ${authRes}`);
-          if (!authRes) {
-              console.log("AUTHENTICATE error with Auth Server");
-              return {"err": Numerics["ERR_SASLFAIL"]()};
-          }
-          if (authRes === "Credentials incorrect") {
-            return {"err": Numerics["ERR_CREDSMISMATCH"]()}
-          } else if (authRes === "failure" || authRes === "ya fucked up kid") {
-              throw new Error("Error");
-          }
-
+          const authServerRes = await authServer.Write(args);
+          console.log(`Auth check res === ${authServerRes}`);
           authServer = null; // mark for garbage collection.
+          
+          const authRes = JSON.parse(authServerRes);
+          if (authRes?.err) {
+            console.log(`ERROR: AUTHENTICATE error with Auth Server: ${authRes["err"]}`);
+            return {"err": Numerics[authRes["err"]]()};
+          }
         }
 
         const cmdRes = await Commands[cmd](parameters, clients, clientSocket);

@@ -12,7 +12,7 @@ Note that for numerics with “human-readable” informational strings for the l
 const { CRLF } = require("./constants");
 require('dotenv').config();
 
-const RPL_WELCOME = (nick, server="Gymlete Chat") => {
+const RPL_WELCOME = (nick, server="zIRC") => {
   return `Welcome to ${server} ${nick}!`;
 }
 
@@ -36,7 +36,11 @@ const RPL_LOCALUSERS = "265";
 const RPL_GLOBALUSERS = "266";
 const RPL_WHOISCERTFP = "276";
 const RPL_NONE = "300";
-const RPL_AWAY = "301";
+
+const RPL_AWAY = (client, nick, message) => {
+  return `${client} ${nick} 301 :${message}`;
+};
+
 const RPL_USERHOST = "302";
 const RPL_UNAWAY = "305";
 const RPL_NOWAWAY = "306";
@@ -145,7 +149,9 @@ const ERR_INVALIDCAPCMD = (client="*", command="...") => {
   return `410 ${client} ${command} :Invalid CAP command`;
 }
 
-const ERR_INPUTTOOLONG = "417";
+const ERR_INPUTTOOLONG = () => {
+  return "417";
+};
 
 const ERR_UNKNOWNCOMMAND = (command) => {
   return `${command} 421 :Unknown command`;
@@ -293,6 +299,7 @@ const Numerics = {
   "ERR_HELPNOTFOUND": ERR_HELPNOTFOUND,
   "ERR_NOSUCHNICK": ERR_NOSUCHNICK,
   "ERR_CANNOTSENDTOCHAN": ERR_CANNOTSENDTOCHAN,
+  "RPL_AWAY": RPL_AWAY,
 }
 
 module.exports = { 

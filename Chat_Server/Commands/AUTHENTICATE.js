@@ -2,10 +2,13 @@ const { UpdateOne, FindOneAndUpdate, FindOne } = require("../db");
 const { Numerics } = require("../numerics");
 const { AuthServer } = require("../auth_server_comm");
 const { CRLF } = require("../constants");
+const { isJson } = require("../utils");
 require('dotenv').config();
+const _logger = require('pino')();
+const logger = _logger.child({ Command: 'AUTHENTICATE' });
 
 const AUTHENTICATE = async (params, clients, clientSocket) => {
-    console.log(`AUTHENTICATE Start. params: ${params}, clients: ${clients}, clientSocket: ${clientSocket}`)
+    logger.info(`AUTHENTICATE Start. params: ${params}, clients: ${clients}, clientSocket: ${clientSocket}`)
     // client needs to have negotiated sasl cap to use this command
     if (params.length === 0) {
         return Numerics["ERR_NEEDMOREPARAMS"]("AUTHENTICATE");
@@ -16,12 +19,13 @@ const AUTHENTICATE = async (params, clients, clientSocket) => {
      * @param Object parameters capabilities 
      */
     const callback = async (parameters) => {
-        console.log(`AUTHENTICATE callback. parameters: ${Object.keys(parameters)}`);
-        console.log(`CAPS ==== ${JSON.stringify(parameters["capabilities"])}`);
+        logger.info(`AUTHENTICATE callback. parameters: ${Object.keys(parameters)}`);
+        logger.info(`CAPS ==== ${JSON.stringify(parameters["capabilities"])}`);
         if (!(parameters?.capabilities)) {
             return {"err": "callback error for AUTHENTICATE"};
         }
         const clientIP = clientSocket.remoteAddress;
+        logger.info(`AUTHENTICATE callback, clientIP: ${clientIP}`);
         /**
          * Get sasl cap
          * Set authentication state
@@ -33,7 +37,7 @@ const AUTHENTICATE = async (params, clients, clientSocket) => {
             {$set: {"state.auth.isAuthenticating": true}}, 
             {upsert: true, returnOriginal: false, projection: {"state.auth.step": 1, _id: 0, "state.auth.failures": 1, "state.auth.type": 1}}
             );
-        console.log(`AUTHENTICATE FIND RES = ${JSON.stringify(findRes)}`);
+        logger.info(`AUTHENTICATE FIND RES = ${JSON.stringify(findRes)}`);
         if (!findRes) {
             return {"err": Numerics["ERR_SASLABORTED"]("You must negotiate SASL capability to authenticate")};
         }
@@ -54,7 +58,7 @@ const AUTHENTICATE = async (params, clients, clientSocket) => {
         }
 
         const clientAuthStep = !findRes?.value?.state?.auth?.step ? 1 : findRes?.value?.state?.auth?.step;
-        console.log(`clientAuthStep = ${clientAuthStep}`);
+        logger.info(`clientAuthStep = ${clientAuthStep}`);
 
         const supportedMechanisms = parameters["capabilities"]["sasl"];
         const authParams = String(params);
@@ -68,7 +72,7 @@ const AUTHENTICATE = async (params, clients, clientSocket) => {
             return {"res": Numerics["RPL_SASLMECHS"](supportedMechanisms)};
         }
 
-        console.log(`AUTHENTICATE params = ${authParams}`);
+        logger.info(`AUTHENTICATE params = ${authParams}`);
 
         // MUST prepend args with # character as we are querying an EXISTING auth method on the Auth Server.
         // See auth server README.md for more info.
@@ -86,11 +90,11 @@ const AUTHENTICATE = async (params, clients, clientSocket) => {
         if (!authType) {
             // set type here
             const updateRes = await UpdateOne({ip: clientIP}, {$set: {"state.auth.type": modAuthParams}}, {"upsert": true});
-            console.log(`Auth type set: ${updateRes}`);
+            logger.info(`Auth type set: ${updateRes}`);
         }
 
         const _authType = !authType ? modAuthParams.toLowerCase() : authType.toLowerCase()
-        console.log(`modAuthParams: ${modAuthParams}, authType: ${authType}`);
+        logger.info(`modAuthParams: ${modAuthParams}, authType: ${authType}`);
 
         /**
          * msg order should be <auth_type>::<step>::<params>
@@ -99,27 +103,34 @@ const AUTHENTICATE = async (params, clients, clientSocket) => {
         try {
             const authServer = AuthServer();
             const authRes = await authServer.Write(args);
-            console.log(authRes);
+            logger.info(authRes);
+
+            // TODO
+            // have auth server return the failure type based on the authentication type
+            // e.g. return "ERR_SASLFAIL"
+            if (isJson(authRes)) {
+                logger.info(`AUTHENTICATE authRes === Json: ${authRes}`)
+                const authResParsed = JSON.parse(authRes);
+                if (authResParsed?.err) {
+                    logger.info("AUTHENTICATE authRes contains err");
+                    return {"err": Numerics[authResParsed["err"]]()};
+                }
+            }
+
             if (!authRes) {
-                console.log("AUTHENTICATE error with Auth Server");
+                logger.info("AUTHENTICATE error with Auth Server");
                 // TODO
                 // inc failure count in db
                 return {"err": Numerics["ERR_SASLFAIL"]()};
             }
 
-            if (authRes === "Credentials incorrect") {
-                return {"err": Numerics["ERR_CREDSMISMATCH"]()}
-            } else if (authRes === "failure" || authRes === "ya fucked up kid") {
-                throw new Error("Error");
-            }
-
-            // if successful inc the step we are on
+            // if successful (got past the if checks above) inc the step we are on
             const updateRes = await UpdateOne(
                 {ip: clientIP, "state.capabilities": ["sasl"]},
                 {$inc: {"state.auth.step": 1}}
             );
             // if (updateRes !== true) {
-            //     console.log(`MONGO ERROR: UpdateOne failed`);
+            //     logger.info(`MONGO ERROR: UpdateOne failed`);
             //     return {"err": Numerics["ERR_UNKNOWNERROR"]()}
             // }
             try {
@@ -135,21 +146,21 @@ const AUTHENTICATE = async (params, clients, clientSocket) => {
                         {$set: {"state.auth.success": true}}
                     );
                     // if (updateRes !== true) {
-                    //     console.log(`MONGO ERROR: UpdateOne failed`);
+                    //     logger.info(`MONGO ERROR: UpdateOne failed`);
                     //     return {"err": Numerics["ERR_UNKNOWNERROR"]()}
                     // }
                 } else {
-                    console.log(`PLAIN Auth failed for some reason...`);
+                    logger.info(`PLAIN Auth failed for some reason...`);
                     throw new Error("Error");
                 }
             } catch (notJsonObject) {
-                console.log(`authRes not json Object`);
+                logger.info(`authRes not json Object`);
                 clientSocket.write(`AUTHENTICATE ${authRes}` + CRLF);
             }
 
             return null;
         } catch (error) {
-            console.log(`Error during auth server: ${error}`);
+            logger.info(`Error during auth server: ${error}`);
             const updateRes = await UpdateOne(
                 {ip: clientIP, "state.capabilities": ["sasl"]}, 
                 {$inc: {"state.auth.failures": 1}}

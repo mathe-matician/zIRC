@@ -14,7 +14,8 @@ const AuthCheck = async (token) => {
   console.log(`Auth_PLAIN_AuthCheck Expiration: ${authExpr}`);
   if (!authExpr) {
     console.log("Failed auth check when checking DB");
-    return "failure";
+    return '{"err": "ERR_SASLFAIL"}';
+    // return "failure";
   }
   console.log(`Successfully got token_expr from DB!`);
 
@@ -22,7 +23,8 @@ const AuthCheck = async (token) => {
   const expiration = new Date(authExpr);
   if (now > expiration) {
     console.log(`Auth_PLAIN_AuthCheck token is expired. now: ${now}, expiration: ${expiration}`);
-    throw new Error("Error");
+    // throw new Error("Error");
+    return '{"err": "ERR_SASLFAIL"}';
   }
   return "success"
 }
@@ -70,7 +72,8 @@ const Exec = async (args) => {
             console.log(`Auth: ${JSON.stringify(authCheckRes)}`);
             if (!authCheckRes) {
               console.log("Failed auth check when checking DB");
-              return "failure";
+              // return "failure";
+              return '{"err": "ERR_SASLFAIL"}';
             }
             console.log(`Successfully got creds from DB!`);
             const checkResult = authCheckRes["row"];
@@ -88,7 +91,8 @@ const Exec = async (args) => {
             // const hash = chilkatManager.hash_string(password, dbSalt);
             if (hash !== pwHash) {
               console.log("Password doesn't match")
-              return "Credentials incorrect";
+              // return "Credentials incorrect";
+              return '{"err": "ERR_SASLFAIL"}';
             }
 
             // const tokenPkg = chilkatManager.session_token();
@@ -113,7 +117,7 @@ const Exec = async (args) => {
             });
             
         default:
-            return null;
+            return '{"err": "ERR_SASLFAIL"}';
     }
 };
 
