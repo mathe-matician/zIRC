@@ -7,12 +7,15 @@ const {
 const { Numerics } = require("../numerics");
 const { SCHEMA_CAPState } = require("../db/schema/chatuser.schema");
 
+const _logger = require('pino')();
+const logger = _logger.child({ Service: 'Chat Server', Command: "CAP" });
+
 /**
  * Connection Messages
  */
 const CAP_LS = async (clientIP, requestedServerVersion, capabilities, serverVersion, deviceUID) => {
-    console.log("CAP_LS start");
-    console.log(`clientIP: ${clientIP}, requestedServerVersion: ${requestedServerVersion}, capabilities: ${capabilities}, serverVersion: ${serverVersion}, `);
+    logger.info("CAP_LS start");
+    logger.info(`clientIP: ${clientIP}, requestedServerVersion: ${requestedServerVersion}, capabilities: ${capabilities}, serverVersion: ${serverVersion}, `);
     if (!requestedServerVersion) {
         const findRes = await FindOne({ip: clientIP, "state.capStarted": true}, process.env.MONGODB_CHAT_USERS_COLLECTION_NAME);
         if (!findRes) {
@@ -21,14 +24,14 @@ const CAP_LS = async (clientIP, requestedServerVersion, capabilities, serverVers
         // if here, the client is already in capability negotiation
     } else {
         if (parseInt(requestedServerVersion) < serverVersion) {
-            console.log(`requestedServerVersion: ${requestedServerVersion} < serverVersion: ${serverVersion}`)
+            logger.info(`requestedServerVersion: ${requestedServerVersion} < serverVersion: ${serverVersion}`)
             return {"err": `You are using an unsupported client version ${requestedServerVersion}`}
         }
         const version = requestedServerVersion > serverVersion ? serverVersion : requestedServerVersion;
         const insertRes = await UpdateOne({"ip": clientIP}, {$set: SCHEMA_CAPState("UUID-TEST", clientIP, version)}, {"upsert": true});
         // const insertCAPStateRes = await InsertCAPState("1234", clientIP, version);
         if (!insertRes || insertRes?.err) {
-            console.log(`Error inserting CAP state`);
+            logger.info(`Error inserting CAP state`);
             return {"err": Numerics["ERR_UNKNOWNERROR"]("CAP", "LS")};
         }
     }
@@ -39,26 +42,26 @@ const CAP_LS = async (clientIP, requestedServerVersion, capabilities, serverVers
     let caps = "";
     Object.entries(capabilities).forEach(([k,v]) => {
         const vals = v === null ? "" : `=${v}`;
-        console.log(`CAPABILITIES: ${k}=${vals}`)
+        logger.info(`CAPABILITIES: ${k}=${vals}`)
         caps += `${k}${vals} `;
     });
-    console.log(`All CAPS LS: '${caps}'`);
+    logger.info(`All CAPS LS: '${caps}'`);
     return `LS :${caps}`;
 };
 
 const CAP_LIST = async (capabilities) => {
-    console.log("CAP_LIST start");
+    logger.info("CAP_LIST start");
 
 };
 
 const CAP_REQ = async (capabilities, requestedCaps, ip) => {
-    console.log(`CAP_REQ start: capabilities: ${Object.keys(capabilities)}, requestedCaps: ${requestedCaps}`);
+    logger.info(`CAP_REQ start: capabilities: ${Object.keys(capabilities)}, requestedCaps: ${requestedCaps}`);
     let caps;
     let toInsert = { "state.capabilities": [], "state.capStarted": true};
     if (requestedCaps.includes(",")) {
         const reqCaps = requestedCaps.split(",");
         for (const cap in reqCaps) {
-            console.log(`CAP = ${cap.trim()}`);
+            logger.info(`CAP = ${cap.trim()}`);
             const trimmedCap = cap.trim();
             if (trimmedCap in Object.keys(capabilities)) {
                 toInsert["capabilities"].push(trimmedCap);
@@ -73,7 +76,7 @@ const CAP_REQ = async (capabilities, requestedCaps, ip) => {
     }
 
     const insertRes = await UpdateOne({"ip": ip}, { $set: toInsert }, {"upsert": true});
-    console.log(`CAP REQ insertRes = ${insertRes}`);
+    logger.info(`CAP REQ insertRes = ${insertRes}`);
     if (insertRes?.err) {
         return insertRes["err"];
     }
@@ -81,17 +84,17 @@ const CAP_REQ = async (capabilities, requestedCaps, ip) => {
 };
 
 const CAP_ACK = async (capabilities) => {
-    console.log("CAP_ACK start");
+    logger.info("CAP_ACK start");
 
 };
 
 const CAP_NAK = async (capabilities) => {
-    console.log("CAP_NAK start");
+    logger.info("CAP_NAK start");
 
 };
 
 const CAP_END = async (clientIP) => {
-    console.log("CAP_END start");
+    logger.info("CAP_END start");
     
     // TODO
     // check success state of auth
@@ -105,7 +108,7 @@ const CAP_END = async (clientIP) => {
             {$unset: {"state.auth.isAuthenticating": "", "state.auth.step": ""}}
         );
         // if (updateRes !== true) {
-        //     console.log(`MONGO ERROR: UpdateOne failed`);
+        //     logger.info(`MONGO ERROR: UpdateOne failed`);
         //     return {"err": Numerics["ERR_UNKNOWNERROR"]()};
         // }
         return Numerics["RPL_WELCOME"]();
@@ -122,12 +125,12 @@ const CAP_END = async (clientIP) => {
 };
 
 const CAP_NEW = async (capabilities) => {
-    console.log("CAP_NEW start");
+    logger.info("CAP_NEW start");
 
 };
 
 const CAP_DEL = async (capabilities) => {
-    console.log("CAP_DEL start");
+    logger.info("CAP_DEL start");
 
 };
 
@@ -152,7 +155,7 @@ const CAP = async (subcommand, clients, clientSocket, deviceUID) => {
     // TODO 
     // parse subcommand
     // TODO check if can split as may not be able to.
-    console.log(`CAP start, subcommand: ${subcommand}`);
+    logger.info(`CAP start, subcommand: ${subcommand}`);
     // if (subcommand[0])
     // const nickname = nickname ? nickname : "*";
 
@@ -173,10 +176,10 @@ const CAP = async (subcommand, clients, clientSocket, deviceUID) => {
      * @returns 
      */
     const callback = async (parameters) => {
-        console.log(Object.keys(parameters));
+        logger.info(Object.keys(parameters));
         if (Object.keys(parameters).length !== 4) {
-            console.log("Not enough params!!!");
-            console.log(Object.keys(parameters));
+            logger.info("Not enough params!!!");
+            logger.info(Object.keys(parameters));
             return {"err": Numerics["ERR_NEEDMOREPARAMS"]("CAP " + subcommand[0])}
         }
         const clients = parameters["clients"];
@@ -187,26 +190,26 @@ const CAP = async (subcommand, clients, clientSocket, deviceUID) => {
 
         const clientIP = clientSocket.remoteAddress;
 
-        console.log(`CAP callback, clientHost: ${clientIP}`);
-        console.log(`Before switches = subcommand[0] '${subcommand[0]}'`);
+        logger.info(`CAP callback, clientHost: ${clientIP}`);
+        logger.info(`Before switches = subcommand[0] '${subcommand[0]}'`);
         let res;
         if (subcommand[0] in CAP_SHARED_CMDS) {
             switch (subcommand[0]) {
                 case "LS":
-                    console.log(`Switch LS`);
+                    logger.info(`Switch LS`);
                     const requestedVersion = subcommand.length < 2 ? null : subcommand[1];
                     res = await CAP_LS(clientIP, requestedVersion, capabilities, serverVersion, deviceUID);
                     break;
                 case "LIST":
-                    console.log(`Switch LIST`);
+                    logger.info(`Switch LIST`);
                     res = await CAP_LIST();
                     break;
             }
         } else if (isClient && subcommand[0] in CAP_CLIENT_CMDS) {
-            console.log(`isClient`);
+            logger.info(`isClient`);
             switch (subcommand[0]) {
                 case "REQ":
-                    console.log(`REQ subcommand1 = ${subcommand[1]}`);
+                    logger.info(`REQ subcommand1 = ${subcommand[1]}`);
                     res = await CAP_REQ(capabilities, subcommand[1], clientIP);
                     break;
                 case "END":
@@ -218,7 +221,7 @@ const CAP = async (subcommand, clients, clientSocket, deviceUID) => {
             }
             // res = await CAP_CLIENT_CMDS[subcommand[0]](clientSocket.remoteAddress, subcommand[1], capabilities, serverVersion);
         } else if (!(isClient) && subcommand[0] in CAP_SERVER_CMDS) {
-            console.log(`is not client`);
+            logger.info(`is not client`);
             let res;
             switch (subcommand[0]) {
                 case "ACK":
@@ -239,7 +242,7 @@ const CAP = async (subcommand, clients, clientSocket, deviceUID) => {
             }
             // res = await CAP_SERVER_CMDS[subcommand[0]](clientSocket.remoteAddress, subcommand[1], capabilities, serverVersion); 
         } else {
-            console.log("CAP Subcommand error");
+            logger.info("CAP Subcommand error");
             return {"err": Numerics["ERR_INVALIDCAPCMD"]("*", "CAP " + subcommand[0])}
         }
 
@@ -248,7 +251,7 @@ const CAP = async (subcommand, clients, clientSocket, deviceUID) => {
         }
 
         if (res?.immediateWrite) {
-            console.log(`CAP immediate write: ${res["immediateWrite"]}`);
+            logger.info(`CAP immediate write: ${res["immediateWrite"]}`);
             clientSocket.write(`CAP ${clientIP} ${res["immediateWrite"]}`);
             return null;
         }
