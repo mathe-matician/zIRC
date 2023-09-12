@@ -5,6 +5,8 @@ const util = require('util');
 const cryptoManager = require('./Crypto/crypto_manager');
 const { DB } = require('./db');
 require('dotenv').config();
+const bcrypt = require('bcrypt');
+const saltRounds = 10;
 const _logger = require('pino')();
 const logger = _logger.child({ Service: 'Auth Server' });
 
@@ -17,12 +19,13 @@ const AuthServer = (tls=false) => {
 
   const check_admin_token = async (token) => {
     const prp_stmt_AuthCheck = db.Prepare(
-      "AuthCheck", "SELECT (salt, token, token_expiration) FROM admin_tokens"
+      "AuthCheck", 
+      "SELECT (token, token_expr) FROM admin_tokens WHERE id = 1"
       );
     const authCheckRes = await db.Exec(prp_stmt_AuthCheck);
     logger.info(`authCheckRes: ${JSON.stringify(authCheckRes)}`);
     if (!authCheckRes) {
-      logger.info("Failed auth check!");
+      logger.error("Failed auth check!");
       throw new Error("Error");
     }
 
@@ -31,7 +34,7 @@ const AuthServer = (tls=false) => {
       checkResult.indexOf("(") + 1,
       checkResult.lastIndexOf(")")
     ).split(",");
-    const _expiration = rowValues[2];
+    const _expiration = rowValues[1];
     logger.info(rowValues);
     
     const now = new Date();
@@ -39,16 +42,13 @@ const AuthServer = (tls=false) => {
     if (now > expiration) {
       // TODO
       // should these even expire...?? probably...
-      logger.info(`Admin auth token is expired. now: ${now}, expiration: ${expiration}`);
+      logger.error(`Admin auth token is expired.\nNow: ${now}\nExpiration: ${expiration}`);
       throw new Error("Error");
     }
 
-    const salt = rowValues[0];
-    const hash = rowValues[1];
-    const tokenHash = cryptoManager.generate_hash(token, salt);
-    // const tokenHash = chilkatManager.hash_string(token, salt);
-    if (tokenHash !== hash) {
-      logger.info("Auth token does not match")
+    const compareRes = await cryptoManager.compare_password(token, rowValues[0]);
+    if (!compareRes) {
+      logger.error("Server Admin key does not match Auth Server Token");
       throw new Error("Error");
     }
   };

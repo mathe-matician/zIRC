@@ -15,9 +15,11 @@ const {
 const { CRLF } = require("./constants");
 const { Client } = require("./client");
 // const chilkatManager = require('./Chilkat/chilkat_manager');
-const { UpdateOne, FindOne } = require('./db');
+const { UpdateOne, FindOne, InsertOne } = require('./db');
 const { AuthServer } = require("./auth_server_comm");
 require('dotenv').config();
+// const { v4 } = require('uuid');
+
 const _logger = require('pino')();
 const logger = _logger.child({ Service: 'Chat Server' });
 
@@ -33,6 +35,8 @@ const Server = (
   version=process.env.IRC_VERSION, // IRCv3.2
   options={}, // e.g. supported channel types
   ) => {
+
+
     const name = serverName;
 
     // prepopulate the server with a General channel
@@ -566,9 +570,10 @@ const Server = (
             });
           });
 
-          server.listen(process.env.IRC_PORT, host, () => {
+          server.listen(process.env.IRC_PORT, host, async () => {
             logger.info('server started:', server.address());
             logger.info(`Max connections = ${server.maxConnections}`);
+            // const updateRes = await UpdateOne({ip: socket.remoteAddress}, {$set: {state: {}}});
           })
         }
         // if (e.code === 'EADDRINUSE') {

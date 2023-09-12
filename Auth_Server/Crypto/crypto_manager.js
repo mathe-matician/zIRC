@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 // const { hash_string } = require('../Chilkat/chilkat_manager');
 require('dotenv').config();
+const bcrypt = require('bcrypt');
 
 // const session_token = (
 //   exprDateType=process.env.AUTH_SERVER_EXPR_DATE_TYPE, 
@@ -11,6 +12,18 @@ require('dotenv').config();
 
 const generate_salt = (randomness=64) => {
   return crypto.randomBytes(randomness).toString("hex");
+}
+
+const compare_password = async (password, hash) => {
+  console.log(`Compare_password start`);
+  console.log(`Comparing password ${password} to hash ${hash}`);
+  const res = await bcrypt.compare(password, hash);
+  console.log(`Bcrypt res = ${res}`)
+  if (!res) {
+    return false
+  }
+  console.log('CCOMPARE PASSWORD SUCCESSFUL');
+  return true;
 }
 
 const generate_hash = (value, salt=null) => {
@@ -130,6 +143,7 @@ const session_token = (exprDateType=process.env.AUTH_SERVER_EXPR_DATE_TYPE, expr
 // decrypt_AES("bdfcd1d9a5d4fb1191248f2ca1a87a81", salt);
 
 module.exports = {
+  compare_password,
   generate_hash,
   generate_salt,
   session_token,
