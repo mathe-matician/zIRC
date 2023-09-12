@@ -1,5 +1,4 @@
 const crypto = require('crypto');
-// const { hash_string } = require('../Chilkat/chilkat_manager');
 require('dotenv').config();
 const bcrypt = require('bcrypt');
 

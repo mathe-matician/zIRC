@@ -14,7 +14,6 @@ const {
 } = require('./numerics');
 const { CRLF } = require("./constants");
 const { Client } = require("./client");
-// const chilkatManager = require('./Chilkat/chilkat_manager');
 const { UpdateOne, FindOne, InsertOne } = require('./db');
 const { AuthServer } = require("./auth_server_comm");
 require('dotenv').config();
@@ -455,9 +454,6 @@ const Server = (
     }
 
     const Start = async () => {
-
-      // chilkatManager.unlock_bundle();
-
       const findRes = await FindOne(
         {capabilities: {$exists: true}}, 
         process.env.MONGODB_CHAT_SERVER_COLLECTION_NAME

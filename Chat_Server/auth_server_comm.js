@@ -1,6 +1,5 @@
 const net = require('node:net');
 const tls = require('tls');
-// const chilkatManager = require('./Chilkat/chilkat_manager');
 require('dotenv').config();
 const _logger = require('pino')();
 const logger = _logger.child({ Service: 'Chat Server', Module: "auth_server_comm.js" });
@@ -21,7 +20,6 @@ const AuthServer = () => {
             const args = JSON.stringify(argsObj);
             logger.info(`AuthServer.Send() before sending: ${args}`)
             // logger.info(`AuthServer.Send() before encrypt: ${args}`)
-            // const encryptedArgs = chilkatManager.encrypt_decrypt_AES(args, true);
             // client.write(encryptedArgs);
             client.write(args);
         });

@@ -91,8 +91,6 @@ const AuthServer = (tls=false) => {
             logger.info(`{"remoteAddress": "${socket.remoteAddress}", "data": "${data}"}`);
             // 1. Decrypt data
             const decryptedData = data;
-            // const decryptedData = chilkatManager.encrypt_decrypt_AES(data, false);
-            // if (!decryptedData) {
             if (!decryptedData) {
               // logger.info("Could not decrypt the data...");
               logger.info("Could not get data");

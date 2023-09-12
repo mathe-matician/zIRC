@@ -2,7 +2,6 @@ const {
     Numerics
   } = require("./numerics");
 const { MongoClient, ServerApiVersion } = require('mongodb');
-// const { chilkat } = require('./Chilkat/chilkat_manager');
 const cryptoManager = require('./Crypto/crypto_manager');
 const { SCHEMA_CAPState } = require('./db/schema/chatuser.schema');
 
@@ -190,17 +189,8 @@ const RegisterClient = async (client, nickname, password) => {
     try {
         await mongoClient.connect();
         const db = await mongoClient.db(process.env.MONGODB_NAME);
-        // var crypt = new chilkat.Crypt2();
-        // crypt.HashAlgorithm = process.env.CHILKAT_PASSWORD_HASH_ALGORITHM;
-        // The byte representation of the string matters when hashing. 
-        // Tell Chilkat that we want to use the utf-8 byte representation.
         crypt.Charset = "utf-8";
         hashBytes = cryptoManager.generate_hash(password);
-        // hashBytes = crypt.HashString(password);
-        // Let's examine the hash as a hex string.
-        // var sb = new chilkat.StringBuilder();
-        // sb.AppendEncoded(hashBytes, process.env.CHILKAT_ENCODING_TYPE);
-        // logger.info("SHA256 hash = " + sb.GetAsString());
         logger.info("SHA256 hash = " + hashBytes);
         logger.info(`INSERTING TO ${process.env.MONGODB_CHAT_USERS_COLLECTION_NAME}`);
 
@@ -290,17 +280,7 @@ const InsertClient = async (nickname, password, clientName) => {
     try {
         await mongoClient.connect();
         const db = await mongoClient.db(process.env.GYMLETE_DB_NAME);
-        // var crypt = new chilkat.Crypt2();
-        // crypt.HashAlgorithm = process.env.CHILKAT_PASSWORD_HASH_ALGORITHM;
-        // The byte representation of the string matters when hashing. 
-        // Tell Chilkat that we want to use the utf-8 byte representation.
-        // crypt.Charset = "utf-8";
-        // hashBytes = crypt.HashString(password);
         hashBytes = cryptoManager.generate_hash(password);
-        // Let's examine the hash as a hex string.
-        // var sb = new chilkat.StringBuilder();
-        // sb.AppendEncoded(hashBytes, process.env.CHILKAT_ENCODING_TYPE);
-        // logger.info("SHA256 hash = " + sb.GetAsString());
         logger.info("SHA256 hash = " + hashBytes);
         logger.info(`Inserting to : ${process.env.MONGODB_CHAT_USERS_COLLECTION_NAME}`);
         const insertRes = await db.collection(

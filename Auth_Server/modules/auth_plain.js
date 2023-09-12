@@ -1,5 +1,4 @@
 const { DB } = require("../db");
-// const chilkatManager = require('../Chilkat/chilkat_manager');
 const cryptoManager = require('../Crypto/crypto_manager');
 require('dotenv').config();
 
@@ -88,14 +87,12 @@ const Exec = async (args) => {
             const pwHash = rowValues[2];
             const nickname = rowValues[3];
             const hash = cryptoManager.generate_hash(password, dbSalt);
-            // const hash = chilkatManager.hash_string(password, dbSalt);
             if (hash !== pwHash) {
               console.log("Password doesn't match")
               // return "Credentials incorrect";
               return '{"err": "ERR_SASLFAIL"}';
             }
 
-            // const tokenPkg = chilkatManager.session_token();
             const tokenPkg = cryptoManager.session_token();
             console.log(`Before prep statement. userId: ${userId}, tokenPkg["token"]: ${tokenPkg["token"]}, tokenPkg["expr"]: ${tokenPkg["expr"]}`);
             const prp_stmt_SessionId = db.Prepare(

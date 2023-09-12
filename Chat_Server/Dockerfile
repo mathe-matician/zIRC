@@ -11,7 +11,6 @@ COPY Modes/ /chat_server/Modes/
 COPY db/ /chat_server/db/
 COPY Crypto/ /chat_server/Crypto/
 COPY Commands/ /chat_server/Commands/
-COPY Chilkat/ /chat_server/Chilkat/
 
 WORKDIR /chat_server/
 RUN npm i --loglevel verbose
