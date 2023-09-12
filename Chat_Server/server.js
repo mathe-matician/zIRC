@@ -346,23 +346,24 @@ const Server = (
           // We shouldn't lookup by clientIP
           // we probably should be checking token here?
           // or using client uuid as the client IP can change or be spoofed.
-          const findRes = await FindOne(
-            {ip: clientIP}, 
-            process.env.MONGODB_CHAT_USERS_COLLECTION_NAME, 
-            process.env.MONGODB_NAME, {$project: "state"});
-          logger.info(`FIND RES === ${findRes}`);
-          logger.info(`FIND RES === ${JSON.stringify(findRes)}`);
-          const authType = findRes?.state?.auth?.type;
-          if (!authType) {
-            logger.info(`No auth type set for client`);
-            // no auth type set, so client has not authenticated.
-            // let them know they MUST auth??
-            // or fail silently?
-            clientSocket.write(Numerics["ERR_NOTREGISTERED"]());
-            return null;
-          }
+          // const findRes = await FindOne(
+          //   {ip: clientIP}, 
+          //   process.env.MONGODB_CHAT_USERS_COLLECTION_NAME, 
+          //   process.env.MONGODB_NAME, {$project: "state"});
+          // logger.info(`FIND RES === ${findRes}`);
+          // logger.info(`FIND RES === ${JSON.stringify(findRes)}`);
+          // const authType = findRes?.state?.auth?.type;
+          // if (!authType) {
+          //   logger.info(`No auth type set for client`);
+          //   // no auth type set, so client has not authenticated.
+          //   // let them know they MUST auth??
+          //   // or fail silently?
+          //   clientSocket.write(Numerics["ERR_NOTREGISTERED"]());
+          //   return null;
+          // }
           // pass only the token
-          const args = `#auth_${authType}::authcheck::${splitTokenPkg[0]}`;
+          // const args = `#auth_${authType}::authcheck::${splitTokenPkg[0]}`;
+          const args = `#auth_plain::authcheck::${splitTokenPkg[0]}`;
           logger.info(`CHAT SERVER BEFORE AUTH CHECK: ${args}`);
           let authServer = AuthServer();
           const authServerRes = await authServer.Write(args);

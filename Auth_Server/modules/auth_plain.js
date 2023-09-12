@@ -26,7 +26,7 @@ const AuthCheck = async (token) => {
     // throw new Error("Error");
     return '{"err": "ERR_SASLFAIL"}';
   }
-  return "success"
+  return '{"success": true}';
 }
 
 /**

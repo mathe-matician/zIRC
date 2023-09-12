@@ -68,7 +68,7 @@ const PRIVMSG = async (params, clients, clientSocket) => {
         logger.info(`Searching users for nickname '${target}'`);
         const nicknameRes = await FindOne({nickname: target});
         if (!nicknameRes) {
-            logger.info(`Nickname does not exist!`);
+            logger.error(`Nickname does not exist!`);
             return {"err": Numerics["ERR_NOSUCHNICK"](target)};
         }
         logger.info(`NicknameRes == ${JSON.stringify(nicknameRes)}`);
