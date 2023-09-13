@@ -6,26 +6,37 @@ const db = DB();
 
 const AuthCheck = async (token) => {
   console.log(`\nAUTH_PLAIN AuthCheck start\nWith token: ${token}`)
+
+  // Select both the token_expr and the nickname of the client making the request
+  // the current client nickname is used in many different commands, so we just return it for all of them.
   const prp_stmt_AuthCheck = db.Prepare(
-    "Auth_PLAIN_AuthCheck", "SELECT (token_expr) FROM user_tokens WHERE token = $1", [token]
-    );
+    "Auth_PLAIN_AuthCheck",
+    `WITH pkg AS (
+      SELECT token_expr, user_id
+      FROM user_tokens
+      WHERE token = $1
+      )
+      SELECT p.token_expr, u.nickname
+      FROM pkg p
+      JOIN users u ON p.user_id = u.id`,
+      [token]
+  );
   const authExpr = await db.Exec(prp_stmt_AuthCheck);
-  console.log(`Auth_PLAIN_AuthCheck Expiration: ${authExpr}`);
+  console.log(`Auth_PLAIN_AuthCheck Expiration: ${JSON.stringify(authExpr)}`);
   if (!authExpr) {
     console.log("Failed auth check when checking DB");
     return '{"err": "ERR_SASLFAIL"}';
-    // return "failure";
   }
-  console.log(`Successfully got token_expr from DB!`);
+  console.log(`Successfully got token_expr and nickname from DB!`);
 
   const now = new Date();
-  const expiration = new Date(authExpr);
+  const expiration = new Date(authExpr?.token_expr);
   if (now > expiration) {
     console.log(`Auth_PLAIN_AuthCheck token is expired. now: ${now}, expiration: ${expiration}`);
-    // throw new Error("Error");
     return '{"err": "ERR_SASLFAIL"}';
   }
-  return '{"success": true}';
+  console.log("AuthCheck Successful!");
+  return `{"nickname": "${authExpr?.nickname}"}`;
 }
 
 /**

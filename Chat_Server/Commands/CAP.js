@@ -13,7 +13,7 @@ const logger = _logger.child({ Service: 'Chat Server', Command: "CAP" });
 /**
  * Connection Messages
  */
-const CAP_LS = async (clientIP, requestedServerVersion, capabilities, serverVersion, deviceUID) => {
+const CAP_LS = async (clientIP, requestedServerVersion, capabilities, serverVersion) => {
     logger.info("CAP_LS start");
     logger.info(`clientIP: ${clientIP}, requestedServerVersion: ${requestedServerVersion}, capabilities: ${capabilities}, serverVersion: ${serverVersion}, `);
     if (!requestedServerVersion) {
@@ -151,7 +151,7 @@ const CAP_CLIENT_CMDS = {
     "END": CAP_END,
 };
 
-const CAP = async (subcommand, clients, clientSocket, deviceUID) => {
+const CAP = async (subcommand, clients, clientSocket, clientNickname) => {
     // TODO 
     // parse subcommand
     // TODO check if can split as may not be able to.
@@ -198,7 +198,7 @@ const CAP = async (subcommand, clients, clientSocket, deviceUID) => {
                 case "LS":
                     logger.info(`Switch LS`);
                     const requestedVersion = subcommand.length < 2 ? null : subcommand[1];
-                    res = await CAP_LS(clientIP, requestedVersion, capabilities, serverVersion, deviceUID);
+                    res = await CAP_LS(clientIP, requestedVersion, capabilities, serverVersion);
                     break;
                 case "LIST":
                     logger.info(`Switch LIST`);

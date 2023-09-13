@@ -168,6 +168,7 @@ const AuthServer = (tls=false) => {
                 logger.info(`args[0] === "authcheck"`)
                 logger.info(`Passing in args:\n${args}`);
                 const authCheckRes = await module.AuthCheck(args[1]);
+                logger.info(`AuthCheck returned: ${authCheckRes}`);
                 socket.write(authCheckRes);
               } else {
                 const res = await module.Exec(args); // pass rest of args into Exec method

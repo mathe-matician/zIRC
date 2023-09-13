@@ -1,6 +1,6 @@
-const SCHEMA_ChatMsg = (userId, server, message, tags) => {
+const SCHEMA_ChatMsg = (sender, server, message, tags) => {
     return {
-        "userId": userId,
+        "sender": sender,
         "server": server,
         "message": message,
         "timestamp": Date.now(),

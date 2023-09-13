@@ -20,7 +20,7 @@ const ELIST = async () => {
  * @param {*} clientSocket 
  * @returns 
  */
-const LIST = async (params, clients, clientSocket) => {
+const LIST = async (params, clients, clientSocket, clientNickname) => {
     logger.info(`LIST Start.`);
     // Parameters: [<channel>{,<channel>}] [<elistcond>{,<elistcond>}]
     // both parameters are OPTIONAL

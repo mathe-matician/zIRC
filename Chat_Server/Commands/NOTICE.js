@@ -1,7 +1,7 @@
 const { FindOne } = require("../db");
 require('dotenv').config();
 
-const NOTICE = async (params, clients, clientSocket) => {
+const NOTICE = async (params, clients, clientSocket, clientNickname) => {
     // <target>{,<target>} <text to be sent>
     
     // if (resObj?.command) {

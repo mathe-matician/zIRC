@@ -22,7 +22,7 @@ const logger = _logger.child({ Service: 'Chat Server', Command: "PRIVMSG" });
  * @param {*} clientSocket 
  * @returns 
  */
-const PRIVMSG = async (params, clients, clientSocket) => {
+const PRIVMSG = async (params, clients, clientSocket, clientNickname) => {
     logger.info(`PRIVMSG start:\nparams: ${params}`);
     if (params.length !== 2) {
         return {"err": Numerics["ERR_NEEDMOREPARAMS"]("PRIVMSG")};
@@ -72,20 +72,12 @@ const PRIVMSG = async (params, clients, clientSocket) => {
             return {"err": Numerics["ERR_NOSUCHNICK"](target)};
         }
         logger.info(`NicknameRes == ${JSON.stringify(nicknameRes)}`);
+        logger.info(`Sending message from ${clientNickname} to ${target}`);
 
-        // get source nickname from clientIP
-        logger.info(`Searching for ${clientSocket.remoteAddress}'s nickname...`);
-        const senderNicknameRes = await FindOne(
-            {ip: clientSocket.remoteAddress},
-            process.env.MONGODB_CHAT_USERS_COLLECTION_NAME, 
-            process.env.MONGODB_NAME, 
-            {nickname: 1}
-        );
-
-        const collectionName = `${target}_usernick`
+        const collectionName = `${target}_${clientNickname}`
         const insertRes = await InsertOne(
             SCHEMA_ChatMsg(
-                "userid",
+                clientNickname,
                 "server",
                 message,
                 "tags"
@@ -93,7 +85,7 @@ const PRIVMSG = async (params, clients, clientSocket) => {
             collectionName,
             process.env.MONGODB_CHAT_MESSAGE_DB_NAME
             );
-
+        logger.info(`PRIVMSG insertRes = ${JSON.stringify(insertRes)}`)
         // how does it work? just anyone can private message anyone?
         // yes
         // allow for blocking though

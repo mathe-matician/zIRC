@@ -7,8 +7,8 @@ require('dotenv').config();
 const _logger = require('pino')();
 const logger = _logger.child({ Command: 'AUTHENTICATE' });
 
-const AUTHENTICATE = async (params, clients, clientSocket) => {
-    logger.info(`AUTHENTICATE Start. params: ${params}, clients: ${clients}, clientSocket: ${clientSocket}`)
+const AUTHENTICATE = async (params, clients, clientSocket, clientNickname) => {
+    logger.info(`AUTHENTICATE Start. params: ${params}, clients: ${clients}, clientSocket: ${clientSocket}, nickName: ${clientNickname}`)
     // client needs to have negotiated sasl cap to use this command
     if (params.length === 0) {
         return Numerics["ERR_NEEDMOREPARAMS"]("AUTHENTICATE");

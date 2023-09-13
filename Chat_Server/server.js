@@ -328,6 +328,7 @@ const Server = (
       // parameters.pop(); // get rid of the \r\n
       logger.info(`Message = '${message}', Command = '${cmd}', Parameters = '${parameters}', Token = ${splitTokenPkg[0]}`);
       // const resObj = {res: "", parameters: parameters, client: clientIdentifiers};
+      let authRes = {};
       if (cmd in Numerics) {
         // this is a message from a server
         logger.info("Message is numeric from server");
@@ -373,14 +374,14 @@ const Server = (
           logger.info(`Auth check res === ${authServerRes}`);
           authServer = null; // mark for garbage collection.
           
-          const authRes = JSON.parse(authServerRes);
+          authRes = JSON.parse(authServerRes);
           if (authRes?.err) {
             logger.info(`ERROR: AUTHENTICATE error with Auth Server: ${authRes["err"]}`);
             return {"err": Numerics[authRes["err"]]()};
           }
         }
 
-        const cmdRes = await Commands[cmd](parameters, clients, clientSocket);
+        const cmdRes = await Commands[cmd](parameters, clients, clientSocket, authRes?.nickname);
         if (!cmdRes) {
           return null;
         }

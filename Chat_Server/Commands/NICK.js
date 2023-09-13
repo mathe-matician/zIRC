@@ -5,7 +5,7 @@ const _logger = require('pino')();
 const logger = _logger.child({ Service: 'Chat Server', Command: "NICK" });
 
 //parameters, clients, clientSocket
-const NICK = async (nickname, clients, clientSocket) => {
+const NICK = async (nickname, clients, clientSocket, clientNickname) => {
     logger.info(`NICK cmd start. nickname = '${nickname}', clients: '${clients}'`);
     const clientIP = clientSocket.remoteAddress;
     const findRes = await FindOne(
