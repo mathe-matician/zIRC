@@ -82,7 +82,7 @@ const Server = (
       "capabilities": null,
       "serverVersion": version,
       "isClient": true,
-      "clientSocket": null,
+      "clientSocket": null
     };
 
     const verifyServerName = () => {
@@ -381,7 +381,13 @@ const Server = (
           }
         }
 
-        const cmdRes = await Commands[cmd](parameters, clients, clientSocket, authRes?.nickname);
+        const cmdRes = await Commands[cmd](
+          parameters, 
+          clients, 
+          clientSocket, 
+          !authRes?.nickname ? "*" : authRes?.nickname, 
+          serverName
+        );
         if (!cmdRes) {
           return null;
         }
@@ -568,7 +574,7 @@ const Server = (
           });
 
           server.listen(process.env.IRC_PORT, host, async () => {
-            logger.info('server started:', server.address());
+            logger.info(`server started: ${JSON.stringify(server.address())}`);
             logger.info(`Max connections = ${server.maxConnections}`);
             // const updateRes = await UpdateOne({ip: socket.remoteAddress}, {$set: {state: {}}});
           })

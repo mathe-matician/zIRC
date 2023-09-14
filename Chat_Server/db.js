@@ -322,6 +322,41 @@ const CollectionExists = async (collectionName, database=process.env.MONGODB_CHA
     }
 };
 
+/**
+ * 
+ * Purpose: To see whether collection 1 OR collection 2 exists for chat personal messages
+ *          For example, it could either be nickname1_nickname2 OR nickname2_nickname1
+ * 
+ * @param {*} collectionName1 
+ * @param {*} collectionName2 
+ * @param {*} database 
+ * @returns 
+ */
+const WhichCollectionExists = async (collectionName1, collectionName2, database=process.env.MONGODB_CHAT_MESSAGE_DB_NAME) => {
+  const mongoClient = GetMongoConn();
+    try {
+        await mongoClient.connect();
+        const db = await mongoClient.db(database);
+        logger.info(`collectionName1: ${collectionName1}, collectionName1 type: ${typeof(collectionName1)}, collectionName2: ${collectionName2},`)
+        const collections = await db.listCollections().toArray();
+        for (const col of collections) {
+          logger.info(`Searching for '${collectionName1}' || '${collectionName2}' ?= '${col?.name}'`)
+          if (col?.name === collectionName1) {
+            return collectionName1;
+          } else if (col?.name === collectionName2) {
+            return collectionName2;
+          }
+        }
+
+        return false;
+    } catch (error) {
+        logger.info(`CollectionExists == ${error}`);
+        return false;
+    } finally {
+      await mongoClient.close();
+    }
+};
+
 module.exports = {
     MongoDB,
     InsertCAPState,

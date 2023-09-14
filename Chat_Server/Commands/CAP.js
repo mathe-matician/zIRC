@@ -93,7 +93,7 @@ const CAP_NAK = async (capabilities) => {
 
 };
 
-const CAP_END = async (clientIP) => {
+const CAP_END = async (clientNickname) => {
     logger.info("CAP_END start");
     
     // TODO
@@ -151,7 +151,7 @@ const CAP_CLIENT_CMDS = {
     "END": CAP_END,
 };
 
-const CAP = async (subcommand, clients, clientSocket, clientNickname) => {
+const CAP = async (subcommand, clients, clientSocket, clientNickname, serverName) => {
     // TODO 
     // parse subcommand
     // TODO check if can split as may not be able to.
@@ -213,10 +213,10 @@ const CAP = async (subcommand, clients, clientSocket, clientNickname) => {
                     res = await CAP_REQ(capabilities, subcommand[1], clientIP);
                     break;
                 case "END":
-                    res = await CAP_END(clientIP);
+                    res = await CAP_END(clientNickname, serverName);
                     break;
                 default:
-                    res = Numerics["ERR_INVALIDCAPCMD"]("*", clientIP);
+                    res = Numerics["ERR_INVALIDCAPCMD"](clientNickname, clientIP);
                     break;
             }
             // res = await CAP_CLIENT_CMDS[subcommand[0]](clientSocket.remoteAddress, subcommand[1], capabilities, serverVersion);

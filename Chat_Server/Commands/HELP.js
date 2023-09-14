@@ -82,7 +82,7 @@ const HELP_SPECIFIC = async (cmd, clientSocket) => {
     }
 }
 
-const HELP = async (params, clients, clientSocket, clientNickname) => {
+const HELP = async (params, clients, clientSocket, clientNickname, serverName) => {
     logger.info(`HELP start. params: ${params}`);
     if (params.length > 0) {
         logger.info(`params.length > 0: '${params}'`)

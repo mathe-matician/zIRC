@@ -12,8 +12,8 @@ Note that for numerics with “human-readable” informational strings for the l
 const { CRLF } = require("./constants");
 require('dotenv').config();
 
-const RPL_WELCOME = (nick, server="zIRC") => {
-  return `Welcome to ${server} ${nick}!`;
+const RPL_WELCOME = (nick, serverName) => {
+  return `Welcome to ${serverName} ${nick}!`;
 }
 
 const RPL_YOURHOST = "002";
@@ -127,8 +127,8 @@ const ERR_UNKNOWNERROR = (command, subcommand=[""], info="Unknown error occurred
   return `${command} ${parsedSubCommands}400 :${info}`;
 }
 
-const ERR_NOSUCHNICK = (nickname="*") => {
-  return `<client> ${nickname} 401 :No such nick/channel`;
+const ERR_NOSUCHNICK = (nickname="*", clientNickname="*") => {
+  return `${clientNickname} ${nickname} 401 :No such nick/channel`;
 }
 
 const ERR_NOSUCHSERVER = "402";
@@ -143,11 +143,24 @@ const ERR_CANNOTSENDTOCHAN = (client="*", channel="*") => {
 
 const ERR_TOOMANYCHANNELS = "405";
 const ERR_WASNOSUCHNICK = "406";
+
+const ERR_TOOMANYTARGETS = (client, command="PRIVMSG") => {
+  return `${client} 407 :Too many targets`;
+};
+
 const ERR_NOORIGIN = "409";
 
 const ERR_INVALIDCAPCMD = (client="*", command="...") => {
-  return `410 ${client} ${command} :Invalid CAP command`;
+  return `${client} ${command} 410 :Invalid CAP command`;
 }
+
+const ERR_NORECIPIENT = (client="*", command="*") => {
+  return `${client} 411 :No recipient given (${command})`;
+}
+
+const ERR_NOTEXTTOSEND = (client="*") => {
+  return `${client} 412 :No text to send`;
+};
 
 const ERR_INPUTTOOLONG = () => {
   return "417";
@@ -260,8 +273,8 @@ const ERR_SASLABORTED = (message="SASL authentication aborted") => {
 
 const ERR_SASLALREADY = "907";
 
-const RPL_SASLMECHS = (mechanisms) => {
-  return `:server 908 <nick> ${mechanisms} :are available SASL mechanisms`;
+const RPL_SASLMECHS = (mechanisms, serverName) => {
+  return `:${serverName} 908 <nick> ${mechanisms} :are available SASL mechanisms`;
 }
 
 const Numerics = {
@@ -300,6 +313,9 @@ const Numerics = {
   "ERR_NOSUCHNICK": ERR_NOSUCHNICK,
   "ERR_CANNOTSENDTOCHAN": ERR_CANNOTSENDTOCHAN,
   "RPL_AWAY": RPL_AWAY,
+  "ERR_NOTEXTTOSEND": ERR_NOTEXTTOSEND,
+  "ERR_TOOMANYTARGETS": ERR_TOOMANYTARGETS,
+  "ERR_NORECIPIENT": ERR_NORECIPIENT,
 }
 
 module.exports = { 

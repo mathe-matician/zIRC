@@ -15,7 +15,7 @@ require('dotenv').config();
  * @param {*} clients 
  * @param {*} clientSocket 
  */
-const USER = async (params, clients, clientSocket) => {
+const USER = async (params, clients, clientSocket, clientNickname, serverName) => {
     // TODO
     // Check if already registered during CAP
     // If a client tries to send the USER command after they have already completed registration with the server, the ERR_ALREADYREGISTERED reply should be sent and the attempt should fail.
