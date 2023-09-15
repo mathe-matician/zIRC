@@ -2,13 +2,12 @@
 const net = require('node:net');
 const fs = require('node:fs');
 const readline = require("readline");
-const { v4 } = require('uuid');
 
 let nickname;
 const port = "6667";
 const host = "127.0.0.1";
-let clientUUID = "";
-let clientUUIDExists = false;
+let clientUID = "";
+let clientUIDExists = false;
 let client;
 let tokenExists = false;
 let tokenpkg = "";
@@ -19,7 +18,7 @@ console.log(`///////////////////////////////////////////////////////////////////
 console.log(`//// Available Commands:`);
 console.log(`//// \tuse <user>:`);
 console.log(`//// \t\tSelect the user to use. E.g. 0, 1, 2, 3, admin (whatever the file is named)`);
-console.log(`//// \t\tIf user doesn't exist, create uuid and save it.`);
+console.log(`//// \t\tIf user doesn't exist, create uid and save it.`);
 console.log(`//// \tconnect: Connects to IRC server`);
 console.log(`/////////////////////////////////////////////////////////////////////////////////////\n\n`);
 const reader = readline.createInterface({ input: process.stdin });
@@ -29,16 +28,16 @@ const reader = readline.createInterface({ input: process.stdin });
     } else {
       if (line.includes("use")) {
         const res = line.split(" ");
-        GetUserUUID(res[1]);
+        GetUserUID(res[1]);
       }
-      // GetUserUUID();
+      // GetUserUID();
   
       if (client) {
-        console.log(`CLIENT UUID: '${clientUUID}', clientUUIDExists: ${clientUUIDExists}`);
+        console.log(`CLIENT UID: '${clientUID}', clientUIDExists: ${clientUIDExists}`);
         if (tokenExists) {
           client.write(`tokenPkg::${tokenpkg} :${nickname}@${host} ${line} \r\n`);
-        } else if (clientUUIDExists) {
-          client.write(`clientUUID::${clientUUID} :${nickname}@${host} ${line} \r\n`)
+        } else if (clientUIDExists) {
+          client.write(`clientUID::${clientUID} :${nickname}@${host} ${line} \r\n`)
         } else {
           client.write(`:${nickname}@${host} ${line} \r\n`)
         }
@@ -49,24 +48,24 @@ const reader = readline.createInterface({ input: process.stdin });
     client.end()
   });
 
-const GetUserUUID = (uuid) => {
+const GetUserUID = (uid) => {
   try {
-    if (fs.existsSync(uuid)) {
-      const allFileContents = fs.readFileSync(uuid, 'utf-8');
+    if (fs.existsSync(uid)) {
+      const allFileContents = fs.readFileSync(uid, 'utf-8');
       allFileContents.split(/\r?\n/).forEach(line =>  {
         if (line.length !== 0) {
-          clientUUID = line;
+          clientUID = line;
         }
       });
     } else {
-      console.log(`UUID == ${uuid}`);
-      clientUUIDExists = true;
-      // generate UUID
-      // const uuid = v4();
-      // write file with uuid for later use
-      fs.writeFileSync(uuid, uuid);
-      // set global uuid here.
-      clientUUID = uuid;
+      console.log(`UID == ${uid}`);
+      clientUIDExists = true;
+      // generate UID
+      // const uid = v4();
+      // write file with uid for later use
+      fs.writeFileSync(uid, uid);
+      // set global uid here.
+      clientUID = uid;
     }
   } catch(err) {
     console.log(err);
@@ -110,9 +109,9 @@ const Connect = () => {
         // token = tokenPkg[0];
         // token_expr = tokenPkg[1];
         tokenExists = true;
-      } else if (splitData[0] === "clientUUID") {
-        console.log('Recieve client uuid from server')
-        GetUserUUID(splitData[1].replace(/\s+/g, ' ').trim());
+      } else if (splitData[0] === "clientUID") {
+        console.log('Recieve client uid from server')
+        GetUserUID(splitData[1].replace(/\s+/g, ' ').trim());
       }
 
       if (crlfsplit.length > 0) {

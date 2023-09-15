@@ -17,7 +17,7 @@ const { Client } = require("./client");
 const { UpdateOne, FindOne, InsertOne } = require('./db');
 const { AuthServer } = require("./auth_server_comm");
 require('dotenv').config();
-const { v4 } = require('uuid');
+const { nanoid } = require('nanoid');
 
 const _logger = require('pino')();
 const logger = _logger.child({ Service: 'Chat Server' });
@@ -82,7 +82,8 @@ const Server = (
       "capabilities": null,
       "serverVersion": version,
       "isClient": true,
-      "clientSocket": null
+      "clientSocket": null,
+      "clientUID": null
     };
 
     const verifyServerName = () => {
@@ -226,44 +227,62 @@ const Server = (
         return null;
       }
 
-      let splitClientUUID = "";
+      let splitClientUID = "";
       try {
-        // clientUUID is used as a sort of tracking of unauthenticated clients
+        // clientUID is used as a sort of tracking of unauthenticated clients
         // It is only used until a user AUTHENTICATEs and gets a token.
-        logger.info(`Trying to get clientUUID`);
-        if (message.startsWith("clientUUID")) {
-          if (splitTokenPkg.length !== 0) {
-            throw new Error("User has tokenPKG but is trying to use clientUUID in message");
-          }
-          logger.info(`message.startsWith("clientUUID")`)
-          const clientUUIDPkg = message.slice(0).match(captureUntilSpace);
-          logger.info(`clientUUIDPkg == ${clientUUIDPkg}`);
-          message = message.slice(clientUUIDPkg[0].length+1);
-          splitClientUUID = clientUUIDPkg[0].split("::");
-          splitClientUUID.shift();
-          logger.info(`splitClientUUID: ${splitClientUUID}`);
+        logger.info(`Trying to get clientUID`);
+        if (splitTokenPkg.length === 0) {
+          if (message.startsWith("clientUID")) {
+            logger.info(`message.startsWith("clientUID")`)
+            const clientUIDPkg = message.slice(0).match(captureUntilSpace);
+            logger.info(`clientUIDPkg == ${clientUIDPkg}`);
+            message = message.slice(clientUIDPkg[0].length+1);
+            splitClientUID = clientUIDPkg[0].split("::");
+            splitClientUID.shift();
+            logger.info(`splitClientUID: ${splitClientUID}`);
 
-          // TODO
-          // look up clientUUID to see if it is valid
-          const clientUUIDres = await FindOne(
-            {uuid: splitClientUUID}, 
-            process.env.MONGODB_CHAT_USERS_COLLECTION_NAME
-          );
-          logger.info(`clientUUIDres == ${JSON.stringify(clientUUIDres)}`);
+            // TODO
+            // look up clientUID to see if it is valid
+            const clientUIDres = await FindOne(
+              {uid: splitClientUID}, 
+              process.env.MONGODB_CHAT_USERS_COLLECTION_NAME
+            );
+            logger.info(`clientUIDres == ${JSON.stringify(clientUIDres)}`);
 
-          if (!clientUUIDres) {
-            logger.error(`Error with clientUUID`);
-            clientSocket.write(Numerics["ERR_UNKNOWNERROR"](message, [""]));
-            return null;
+            if (!clientUIDres) {
+              logger.error(`Error with clientUID`);
+              clientSocket.write(Numerics["ERR_UNKNOWNERROR"](message, [""]));
+              return null;
+            }
+          } else {
+            logger.info("Client does not have a clientUID yet... creating one")
+            // else client does not have a clientUID
+            // note: this also could be spoofed
+            //       the client would keep getting new clientUIDs then.
+
+            // this is pretty big, maybe use 64 bytes
+            const clientNanoid = nanoid(124);
+            const insertRes = await InsertOne(
+              {
+                "uid": clientNanoid, 
+                "ip": clientSocket.remoteAddress, 
+                "state": {}
+              }
+            );
+            
+            if (insertRes?.err) {
+              throw new Error(insertRes["err"]);
+            }
+
+            callbackReqs["clientUID"] = clientNanoid;
+
+            logger.info(`Client UID = ${clientNanoid}`);
+            clientSocket.write(`clientUID::${clientNanoid}\r\n`);
           }
-        } else {
-          // A user MUST have a clientUUID (unauthenticated) or have a tokenPKG (authenticated)
-          // this would mean a user has maliciously tried to send a crafted messaged that doesn't contain the correct pieces
-          // OR something is seriously wrong.
-          throw new Error(`User does not have a clientUUID or a tokenPKG -- something is seriously wrong or malicious behavior is happening`);
         }
       } catch (error) {
-        logger.error(`clientUUID error: ${error}`);
+        logger.error(`clientuid error: ${error}`);
         clientSocket.write(Numerics["ERR_UNKNOWNERROR"](message, [""]));
         return null;
       }
@@ -403,7 +422,7 @@ const Server = (
           // This check should be different.
           // We shouldn't lookup by clientIP
           // we probably should be checking token here?
-          // or using client uuid as the client IP can change or be spoofed.
+          // or using client uid as the client IP can change or be spoofed.
           // const findRes = await FindOne(
           //   {ip: clientIP}, 
           //   process.env.MONGODB_CHAT_USERS_COLLECTION_NAME, 
@@ -572,16 +591,14 @@ const Server = (
         } else {
           const server = net.createServer(async (socket) => {
             socket.setEncoding('utf8');
-            const clientUUID = v4()
-            const insertRes = await UpdateOne({"ip": socket.remoteAddress}, { $set: {"uuid": clientUUID, "ip": socket.remoteAddress, "state": {}}}, {"upsert": true});
-            logger.info(`Client UUID = ${clientUUID}`);
-            socket.write(`clientUUID::${clientUUID}\r\n`);
-            if (insertRes?.err) {
-              logger.info(`ERROR ${insertRes["err"]}`);
-              server.emit("end");
-            }
-            // socket.write(helloMsg);
-            // c.pipe(c);
+
+            // TODO
+            // I don't think this needs to be set right away... the client should be able to connect with no state updated.
+            // then based on whatever they send we either set their clientuid or authenticate them with a token
+            logger.info(`New client connected to server: { ip: ${socket.remoteAddress} }`)
+            // todo
+            // could add rate limiting here for connects in general
+
             socket.on('data', async (data) => {
               // TODO process message
               // const msgs = data.split("\r\n");
@@ -612,9 +629,16 @@ const Server = (
               logger.info(`client disconnected`);
               // clear all user state before disconnecting
               callbackReqs["clientSocket"] = null;
-              const updateRes = await UpdateOne(
-                {uuid: clientUUID}, {$set: {state: {}}}
-              );
+              callbackReqs["clientUID"] = null;
+              if (callbackReqs?.clientUID !== null) {
+                logger.info(`Clearing clientUID '${callbackReqs?.clientUID}' state`)
+                const updateRes = await UpdateOne(
+                  {uid: callbackReqs?.clientUID}, {$set: {state: {}}}
+                );
+                if (!updateRes) {
+                  logger.error(`Error deleting state for clientUID ${callbackReqs?.clientUID}`)
+                }
+              }
               // todo
               // check for errors from this res
             });
