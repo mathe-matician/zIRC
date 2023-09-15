@@ -5,3 +5,4 @@ Auth_Server/node_modules
 .env
 *.pem
 Auth_Server/TMP-Generators
+Chat_Server/TestClient/*-*-*-*-*
