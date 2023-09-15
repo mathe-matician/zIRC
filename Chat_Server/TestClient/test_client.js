@@ -7,7 +7,8 @@ const { v4 } = require('uuid');
 let nickname;
 const port = "6667";
 const host = "127.0.0.1";
-let clientUUID; 
+let clientUUID = "";
+let clientUUIDExists = false;
 let client;
 let tokenExists = false;
 let tokenpkg = "";
@@ -30,11 +31,14 @@ const reader = readline.createInterface({ input: process.stdin });
         const res = line.split(" ");
         GetUserUUID(res[1]);
       }
+      // GetUserUUID();
   
       if (client) {
-        // console.log(`C: :${nickname}@${host} ${line} \r\n`);
+        console.log(`CLIENT UUID: '${clientUUID}', clientUUIDExists: ${clientUUIDExists}`);
         if (tokenExists) {
           client.write(`tokenPkg::${tokenpkg} :${nickname}@${host} ${line} \r\n`);
+        } else if (clientUUIDExists) {
+          client.write(`clientUUID::${clientUUID} :${nickname}@${host} ${line} \r\n`)
         } else {
           client.write(`:${nickname}@${host} ${line} \r\n`)
         }
@@ -45,20 +49,22 @@ const reader = readline.createInterface({ input: process.stdin });
     client.end()
   });
 
-const GetUserUUID = (user) => {
+const GetUserUUID = (uuid) => {
   try {
-    if (fs.existsSync(user)) {
-      const allFileContents = fs.readFileSync(user, 'utf-8');
+    if (fs.existsSync(uuid)) {
+      const allFileContents = fs.readFileSync(uuid, 'utf-8');
       allFileContents.split(/\r?\n/).forEach(line =>  {
         if (line.length !== 0) {
           clientUUID = line;
         }
       });
     } else {
+      console.log(`UUID == ${uuid}`);
+      clientUUIDExists = true;
       // generate UUID
-      const uuid = v4();
+      // const uuid = v4();
       // write file with uuid for later use
-      fs.writeFileSync(user, uuid);
+      fs.writeFileSync(uuid, uuid);
       // set global uuid here.
       clientUUID = uuid;
     }
@@ -104,6 +110,9 @@ const Connect = () => {
         // token = tokenPkg[0];
         // token_expr = tokenPkg[1];
         tokenExists = true;
+      } else if (splitData[0] === "clientUUID") {
+        console.log('Recieve client uuid from server')
+        GetUserUUID(splitData[1].replace(/\s+/g, ' ').trim());
       }
 
       if (crlfsplit.length > 0) {

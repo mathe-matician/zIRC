@@ -7,6 +7,8 @@ const {
 const { Numerics } = require("../numerics");
 const { SCHEMA_CAPState } = require("../db/schema/chatuser.schema");
 
+const { AuthServer } = require("../auth_server_comm");
+
 const _logger = require('pino')();
 const logger = _logger.child({ Service: 'Chat Server', Command: "CAP" });
 
@@ -78,9 +80,19 @@ const CAP_REQ = async (capabilities, requestedCaps, ip) => {
     const insertRes = await UpdateOne({"ip": ip}, { $set: toInsert }, {"upsert": true});
     logger.info(`CAP REQ insertRes = ${insertRes}`);
     if (insertRes?.err) {
+        // TODO
+        // proper error here...
         return insertRes["err"];
     }
-    return {"immediateWrite": `ACK ${caps}`};
+
+    // TODO
+    // Check whether auth server is available IF the cap 'sasl' is requested.
+    // If it is not available we MUST CAP NAK sasl
+
+    // TODO
+    // in general, we should NAK any caps we can't give to the client...
+
+    return {"immediateWrite": `* ACK ${caps}`};
 };
 
 const CAP_ACK = async (capabilities) => {
@@ -177,6 +189,15 @@ const CAP = async (subcommand, clients, clientSocket, clientNickname, serverName
      */
     const callback = async (parameters) => {
         logger.info(Object.keys(parameters));
+
+        // Client SHOULD request capabilities with the server
+        // but doesn't have to.
+        // if they send CAP REQ without anything, they get default caps
+        // if they never send CAP REQ, then they get default caps
+        // if (!(parameters?.capabilities)) {
+        //     parameters[""]
+        // }
+
         if (Object.keys(parameters).length !== 4) {
             logger.info("Not enough params!!!");
             logger.info(Object.keys(parameters));
@@ -209,8 +230,15 @@ const CAP = async (subcommand, clients, clientSocket, clientNickname, serverName
             logger.info(`isClient`);
             switch (subcommand[0]) {
                 case "REQ":
-                    logger.info(`REQ subcommand1 = ${subcommand[1]}`);
-                    res = await CAP_REQ(capabilities, subcommand[1], clientIP);
+                    if (subcommand.length !== 2) {
+                        // then the client sent CAP REQ and did not specify any specific caps
+                        // so use default caps
+                        logger.info("CAP REQ no caps specified... using default caps");
+                        res = await CAP_REQ(capabilities, "sasl", clientIP);
+                    } else {
+                        logger.info(`REQ subcommand1 = ${subcommand[1]}`);
+                        res = await CAP_REQ(capabilities, subcommand[1], clientIP);
+                    }
                     break;
                 case "END":
                     res = await CAP_END(clientNickname, serverName);

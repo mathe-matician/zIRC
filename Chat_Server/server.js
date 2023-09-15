@@ -17,7 +17,7 @@ const { Client } = require("./client");
 const { UpdateOne, FindOne, InsertOne } = require('./db');
 const { AuthServer } = require("./auth_server_comm");
 require('dotenv').config();
-// const { v4 } = require('uuid');
+const { v4 } = require('uuid');
 
 const _logger = require('pino')();
 const logger = _logger.child({ Service: 'Chat Server' });
@@ -185,7 +185,6 @@ const Server = (
       let splitTokenPkg = [];
       try {
         // TODO
-        // need to not check the client's expiration as this could be forged
         // need to get token, then check in db.
         // Actually I think we check the actual one after this - need to figure that out!
         if (message.startsWith("tokenPkg")) {
@@ -194,25 +193,80 @@ const Server = (
           message = message.slice(tokenpkg[0].length+1);
           logger.info(`\nMessage after tokenPkg parsing:\n${message}\n`)
           _tokenPkg = tokenpkg[0];
+          if (!tokenpkg[0].includes("::")) {
+            throw new Error("Token package doesn't contain required delimiter '::'");
+          }
+
           splitTokenPkg = tokenpkg[0].split("::");
           splitTokenPkg.shift(); // rm the string 'tokenPkg' so the array only contains the token and expr
           logger.info(`\nsplitTokenPkg: ${splitTokenPkg}\n`);
+
+          const tokenPkgLen = splitTokenPkg.length;
+          if (tokenPkgLen !== 2) {
+            throw new Error(`Client token package length: '${tokenPkgLen}' !== 2. Should only contain token and expr`);
+          }
+
           // check whether token is expired
           const now = new Date();
           const expr = new Date(splitTokenPkg[1]);
           if (now > expr) {
-            logger.info(`--- Client token expired!! ---`);
+            // soft expiration check
+            // this would catch most token expirations unless the user was forging their expiration date
+            // the hard auth server check of this happens further down.
+            logger.warn(`--- Client token expired!! ---`);
             // client must re-authenticate
             clientSocket.write(Numerics["RPL_LOGGEDOUT"]());
             return null;
           }
+          logger.info(`tokenPkg == ${_tokenPkg}`);
         }
       } catch (error) {
-        logger.info(`Client message does not contain a token: ${error}`);
+        logger.error(`client tokenPkg error: ${error}`);
+        clientSocket.write(Numerics["ERR_UNKNOWNERROR"](message, [""]));
+        return null;
       }
-      logger.info(`tokenPkg == ${_tokenPkg}`);
 
+      let splitClientUUID = "";
+      try {
+        // clientUUID is used as a sort of tracking of unauthenticated clients
+        // It is only used until a user AUTHENTICATEs and gets a token.
+        logger.info(`Trying to get clientUUID`);
+        if (message.startsWith("clientUUID")) {
+          if (splitTokenPkg.length !== 0) {
+            throw new Error("User has tokenPKG but is trying to use clientUUID in message");
+          }
+          logger.info(`message.startsWith("clientUUID")`)
+          const clientUUIDPkg = message.slice(0).match(captureUntilSpace);
+          logger.info(`clientUUIDPkg == ${clientUUIDPkg}`);
+          message = message.slice(clientUUIDPkg[0].length+1);
+          splitClientUUID = clientUUIDPkg[0].split("::");
+          splitClientUUID.shift();
+          logger.info(`splitClientUUID: ${splitClientUUID}`);
 
+          // TODO
+          // look up clientUUID to see if it is valid
+          const clientUUIDres = await FindOne(
+            {uuid: splitClientUUID}, 
+            process.env.MONGODB_CHAT_USERS_COLLECTION_NAME
+          );
+          logger.info(`clientUUIDres == ${JSON.stringify(clientUUIDres)}`);
+
+          if (!clientUUIDres) {
+            logger.error(`Error with clientUUID`);
+            clientSocket.write(Numerics["ERR_UNKNOWNERROR"](message, [""]));
+            return null;
+          }
+        } else {
+          // A user MUST have a clientUUID (unauthenticated) or have a tokenPKG (authenticated)
+          // this would mean a user has maliciously tried to send a crafted messaged that doesn't contain the correct pieces
+          // OR something is seriously wrong.
+          throw new Error(`User does not have a clientUUID or a tokenPKG -- something is seriously wrong or malicious behavior is happening`);
+        }
+      } catch (error) {
+        logger.error(`clientUUID error: ${error}`);
+        clientSocket.write(Numerics["ERR_UNKNOWNERROR"](message, [""]));
+        return null;
+      }
 
       /**
        * Parse tag data
@@ -518,7 +572,10 @@ const Server = (
         } else {
           const server = net.createServer(async (socket) => {
             socket.setEncoding('utf8');
-            const insertRes = await UpdateOne({"ip": socket.remoteAddress}, { $set: {"ip": socket.remoteAddress, "state": {}}}, {"upsert": true});
+            const clientUUID = v4()
+            const insertRes = await UpdateOne({"ip": socket.remoteAddress}, { $set: {"uuid": clientUUID, "ip": socket.remoteAddress, "state": {}}}, {"upsert": true});
+            logger.info(`Client UUID = ${clientUUID}`);
+            socket.write(`clientUUID::${clientUUID}\r\n`);
             if (insertRes?.err) {
               logger.info(`ERROR ${insertRes["err"]}`);
               server.emit("end");
@@ -555,7 +612,9 @@ const Server = (
               logger.info(`client disconnected`);
               // clear all user state before disconnecting
               callbackReqs["clientSocket"] = null;
-              const updateRes = await UpdateOne({ip: socket.remoteAddress}, {$set: {state: {}}});
+              const updateRes = await UpdateOne(
+                {uuid: clientUUID}, {$set: {state: {}}}
+              );
               // todo
               // check for errors from this res
             });
