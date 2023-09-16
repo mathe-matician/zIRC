@@ -187,8 +187,8 @@ const ERR_USERNOTINCHANNEL = "441";
 const ERR_NOTONCHANNEL = "442";
 const ERR_USERONCHANNEL = "443";
 
-const ERR_NOTREGISTERED = () => {
-  return `451 :You have not registered`;
+const ERR_NOTREGISTERED = (message="You have not registered") => {
+  return `451 :${message}`;
 }
 
 const ERR_NEEDMOREPARAMS = (command) => {
@@ -224,8 +224,8 @@ const ERR_NOOPERHOST = "491";
 const ERR_UMODEUNKNOWNFLAG = "501";
 const ERR_USERSDONTMATCH = "502";
 
-const ERR_HELPNOTFOUND = (msg="I do not know anything about this", val=" ") => {
-  return `:${process.env.IRC_DEFAULT_SERVER_NAME} 524${val}* :${msg} ${CRLF}`
+const ERR_HELPNOTFOUND = (server=process.env.IRC_DEFAULT_SERVER_NAME, msg="I do not know anything about this", val=" ") => {
+  return `:${server} 524${val}* :${msg} ${CRLF}`
 }
 
 const ERR_INVALIDKEY = "525";
@@ -234,16 +234,16 @@ const RPL_WHOISSECURE = "671";
 const ERR_STARTTLS = "691";
 const ERR_INVALIDMODEPARAM = "696";
 
-const RPL_HELPSTART = (msg="** Help System **", val=" ") => {
-  return `:${process.env.IRC_DEFAULT_SERVER_NAME} 704${val}* :${msg}`
+const RPL_HELPSTART = (msg="** Help System **", val=" ", server=process.env.IRC_DEFAULT_SERVER_NAME) => {
+  return `:${server} 704${val}* :${msg}`
 }
 
-const RPL_HELPTXT = (msg="", val=" ") => {
-  return `:${process.env.IRC_DEFAULT_SERVER_NAME} 705${val}* :${msg}`
+const RPL_HELPTXT = (msg="", val=" ", server=process.env.IRC_DEFAULT_SERVER_NAME) => {
+  return `:${server} 705${val}* :${msg}`
 } 
 
-const RPL_ENDOFHELP = (msg="", val=" ") => {
-  return `:${process.env.IRC_DEFAULT_SERVER_NAME} 706${val}* :${msg} ${CRLF}`
+const RPL_ENDOFHELP = (msg="", val=" ", server=process.env.IRC_DEFAULT_SERVER_NAME) => {
+  return `:${server} 706${val}* :${msg} ${CRLF}`
 }
 
 const ERR_NOPRIVS = "723";

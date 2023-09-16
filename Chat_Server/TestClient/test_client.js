@@ -33,7 +33,7 @@ const reader = readline.createInterface({ input: process.stdin });
       // GetUserUID();
   
       if (client) {
-        console.log(`CLIENT UID: '${clientUID}', clientUIDExists: ${clientUIDExists}`);
+        // console.log(`CLIENT UID: '${clientUID}', clientUIDExists: ${clientUIDExists}`);
         if (tokenExists) {
           client.write(`tokenPkg::${tokenpkg} :${nickname}@${host} ${line} \r\n`);
         } else if (clientUIDExists) {
@@ -58,7 +58,7 @@ const GetUserUID = (uid) => {
         }
       });
     } else {
-      console.log(`UID == ${uid}`);
+      // console.log(`UID == ${uid}`);
       clientUIDExists = true;
       // generate UID
       // const uid = v4();

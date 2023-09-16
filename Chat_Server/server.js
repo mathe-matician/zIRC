@@ -216,15 +216,13 @@ const Server = (
             // the hard auth server check of this happens further down.
             logger.warn(`--- Client token expired!! ---`);
             // client must re-authenticate
-            clientSocket.write(Numerics["RPL_LOGGEDOUT"]());
-            return null;
+            return Numerics["RPL_LOGGEDOUT"]();
           }
           logger.info(`tokenPkg == ${_tokenPkg}`);
         }
       } catch (error) {
         logger.error(`client tokenPkg error: ${error}`);
-        clientSocket.write(Numerics["ERR_UNKNOWNERROR"](message, [""]));
-        return null;
+        return Numerics["ERR_UNKNOWNERROR"](message, [""]);
       }
 
       let splitClientUID = "";
@@ -252,39 +250,37 @@ const Server = (
 
             if (!clientUIDres) {
               logger.error(`Error with clientUID`);
-              clientSocket.write(Numerics["ERR_UNKNOWNERROR"](message, [""]));
-              return null;
+              return Numerics["ERR_UNKNOWNERROR"](message, [""]);
             }
           } else {
-            logger.info("Client does not have a clientUID yet... creating one")
-            // else client does not have a clientUID
-            // note: this also could be spoofed
-            //       the client would keep getting new clientUIDs then.
+            // logger.info("Client does not have a clientUID yet... creating one")
+            // // else client does not have a clientUID
+            // // note: this also could be spoofed
+            // //       the client would keep getting new clientUIDs then.
 
-            // this is pretty big, maybe use 64 bytes
-            const clientNanoid = nanoid(124);
-            const insertRes = await InsertOne(
-              {
-                "uid": clientNanoid, 
-                "ip": clientSocket.remoteAddress, 
-                "state": {}
-              }
-            );
+            // // this is pretty big, maybe use 64 bytes
+            // const clientNanoid = nanoid(124);
+            // const insertRes = await InsertOne(
+            //   {
+            //     "uid": clientNanoid, 
+            //     "ip": clientSocket.remoteAddress, 
+            //     "state": {}
+            //   }
+            // );
             
-            if (insertRes?.err) {
-              throw new Error(insertRes["err"]);
-            }
+            // if (insertRes?.err) {
+            //   throw new Error(insertRes["err"]);
+            // }
 
-            callbackReqs["clientUID"] = clientNanoid;
+            // callbackReqs["clientUID"] = clientNanoid;
 
-            logger.info(`Client UID = ${clientNanoid}`);
-            clientSocket.write(`clientUID::${clientNanoid}\r\n`);
+            // logger.info(`Client UID = ${clientNanoid}`);
+            // clientSocket.write(`clientUID::${clientNanoid}\r\n`);
           }
         }
       } catch (error) {
         logger.error(`clientuid error: ${error}`);
-        clientSocket.write(Numerics["ERR_UNKNOWNERROR"](message, [""]));
-        return null;
+        return Numerics["ERR_UNKNOWNERROR"](message, [""]);
       }
 
       /**
@@ -407,7 +403,7 @@ const Server = (
         logger.info("Message is numeric from server");
       } else if (cmd in Commands) {
         // this is a command from a user
-        logger.info("Message is command from user");
+        logger.info(`Message is command from user: '${cmd}'`);
 
         // TODO
         // Need to pass _tokenPkg in to all commands here.
@@ -440,6 +436,17 @@ const Server = (
           // }
           // pass only the token
           // const args = `#auth_${authType}::authcheck::${splitTokenPkg[0]}`;
+
+          // TODO
+          // IF NO TOKENPKG then this client is unauthenticated. do nothing
+          if (
+            splitTokenPkg.length === 0
+            || (splitTokenPkg.length !== 0 && splitTokenPkg[0].length > 64)
+            ) {
+            logger.error("Error with splitTokenPkg!");
+            return Numerics["ERR_NOTREGISTERED"]("You have not logged in yet. See AUTHENTICATE");
+          }
+
           const args = `#auth_plain::authcheck::${splitTokenPkg[0]}`;
           logger.info(`CHAT SERVER BEFORE AUTH CHECK: ${args}`);
           let authServer = AuthServer();
@@ -450,7 +457,7 @@ const Server = (
           authRes = JSON.parse(authServerRes);
           if (authRes?.err) {
             logger.info(`ERROR: AUTHENTICATE error with Auth Server: ${authRes["err"]}`);
-            return {"err": Numerics[authRes["err"]]()};
+            return Numerics[authRes["err"]]();
           }
         }
 
@@ -630,15 +637,15 @@ const Server = (
               // clear all user state before disconnecting
               callbackReqs["clientSocket"] = null;
               callbackReqs["clientUID"] = null;
-              if (callbackReqs?.clientUID !== null) {
-                logger.info(`Clearing clientUID '${callbackReqs?.clientUID}' state`)
-                const updateRes = await UpdateOne(
-                  {uid: callbackReqs?.clientUID}, {$set: {state: {}}}
-                );
-                if (!updateRes) {
-                  logger.error(`Error deleting state for clientUID ${callbackReqs?.clientUID}`)
-                }
-              }
+              // if (callbackReqs?.clientUID !== null) {
+              //   logger.info(`Clearing clientUID '${callbackReqs?.clientUID}' state`)
+              //   const updateRes = await UpdateOne(
+              //     {uid: callbackReqs?.clientUID}, {$set: {state: {}}}
+              //   );
+              //   if (!updateRes) {
+              //     logger.error(`Error deleting state for clientUID ${callbackReqs?.clientUID}`)
+              //   }
+              // }
               // todo
               // check for errors from this res
             });

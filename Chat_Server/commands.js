@@ -97,7 +97,7 @@ const Commands = {
 
 const UNAUTHENTICATED_CMDS = {
     "AUTHENTICATE": true,
-    "CAP": true,
+    // "CAP": true,
     "HELP": true
     // "RPL_ISUPPORT": true
 }
