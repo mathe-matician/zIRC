@@ -81,7 +81,7 @@ const Commands = {
     "AUTHENTICATE": AUTHENTICATE,
     "LIST": LIST,
     "PRIVMSG": PRIVMSG,
-    // "REGISTER": REGISTER,
+    "REGISTER": REGISTER,
 
     // "MOTD": MOTD,
     // "VERSION": VERSION,
@@ -97,6 +97,7 @@ const Commands = {
 
 const UNAUTHENTICATED_CMDS = {
     "AUTHENTICATE": true,
+    "REGISTER": true,
     // "CAP": true,
     "HELP": true
     // "RPL_ISUPPORT": true

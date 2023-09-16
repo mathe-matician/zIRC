@@ -184,6 +184,7 @@ const Server = (
       // offload this to auth server?
       let _tokenPkg = "";
       let splitTokenPkg = [];
+      logger.info("BEFORE TOKENPKG check")
       try {
         // TODO
         // need to get token, then check in db.
@@ -225,67 +226,68 @@ const Server = (
         return Numerics["ERR_UNKNOWNERROR"](message, [""]);
       }
 
-      let splitClientUID = "";
-      try {
-        // clientUID is used as a sort of tracking of unauthenticated clients
-        // It is only used until a user AUTHENTICATEs and gets a token.
-        logger.info(`Trying to get clientUID`);
-        if (splitTokenPkg.length === 0) {
-          if (message.startsWith("clientUID")) {
-            logger.info(`message.startsWith("clientUID")`)
-            const clientUIDPkg = message.slice(0).match(captureUntilSpace);
-            logger.info(`clientUIDPkg == ${clientUIDPkg}`);
-            message = message.slice(clientUIDPkg[0].length+1);
-            splitClientUID = clientUIDPkg[0].split("::");
-            splitClientUID.shift();
-            logger.info(`splitClientUID: ${splitClientUID}`);
+      // let splitClientUID = "";
+      // logger.info(`Trying to get clientUID`);
+      // try {
+      //   // clientUID is used as a sort of tracking of unauthenticated clients
+      //   // It is only used until a user AUTHENTICATEs and gets a token.
+      //   if (splitTokenPkg.length === 0) {
+      //     if (message.startsWith("clientUID")) {
+      //       logger.info(`message.startsWith("clientUID")`)
+      //       const clientUIDPkg = message.slice(0).match(captureUntilSpace);
+      //       logger.info(`clientUIDPkg == ${clientUIDPkg}`);
+      //       message = message.slice(clientUIDPkg[0].length+1);
+      //       splitClientUID = clientUIDPkg[0].split("::");
+      //       splitClientUID.shift();
+      //       logger.info(`splitClientUID: ${splitClientUID}`);
 
-            // TODO
-            // look up clientUID to see if it is valid
-            const clientUIDres = await FindOne(
-              {uid: splitClientUID}, 
-              process.env.MONGODB_CHAT_USERS_COLLECTION_NAME
-            );
-            logger.info(`clientUIDres == ${JSON.stringify(clientUIDres)}`);
+      //       // TODO
+      //       // look up clientUID to see if it is valid
+      //       const clientUIDres = await FindOne(
+      //         {uid: splitClientUID}, 
+      //         process.env.MONGODB_CHAT_USERS_COLLECTION_NAME
+      //       );
+      //       logger.info(`clientUIDres == ${JSON.stringify(clientUIDres)}`);
 
-            if (!clientUIDres) {
-              logger.error(`Error with clientUID`);
-              return Numerics["ERR_UNKNOWNERROR"](message, [""]);
-            }
-          } else {
-            // logger.info("Client does not have a clientUID yet... creating one")
-            // // else client does not have a clientUID
-            // // note: this also could be spoofed
-            // //       the client would keep getting new clientUIDs then.
+      //       if (!clientUIDres) {
+      //         logger.error(`Error with clientUID`);
+      //         return Numerics["ERR_UNKNOWNERROR"](message, [""]);
+      //       }
+      //     } else {
+      //       // logger.info("Client does not have a clientUID yet... creating one")
+      //       // // else client does not have a clientUID
+      //       // // note: this also could be spoofed
+      //       // //       the client would keep getting new clientUIDs then.
 
-            // // this is pretty big, maybe use 64 bytes
-            // const clientNanoid = nanoid(124);
-            // const insertRes = await InsertOne(
-            //   {
-            //     "uid": clientNanoid, 
-            //     "ip": clientSocket.remoteAddress, 
-            //     "state": {}
-            //   }
-            // );
+      //       // // this is pretty big, maybe use 64 bytes
+      //       // const clientNanoid = nanoid(124);
+      //       // const insertRes = await InsertOne(
+      //       //   {
+      //       //     "uid": clientNanoid, 
+      //       //     "ip": clientSocket.remoteAddress, 
+      //       //     "state": {}
+      //       //   }
+      //       // );
             
-            // if (insertRes?.err) {
-            //   throw new Error(insertRes["err"]);
-            // }
+      //       // if (insertRes?.err) {
+      //       //   throw new Error(insertRes["err"]);
+      //       // }
 
-            // callbackReqs["clientUID"] = clientNanoid;
+      //       // callbackReqs["clientUID"] = clientNanoid;
 
-            // logger.info(`Client UID = ${clientNanoid}`);
-            // clientSocket.write(`clientUID::${clientNanoid}\r\n`);
-          }
-        }
-      } catch (error) {
-        logger.error(`clientuid error: ${error}`);
-        return Numerics["ERR_UNKNOWNERROR"](message, [""]);
-      }
+      //       // logger.info(`Client UID = ${clientNanoid}`);
+      //       // clientSocket.write(`clientUID::${clientNanoid}\r\n`);
+      //     }
+      //   }
+      // } catch (error) {
+      //   logger.error(`clientuid error: ${error}`);
+      //   return Numerics["ERR_UNKNOWNERROR"](message, [""]);
+      // }
 
       /**
        * Parse tag data
        */
+      logger.info("BEFORE PARSE TAG DATA");
       if (message[0] === "@") {
         const MAX_TAG_DATA = 4094; // actually: 4096 - '@' - ' ' == 4094
         // tags parse them
@@ -327,8 +329,7 @@ const Server = (
        * Servers MAY include a source on any message
        * 
        */
-
-      logger.info(`Checking for message source ${message}`);
+      logger.info(`BEFORE Checking for message source ${message}`);
       if (message[0] === ":") {
         logger.info(`Source exists`)
         // from a server
@@ -444,7 +445,7 @@ const Server = (
             || (splitTokenPkg.length !== 0 && splitTokenPkg[0].length > 64)
             ) {
             logger.error("Error with splitTokenPkg!");
-            return Numerics["ERR_NOTREGISTERED"]("You have not logged in yet. See AUTHENTICATE");
+            return Numerics["ERR_NOTREGISTERED"]("You have not registered. Try HELP REGISTER");
           }
 
           const args = `#auth_plain::authcheck::${splitTokenPkg[0]}`;
@@ -461,6 +462,7 @@ const Server = (
           }
         }
 
+        logger.info(`BEFORE excuting command: '${cmd}'`)
         const cmdRes = await Commands[cmd](
           parameters, 
           clients, 
@@ -549,12 +551,11 @@ const Server = (
         logger.info(`COULD NOT FIND CAPABILITIES! FAILING TO START`);
         return;
       }
-      logger.info(`findRes == ${findRes}`);
-      logger.info(`findRes == ${JSON.stringify(findRes)}`);
+
       capabilities = findRes["capabilities"];
       callbackReqs["capabilities"] = capabilities;
 
-      logger.info(`CAPABILITIES == ${Object.keys(capabilities)}`);
+      logger.info(`SERVER CAPABILITIES == ${Object.keys(capabilities)}`);
 
       try {
         if (tls) {

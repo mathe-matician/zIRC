@@ -1,11 +1,13 @@
 const { DB } = require("../db");
 const cryptoManager = require('../Crypto/crypto_manager');
 require('dotenv').config();
+const _logger = require('pino')();
+const logger = _logger.child({ Service: 'Auth Server', Auth_Module: "auth_plain" });
 
 const db = DB();
 
 const AuthCheck = async (token) => {
-  console.log(`\nAUTH_PLAIN AuthCheck start\nWith token: ${token}`)
+  logger.info(`\nAUTH_PLAIN AuthCheck start\nWith token: ${token}`)
 
   // Select both the token_expr and the nickname of the client making the request
   // the current client nickname is used in many different commands, so we just return it for all of them.
@@ -22,20 +24,20 @@ const AuthCheck = async (token) => {
       [token]
   );
   const authExpr = await db.Exec(prp_stmt_AuthCheck);
-  console.log(`Auth_PLAIN_AuthCheck Expiration: ${JSON.stringify(authExpr)}`);
+  logger.info(`Auth_PLAIN_AuthCheck Expiration: ${JSON.stringify(authExpr)}`);
   if (!authExpr) {
-    console.log("Failed auth check when checking DB");
+    logger.info("Failed auth check when checking DB");
     return '{"err": "ERR_SASLFAIL"}';
   }
-  console.log(`Successfully got token_expr and nickname from DB!`);
+  logger.info(`Successfully got token_expr and nickname from DB!`);
 
   const now = new Date();
   const expiration = new Date(authExpr?.token_expr);
   if (now > expiration) {
-    console.log(`Auth_PLAIN_AuthCheck token is expired. now: ${now}, expiration: ${expiration}`);
+    logger.info(`Auth_PLAIN_AuthCheck token is expired. now: ${now}, expiration: ${expiration}`);
     return '{"err": "ERR_SASLFAIL"}';
   }
-  console.log("AuthCheck Successful!");
+  logger.info("AuthCheck Successful!");
   return `{"nickname": "${authExpr?.nickname}"}`;
 }
 
@@ -52,15 +54,15 @@ const AuthCheck = async (token) => {
  * @returns 
  */
 const Exec = async (args) => {
-    console.log(`AUTH_PLAIN Module start. Args: ${JSON.stringify(args)}`);
+    logger.info(`AUTH_PLAIN Module start. Args: ${JSON.stringify(args)}`);
     // if (args.length !== 2) {
-    //     console.log("Plain authentication is missing arguments.");
+    //     logger.info("Plain authentication is missing arguments.");
     //     return null;
     // }
 
     switch (args[0]) {
         case "1":
-            console.log("PLAIN AUTH STEP 1");
+            logger.info("PLAIN AUTH STEP 1");
             // TODO
             // check if email, realname, and nickname state exists,
             // if not tell the user to set those specific pieces.
@@ -68,30 +70,62 @@ const Exec = async (args) => {
             // OR
             // we do this in the chat app itself before even reaching the auth server..
             // probably that.
+
+            // TODO
+            // check if this is a valid sasl mechanism?
+            // do we already do this?
             return "+" // initial ack from server, user would then send `AUTHENTICATE <base64 encoded username:pw>`
 
         case "2":
             // const db = DB();
             const _split = args[1].split(':');
-            const email = _split[0];
-            const password = _split[1];
+            const email = _split[0].trim();
+            const findRes = await FindOneAndUpdate(
+                // TODO search for email && ip as I can't think of a situation wehre the ip woudl change MID authentication
+                {email: email},
+                {$set: 
+                    {
+                        "state.auth.isAuthenticating": true,
+                        "state.capabilities": ["sasl"],
+                        ip: "*", // TODO need to send client ip in auth message?
+                        "state.auth.type": "plain",
+                        "state.auth.step": 2,
+                        "state.auth.failures": 0
+                    }
+                }, 
+                {
+                    upsert: true, 
+                    returnOriginal: false, 
+                    projection: {
+                        _id: 0, 
+                        "state.auth.failures": 1
+                    }
+                }
+            );
+            if (!findRes) {
+              return '{"err": "ERR_SASLFAIL"}';
+            }
+
+            logger.info(`auth plain step 2 findRes: ${JSON.stringify(findRes)}`);
+            const password = _split[1].trim();
             const prp_stmt_AuthCheck = db.Prepare(
               "Auth_PLAIN", "SELECT (id, salt, password, nickname) FROM users WHERE email = $1", [email]
               );
             const authCheckRes = await db.Exec(prp_stmt_AuthCheck);
-            console.log(`Auth: ${JSON.stringify(authCheckRes)}`);
+            logger.info(`Auth: ${JSON.stringify(authCheckRes)}`);
             if (!authCheckRes) {
-              console.log("Failed auth check when checking DB");
+              logger.info("Failed auth check when checking DB");
               // return "failure";
               return '{"err": "ERR_SASLFAIL"}';
             }
-            console.log(`Successfully got creds from DB!`);
+
+            logger.info(`Successfully got creds from DB!`);
             const checkResult = authCheckRes["row"];
             const rowValues = checkResult.substring(
               checkResult.indexOf("(") + 1,
               checkResult.lastIndexOf(")")
             ).split(",");
-            console.log(rowValues);
+            logger.info(rowValues);
             
             const userId = rowValues[0];
             const dbSalt = rowValues[1];
@@ -99,22 +133,22 @@ const Exec = async (args) => {
             const nickname = rowValues[3];
             const hash = cryptoManager.generate_hash(password, dbSalt);
             if (hash !== pwHash) {
-              console.log("Password doesn't match")
+              logger.info("Password doesn't match")
               // return "Credentials incorrect";
               return '{"err": "ERR_SASLFAIL"}';
             }
 
             const tokenPkg = cryptoManager.session_token();
-            console.log(`Before prep statement. userId: ${userId}, tokenPkg["token"]: ${tokenPkg["token"]}, tokenPkg["expr"]: ${tokenPkg["expr"]}`);
+            logger.info(`Before prep statement. userId: ${userId}, tokenPkg["token"]: ${tokenPkg["token"]}, tokenPkg["expr"]: ${tokenPkg["expr"]}`);
             const prp_stmt_SessionId = db.Prepare(
               "Auth_PLAIN_SessionToken", 
               "INSERT INTO user_tokens(user_id, token, token_expr) VALUES ($1, $2, $3)", 
               [userId, tokenPkg["token"], tokenPkg["expr"]]
               );
             const sessionIdRes = await db.Exec(prp_stmt_SessionId);
-            console.log(`sessionIdRes: ${sessionIdRes}`);
+            logger.info(`sessionIdRes: ${sessionIdRes}`);
             // if (!sessionIdRes) {
-            //   console.log("Failed to insert sessionId and sessionExpr");
+            //   logger.info("Failed to insert sessionId and sessionExpr");
             //   return "failure";
             // }
 

@@ -19,10 +19,11 @@ const Commands = {
     "USER": true,
     "LIST": true,
     "PRIVMSG": true,
-    "HELP": true
+    "HELP": true,
+    "REGISTER": true
 }
 
-const HELP_USERCMDS = (clientSocket) => {
+const HELP_USERCMDS = async (clientSocket) => {
     logger.info(`Help listing user commands`)
     clientSocket.write(Numerics["RPL_HELPSTART"]("** Help User Commands **") + "\n");
     clientSocket.write(Numerics["RPL_HELPTXT"]("") + "\n");
@@ -36,7 +37,7 @@ const HELP_USERCMDS = (clientSocket) => {
     }
 }
 
-const HELP_DEFAULT = (clientSocket, addlMsgs) => {
+const HELP_DEFAULT = async (clientSocket, addlMsgs) => {
     clientSocket.write(Numerics["RPL_HELPSTART"]() + "\n");
     if (!addlMsgs, addlMsgs.length !== 0) {
         logger.info(`Adding additional messages`)
@@ -53,10 +54,10 @@ const HELP_DEFAULT = (clientSocket, addlMsgs) => {
 }
 
 const HELP_SPECIFIC = async (cmd, clientSocket) => {
-    logger.info(`Help specific command`)
+    logger.info(`Help specific command: ${cmd}`)
     if (!(cmd in Commands)) {
         clientSocket.write(Numerics["ERR_HELPNOTFOUND"]() + "\n");
-        HELP_DEFAULT(clientSocket, ["", "I do not know anything about this", ""]);
+        await HELP_DEFAULT(clientSocket, ["", "I do not know anything about this", ""]);
         return;
     }
     logger.info(`HELP_SPECIFIC searching for '${cmd}' typeof: ${typeof(cmd)}`)
@@ -68,7 +69,7 @@ const HELP_SPECIFIC = async (cmd, clientSocket) => {
     );
     if (!cmdRes) {
         clientSocket.write(Numerics["ERR_HELPNOTFOUND"]() + "\n");
-        HELP_DEFAULT(clientSocket, ["", "I do not know anything about this", ""]);
+        await HELP_DEFAULT(clientSocket, ["", "I do not know anything about this", ""]);
         return;
     }
     clientSocket.write(Numerics["RPL_HELPSTART"](`** The ${cmd} command **`) + "\n");
@@ -87,12 +88,15 @@ const HELP = async (params, clients, clientSocket, clientNickname, serverName) =
     if (params.length > 0) {
         logger.info(`params.length > 0: '${params}'`)
         if (params[0] === "USERCMDS") {
-            HELP_USERCMDS(clientSocket);
+            logger.info("params[0] === USERCMDS");
+            await HELP_USERCMDS(clientSocket);
         } else {
+            logger.info("HELP_SPECIFIC");
             await HELP_SPECIFIC(params, clientSocket);
         }
     } else {
-        HELP_DEFAULT(clientSocket, [""])
+        logger.info("params.length > 0")
+        await HELP_DEFAULT(clientSocket, [""])
     }
 };
 

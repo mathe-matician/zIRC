@@ -31,12 +31,30 @@ const AUTHENTICATE = async (params, clients, clientSocket, clientNickname, serve
          * Set authentication state
          * Increment authentication step
          */
+
+        // TODO
+        // it is probably better to insert the user's email here as the lookup
+        // then inc the failures
         const findRes = await FindOneAndUpdate(
-            {ip: clientIP, "state.capabilities": ["sasl"]}, 
-            // {$set: {"state.auth.isAuthenticating": true}, $inc: {"state.auth.step": 1}}, 
-            {$set: {"state.auth.isAuthenticating": true}}, 
-            {upsert: true, returnOriginal: false, projection: {"state.auth.step": 1, _id: 0, "state.auth.failures": 1, "state.auth.type": 1}}
-            );
+            {}, 
+            {$set: 
+                {
+                    "state.auth.isAuthenticating": true,
+                    "state.capabilities": ["sasl"],
+                    ip: clientIP
+                }
+            }, 
+            {
+                upsert: true, 
+                returnOriginal: false, 
+                projection: {
+                    "state.auth.step": 1, 
+                    _id: 0, 
+                    "state.auth.failures": 1, 
+                    "state.auth.type": 1
+                }
+            }
+        );
         logger.info(`AUTHENTICATE FIND RES = ${JSON.stringify(findRes)}`);
         if (!findRes) {
             return {"err": Numerics["ERR_SASLABORTED"]("You must negotiate SASL capability to authenticate")};
@@ -45,6 +63,8 @@ const AUTHENTICATE = async (params, clients, clientSocket, clientNickname, serve
         // TODO
         // what prevents client from logging out which clears the auth state and trying agian?
         // need to not clear ALL auth state. Keep failures and exponetial backoff timer?
+
+        // this can be done with https://www.mongodb.com/docs/manual/tutorial/expire-data/
         const failures = findRes?.value?.state?.auth?.failures;
         if (failures && failures > 3) {
             return {"err": Numerics["ERR_SASLFAIL"]()};
@@ -65,6 +85,9 @@ const AUTHENTICATE = async (params, clients, clientSocket, clientNickname, serve
         if (clientAuthStep === 1 && !supportedMechanisms.includes(params)) {
             if (authParams === "*") {
                 const updateRes = await UpdateOne({ip: clientIP}, {$set: {"state.auth": {}}}, {"upsert": true});
+                if (!updateRes) {
+                    throw new Error("Error updating client state");
+                }
                 // TODO
                 // error checking here
                 return {"res": Numerics["ERR_SASLABORTED"]()};
@@ -97,7 +120,11 @@ const AUTHENTICATE = async (params, clients, clientSocket, clientNickname, serve
         logger.info(`modAuthParams: ${modAuthParams}, authType: ${authType}`);
 
         /**
-         * msg order should be <auth_type>::<step>::<params>
+         * msg order should be #auth_<auth_type>::<step>::<params>
+         * Multiple different authentication methods have different steps of the
+         * client to server and server to client interaction
+         * so the step that the client is on should be stored as we wouldn't know 
+         * what responses or step to process for the client
          */
         const args = `#auth_${_authType}::${clientAuthStep}::${modAuthParams.toLowerCase()}`
         try {
@@ -105,9 +132,6 @@ const AUTHENTICATE = async (params, clients, clientSocket, clientNickname, serve
             const authRes = await authServer.Write(args);
             logger.info(authRes);
 
-            // TODO
-            // have auth server return the failure type based on the authentication type
-            // e.g. return "ERR_SASLFAIL"
             if (isJson(authRes)) {
                 logger.info(`AUTHENTICATE authRes === Json: ${authRes}`)
                 const authResParsed = JSON.parse(authRes);
@@ -118,10 +142,7 @@ const AUTHENTICATE = async (params, clients, clientSocket, clientNickname, serve
             }
 
             if (!authRes) {
-                logger.info("AUTHENTICATE error with Auth Server");
-                // TODO
-                // inc failure count in db
-                return {"err": Numerics["ERR_SASLFAIL"]()};
+                throw new Error("AUTHENTICATE error with Auth Server");
             }
 
             // if successful (got past the if checks above) inc the step we are on
@@ -129,15 +150,18 @@ const AUTHENTICATE = async (params, clients, clientSocket, clientNickname, serve
                 {ip: clientIP, "state.capabilities": ["sasl"]},
                 {$inc: {"state.auth.step": 1}}
             );
-            // if (updateRes !== true) {
-            //     logger.info(`MONGO ERROR: UpdateOne failed`);
-            //     return {"err": Numerics["ERR_UNKNOWNERROR"]()}
-            // }
+
             try {
                 const jsonAuthRes = JSON.parse(authRes);
                 if (jsonAuthRes?.success === "SASL authentication successful") {
                     // TODO
                     // having multiple writes after another adds them all to the same buffer w/ TCP (remember... stream!)
+
+                    // TODO
+                    // chunk the reply here:
+                    // send a series of AUTHENITCATE MESSAGES 400-byte chunks ending with "AUTHENTICATE +"
+                    // isn't super crucial in basic auth, but will probably be different when using other methods
+                    // where the response contains more data
                     clientSocket.write(`tokenPkg::${JSON.stringify(jsonAuthRes?.tokenPkg)}` + CRLF);
                     clientSocket.write(Numerics["RPL_LOGGEDIN"](jsonAuthRes?.nickname) + CRLF);
                     clientSocket.write(Numerics["RPL_SASLSUCCESS"]() + CRLF);
@@ -145,13 +169,8 @@ const AUTHENTICATE = async (params, clients, clientSocket, clientNickname, serve
                         {ip: clientIP, "state.capabilities": ["sasl"]}, 
                         {$set: {"state.auth.success": true}}
                     );
-                    // if (updateRes !== true) {
-                    //     logger.info(`MONGO ERROR: UpdateOne failed`);
-                    //     return {"err": Numerics["ERR_UNKNOWNERROR"]()}
-                    // }
                 } else {
-                    logger.info(`PLAIN Auth failed for some reason...`);
-                    throw new Error("Error");
+                    throw new Error("PLAIN Auth failed for some reason...");
                 }
             } catch (notJsonObject) {
                 logger.info(`authRes not json Object`);
@@ -160,22 +179,20 @@ const AUTHENTICATE = async (params, clients, clientSocket, clientNickname, serve
 
             return null;
         } catch (error) {
-            logger.info(`Error during auth server: ${error}`);
+            logger.info(error);
             const updateRes = await UpdateOne(
                 {ip: clientIP, "state.capabilities": ["sasl"]}, 
                 {$inc: {"state.auth.failures": 1}}
             );
+            if (!updateRes) {
+                logger.error("Unknown error occured when trying to update state WITHIN error catch block");
+                return {"err": Numerics["ERR_UNKNOWNERROR"]("AUTHENTICATE")}
+            }
             return {"err": Numerics["ERR_SASLFAIL"]()};
         }
     }
 
-    // send a series of AUTHENITCATE MESSAGES 400-byte chunks ending with "AUTHENTICATE +"
-
     return {"req": ["capabilities", "clientIP"], "callback": callback};
-};
-
-const BASIC_AUTHENTICATE = (clientSocket) => {
-
 };
 
 module.exports = {

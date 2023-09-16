@@ -6,24 +6,26 @@ const { CRLF } = require("../constants");
 const _logger = require('pino')();
 const logger = _logger.child({ Service: 'Chat Server', Command: "LOGIN" });
 
-const LOGIN = async (parameters, clients, clientSocket, client) => {
-    if (parameters.length !== 2) {
+// Use AUTHENTICATE as a backend and pass the auth type?
+
+const LOGIN = async (params, clients, clientSocket, clientNickname, serverName) => {
+    if (params.length !== 2) {
       return Numerics["ERR_NEEDMOREPARAMS"]("LOGIN");
     } else {
       try {
-        const nickRes = await NICK(clients, parameters[0], "", clientSocket.remoteAddress);
+        const nickRes = await NICK(clients, params[0], "", clientSocket.remoteAddress);
         logger.info(`NICKRES == ${nickRes}`);
         if (nickRes?.err) {
           logger.info(`NICKRES ERROR: ${nickRes["err"]}`);
           return nickRes["err"];
         }
-        const passRes = await PASS(parameters[1], parameters[0], client, clientSocket.remoteAddress);
+        const passRes = await PASS(params[1], params[0], client, clientSocket.remoteAddress);
         if (passRes?.err) {
           return passRes["err"];
         }
         // TODO
         // parse nick from full source:
-        const insertRes = await InsertClient(nickRes["nick"], parameters[1], "zach");
+        const insertRes = await InsertClient(nickRes["nick"], params[1], "*");
         if (insertRes?.err) {
             return insertRes;
         }

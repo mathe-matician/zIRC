@@ -144,13 +144,13 @@ const ERR_CANNOTSENDTOCHAN = (client="*", channel="*") => {
 const ERR_TOOMANYCHANNELS = "405";
 const ERR_WASNOSUCHNICK = "406";
 
-const ERR_TOOMANYTARGETS = (client, command="PRIVMSG") => {
-  return `${client} 407 :Too many targets`;
+const ERR_TOOMANYTARGETS = (client, command="PRIVMSG", max="unknown") => {
+  return `${client} 407 :Too many targets. Max is ${max}`;
 };
 
 const ERR_NOORIGIN = "409";
 
-const ERR_INVALIDCAPCMD = (client="*", command="...") => {
+const ERR_INVALIDCAPCMD = (client="*", command="*") => {
   return `${client} ${command} 410 :Invalid CAP command`;
 }
 
@@ -273,8 +273,8 @@ const ERR_SASLABORTED = (message="SASL authentication aborted") => {
 
 const ERR_SASLALREADY = "907";
 
-const RPL_SASLMECHS = (mechanisms, serverName) => {
-  return `:${serverName} 908 <nick> ${mechanisms} :are available SASL mechanisms`;
+const RPL_SASLMECHS = (clientNickname="*", mechanisms, serverName) => {
+  return `:${serverName} 908 ${clientNickname} ${mechanisms} :are available SASL mechanisms`;
 }
 
 const Numerics = {

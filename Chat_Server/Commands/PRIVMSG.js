@@ -91,6 +91,26 @@ const PRIVMSG = async (params, clients, clientSocket, clientNickname, serverName
 
         // check if destination nickname exists
         logger.info(`Searching users for nickname '${targetTrimmed}'`);
+        if (targetTrimmed.includes(",")) {
+            // If the client is attempting to send the message to multiple people.
+            const multiTarget = targetTrimmed.split(",");
+            const cmdRes = await FindOne(
+                {"TARGMAX.PRIVMSG": { $exists: true }},
+                process.env.MONGODB_CHAT_SERVER_RPL_ISUPPORT_COLLECTION_NAME,
+                process.env.MONGODB_CHAT_SERVER_CONFIG_DB_NAME,
+                {"_id": 0, "TARGMAX.PRIVMSG": 1}
+            );
+
+            if (!cmdRes) {
+                logger.error("Error getting PRIVMSG RPL_ISUPPORT TARGMAX.PRIVMSG from db");
+                throw new Error("Error");
+            }
+
+            if (multiTarget.length > cmdRes?.MAXTARGETS) {
+                logger.error(`PRIVMSG targets exceeds MAXTARGETS of ${cmdRes?.MAXTARGETS}`)
+                return {"err": Numerics["ERR_TOOMANYTARGETS"](clientNickname, "PRIVMSG", cmdRes?.MAXTARGETS)}
+            }
+        }
         const nicknameRes = await FindOne({nickname: targetTrimmed});
         if (!nicknameRes) {
             logger.error(`Nickname does not exist!`);
