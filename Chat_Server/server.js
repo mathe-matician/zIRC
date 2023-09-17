@@ -437,7 +437,7 @@ const Server = (
           // }
           // pass only the token
           // const args = `#auth_${authType}::authcheck::${splitTokenPkg[0]}`;
-
+          logger.info("Command is NOT an unauthenticated command")
           // TODO
           // IF NO TOKENPKG then this client is unauthenticated. do nothing
           if (

@@ -41,7 +41,7 @@ const DB = () => {
             }
             console.log(`Postgres Exec res = ${JSON.stringify(res)}`);
             console.log(`Postgres Exec res.rows[0] = ${JSON.stringify(res.rows[0])}`);
-            return res.rows[0];
+            return res.rows[0] ? res.rows[0] : [true];
         } catch (error) {
             console.log(`Exec error: ${error}`);
             return null;

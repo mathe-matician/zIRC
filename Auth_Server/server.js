@@ -165,11 +165,16 @@ const AuthServer = (tls=false) => {
               logger.info(`After mod require`);
 
               if (args[0] === "authcheck") {
-                logger.info(`args[0] === "authcheck"`)
+                logger.info(`args[0] === "authcheck"`);
                 logger.info(`Passing in args:\n${args}`);
                 const authCheckRes = await module.AuthCheck(args[1]);
                 logger.info(`AuthCheck returned: ${authCheckRes}`);
                 socket.write(authCheckRes);
+              } else if (args[0] === "register") {
+                logger.info("args[0] === register");
+                const registerRes = await module.Register(args[1]);
+                logger.info(`Register returned: ${registerRes}`);
+                socket.write(registerRes);
               } else {
                 const res = await module.Exec(args); // pass rest of args into Exec method
                 logger.info(`After mod exec`);

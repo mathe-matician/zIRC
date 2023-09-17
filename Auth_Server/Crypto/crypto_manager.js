@@ -9,9 +9,17 @@ const bcrypt = require('bcrypt');
 
 // };
 
+const saltRounds = parseInt(process.env.CRYPT_SALTROUNDS);
+
 const generate_salt = (randomness=64) => {
   return crypto.randomBytes(randomness).toString("hex");
 }
+
+const gen_hash = async (password) => {
+  const salt = await bcrypt.genSalt(saltRounds);
+  const hash = await bcrypt.hash(password, salt);
+  return hash;
+};
 
 const compare_password = async (password, hash) => {
   console.log(`Compare_password start`);
@@ -143,6 +151,7 @@ const session_token = (exprDateType=process.env.AUTH_SERVER_EXPR_DATE_TYPE, expr
 
 module.exports = {
   compare_password,
+  gen_hash,
   generate_hash,
   generate_salt,
   session_token,

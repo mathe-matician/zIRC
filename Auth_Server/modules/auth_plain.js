@@ -1,13 +1,41 @@
 const { DB } = require("../db");
 const cryptoManager = require('../Crypto/crypto_manager');
+const { isJson } = require("../utils");
 require('dotenv').config();
 const _logger = require('pino')();
 const logger = _logger.child({ Service: 'Auth Server', Auth_Module: "auth_plain" });
 
 const db = DB();
 
+const Register = async (registerPkg) => {
+  logger.info(`Register auth_plain start. registerPkg = ${registerPkg}`);
+  if (!isJson(registerPkg)) {
+    logger.error("registerPkg is not json??");
+    return '{"err": "ERR_REGISTERFAIL"}';
+  }
+
+  const parsedRegisterPkg = JSON.parse(registerPkg);
+  const hash = await cryptoManager.gen_hash(parsedRegisterPkg["password"])
+  const prp_stmt_Register = db.Prepare(
+    "Auth_PLAIN_Register",
+    `INSERT INTO users VALUES (default, $1, $2, $3, $4)`,
+    [parsedRegisterPkg?.email, hash, "", parsedRegisterPkg?.nickname]
+  );
+
+  const registerRes = await db.Exec(prp_stmt_Register);
+  logger.info(`registerRes: ${registerRes}`);
+  if (!registerRes) {
+    logger.error("Failed registration when trying to insert into DB");
+    return '{"err": "ERR_REGISTERFAIL"}';
+  }
+
+  logger.info(`Successfully inserted new user into db`);
+
+  return '{"res": ""}';
+};
+
 const AuthCheck = async (token) => {
-  logger.info(`\nAUTH_PLAIN AuthCheck start\nWith token: ${token}`)
+  logger.info(`AUTH_PLAIN AuthCheck start - With token: ${token}`)
 
   // Select both the token_expr and the nickname of the client making the request
   // the current client nickname is used in many different commands, so we just return it for all of them.
@@ -165,5 +193,6 @@ const Exec = async (args) => {
 
 module.exports = {
     Exec,
-    AuthCheck
+    AuthCheck,
+    Register
 };

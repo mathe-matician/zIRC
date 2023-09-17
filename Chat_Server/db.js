@@ -174,7 +174,7 @@ const UpdateOne = async (
         //     logger.info(`InsertCAPState error: ${insertRes}`);
         //     return {"err": Numerics["ERR_UNKNOWNERROR"](command)};
         // }
-        return true; // just so error isn't thrown
+        return insertRes;
     } catch (error) {
         logger.info(`RegisterClient ERROR == ${error}`);
         return {"err": Numerics["ERR_UNKNOWNERROR"]()};

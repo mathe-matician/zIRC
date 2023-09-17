@@ -277,6 +277,73 @@ const RPL_SASLMECHS = (clientNickname="*", mechanisms, serverName) => {
   return `:${serverName} 908 ${clientNickname} ${mechanisms} :are available SASL mechanisms`;
 }
 
+// Made up draft/account-registration numeric numbers
+
+const RPL_SUCCESS = (command="REGISTER", account="*", message="") => {
+  return `909 :${command} SUCCESS ${account} ${message}`
+}
+
+const RPL_VERIFICATIONREQUIRED = (clientNickname="*", email="*", message="Account created, pending verification; verification code has been sent to") => {
+  return `910 REGISTER VERIFICATION_REQUIRED ${clientNickname} :${message} ${email}`
+}
+
+const ERR_REGISTERFAIL = (clientNickname="*", message="Registration failed.") => {
+  return `911 FAIL REGISTER ${clientNickname} :${message}`
+}
+
+const ERR_ACCOUNTEXISTS = (clientNickname="*", account, message="") => {
+  return `912 FAIL REGISTER ACCOUNT_EXISTS ${clientNickname} :${account} ${message}`
+}
+
+const ERR_BADACCOUNTNAME = (clientNickname="*", account, message="") => {
+  return `913 FAIL REGISTER BAD_ACCOUNT_NAME ${clientNickname} :${account} ${message}`
+}
+
+const ERR_ACCOUNTNAMEMUSTBENICK = (clientNickname="*", account, message="") => {
+  return `914 FAIL REGISTER ACCOUNT_NAME_MUST_BE_NICK ${clientNickname} :${account} ${message}`
+}
+
+const ERR_NEEDNICK = (clientNickname="*", account, message="") => {
+  return `915 FAIL REGISTER NEED_NICK ${clientNickname} :${account} ${message}`
+}
+
+const ERR_ALREADYAUTHENTICATED = (clientNickname="*", command="REGISTER", account="*", message="*") => {
+  return `916 FAIL ${command} ALREADY_AUTHENTICATED ${clientNickname} :${account} ${message}`
+}
+
+const ERR_WEAKPASSWORD = (clientNickname="*", account, message="") => {
+  return `917 FAIL REGISTER WEAK_PASSWORD ${clientNickname} :${account} ${message}`
+}
+
+const ERR_UNACCEPTABLEPASSWORD = (clientNickname="*", account, message="") => {
+  return `918 FAIL REGISTER UNACCEPTABLE_PASSWORD ${clientNickname} :${account} ${message}`
+}
+
+const ERR_INVALIDEMAIL = (clientNickname="*", account, message="") => {
+  return `919 FAIL REGISTER INVALID_EMAIL ${clientNickname} :${account} ${message}`
+}
+
+const ERR_UNACCEPTABLEEMAIL = (clientNickname="*", account, message="") => {
+  return `920 FAIL REGISTER UNACCEPTABLE_EMAIL ${clientNickname} :${account} ${message}`
+}
+
+const ERR_COMPLETECONNECTIONREQUIRED = (clientNickname="*", command="REGISTER", message="") => {
+  return `921 FAIL ${command} COMPLETE_CONNECTION_REQUIRED ${clientNickname} :${message}`
+}
+
+const ERR_INVALIDCODE = (clientNickname="*", account, message="*") => {
+  return `922 FAIL VERIFY COMPLETE_CONNECTION_REQUIRED ${clientNickname} :${account} ${message}`
+}
+
+const ERR_TEMPORARILYUNAVAILABLE = (clientNickname="*", command="REGISTER", account="*", message="") => {
+  return `923 FAIL ${command} TEMPORARILY_UNAVAILABLE ${clientNickname} :${account} ${message}`
+}
+
+const ERR_ACCOUNTREQUIRED = (clientNickname="*", message="") => {
+  return `924 FAIL ACCOUNT_REQUIRED ${clientNickname} :${message}`
+}
+
+
 const Numerics = {
   "RPL_WELCOME": RPL_WELCOME,
   "ERR_UNKNOWNERROR": ERR_UNKNOWNERROR,
@@ -316,6 +383,8 @@ const Numerics = {
   "ERR_NOTEXTTOSEND": ERR_NOTEXTTOSEND,
   "ERR_TOOMANYTARGETS": ERR_TOOMANYTARGETS,
   "ERR_NORECIPIENT": ERR_NORECIPIENT,
+  "RPL_VERIFICATIONREQUIRED": RPL_VERIFICATIONREQUIRED,
+  "ERR_REGISTERFAIL": ERR_REGISTERFAIL,
 }
 
 module.exports = { 

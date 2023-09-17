@@ -29,24 +29,26 @@ const REGISTER = async (params, clients, clientSocket, clientNickname, serverNam
 
     const callback = async (parameters) => {
         console.log(`REGISTER parameters= ${JSON.stringify(parameters)}`);
-        const capabilities = parameters?.capabilities;
-        if (capabilities.length !== 0 && "draft/account-registration" in capabilities) {
-            const { draft_account_registration } = require("./Capabilities/draft_account_registration");
-            let accountRegistrationAttributes = [];
-            if ("draft/account-registration" in capabilities) {
-                // When there are multiple attributes to the capability
-                accountRegistrationAttributes = capabilities["draft/account-registration"].split(",");
+        try {
+            const capabilities = parameters?.capabilities;
+            if (capabilities.length !== 0 && "draft/account-registration" in capabilities) {
+                const { draft_account_registration } = require("./Capabilities/draft_account_registration");
+                let accountRegistrationAttributes = [];
+                if ("draft/account-registration" in capabilities) {
+                    // When there are multiple attributes to the capability
+                    accountRegistrationAttributes = capabilities["draft/account-registration"].split(",");
+                }
+                    const draftAccountRegRes = await draft_account_registration(accountRegistrationAttributes, params, clientSocket.remoteAddress);
+                    return {"res": draftAccountRegRes};
+            } else {
+                return {"err": Numerics["ERR_INVALIDCAPCMD"](clientNickname, "CAP REQ draft/account-registration")}
             }
-            const draftAccountRegRes = await draft_account_registration(accountRegistrationAttributes, String(params));
-            if (draftAccountRegRes === null) {
-                return {"res": "did it"};
-            }
-        } else {
-            return {"err": Numerics["ERR_INVALIDCAPCMD"](clientNickname, "CAP REQ draft/account-registration")}
+        } catch (error) {
+            logger.error(error)
+            return {"err": Numerics["ERR_REGISTERFAIL"]()};
         }
 
         // return {"res": `${nickname} :${nickname}!${nickname}@${parameters[1]}`};
-        return {"res": "did it outer"};
     };
 
     // request capabilities to check whether draft/account-registration exists on server as it is needed

@@ -96,9 +96,11 @@ const Commands = {
 }
 
 const UNAUTHENTICATED_CMDS = {
-    "AUTHENTICATE": true,
+    // "AUTHENTICATE": true,
     "REGISTER": true,
-    // "CAP": true,
+    // "NICK": true,
+    // "USER": true,
+    // "CAP": tru
     "HELP": true
     // "RPL_ISUPPORT": true
 }
