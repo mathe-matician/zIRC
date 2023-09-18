@@ -71,6 +71,10 @@ const VERIFY = async (params, clients, clientSocket, clientNickname, serverName)
 
     const parsedRes = JSON.parse(emailCheckRes?.res);
 
+    if (parsedRes !== "RPL_SUCCESS") {
+        return {"err": Numerics("ERR_UNKNOWNERROR")("VERIFY")};
+    }
+
     // if we got here without an error, this should be RPL_SUCCESS
     return {"res": Numerics(parsedRes)("VERIFY")};
 }
