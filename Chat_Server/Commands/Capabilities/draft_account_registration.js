@@ -52,7 +52,8 @@ const draft_account_registration = async (accountRegistrationAttributes, registe
             {
                 "state.auth": {
                     "isAuthenticating": true,
-                    "isRegistering": true
+                    "isRegistering": true,
+                    "email_verified": false
                 },
                 "state.capabilities": [
                     "sasl",
@@ -100,6 +101,9 @@ const draft_account_registration = async (accountRegistrationAttributes, registe
 
     logger.info("Successfully inserted client into db for registration");
     logger.info("About to send verification email");
+
+    // TODO
+    // insert token into db here
 
     // TODO
     // email verification

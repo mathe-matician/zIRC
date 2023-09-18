@@ -98,6 +98,7 @@ const Commands = {
 const UNAUTHENTICATED_CMDS = {
     // "AUTHENTICATE": true,
     "REGISTER": true,
+    "VERIFY": true,
     // "NICK": true,
     // "USER": true,
     // "CAP": tru

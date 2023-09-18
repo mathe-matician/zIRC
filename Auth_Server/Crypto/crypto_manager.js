@@ -15,6 +15,18 @@ const generate_salt = (randomness=64) => {
   return crypto.randomBytes(randomness).toString("hex");
 }
 
+const gen_random_bytes = (randomness=64) => {
+  return crypto.randomBytes(randomness).toString("hex");
+}
+
+const encode_base64 = (str) => {
+  return Buffer.from(str).toString('base64');
+}
+
+const decode_base64 = (str) => {
+  return Buffer.from(str, 'base64').toString('utf8');
+}
+
 const gen_hash = async (password) => {
   const salt = await bcrypt.genSalt(saltRounds);
   const hash = await bcrypt.hash(password, salt);
@@ -151,6 +163,9 @@ const session_token = (exprDateType=process.env.AUTH_SERVER_EXPR_DATE_TYPE, expr
 
 module.exports = {
   compare_password,
+  gen_random_bytes,
+  encode_base64,
+  decode_base64,
   gen_hash,
   generate_hash,
   generate_salt,

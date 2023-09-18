@@ -1,4 +1,3 @@
-const { RegisterClient } = require("../db");
 const { Numerics } = require("../numerics");
 const _logger = require('pino')();
 const logger = _logger.child({ Command: 'REGISTER' });

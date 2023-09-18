@@ -5,8 +5,18 @@ const isJson = (str) => {
       return false;
     }  
     return true;
-}
+};
+
+const isTokenExpired = (token_expr) => {
+  const now = new Date();
+  const expiration = new Date(token_expr);
+  if (now > expiration) {
+    return true;
+  }
+  return false;
+};
 
 module.exports = {
-    isJson
+    isJson,
+    isTokenExpired
 }

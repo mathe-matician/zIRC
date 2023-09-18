@@ -6,6 +6,7 @@ const cryptoManager = require('./Crypto/crypto_manager');
 const { DB } = require('./db');
 require('dotenv').config();
 const bcrypt = require('bcrypt');
+const { isJson, isTokenExpired } = require('./utils');
 const saltRounds = 10;
 const _logger = require('pino')();
 const logger = _logger.child({ Service: 'Auth Server' });
@@ -37,11 +38,7 @@ const AuthServer = (tls=false) => {
     const _expiration = rowValues[1];
     logger.info(rowValues);
     
-    const now = new Date();
-    const expiration = new Date(_expiration);
-    if (now > expiration) {
-      // TODO
-      // should these even expire...?? probably...
+    if (isTokenExpired(_expiration)) {
       logger.error(`Admin auth token is expired.\nNow: ${now}\nExpiration: ${expiration}`);
       throw new Error("Error");
     }
@@ -51,6 +48,90 @@ const AuthServer = (tls=false) => {
       logger.error("Server Admin key does not match Auth Server Token");
       throw new Error("Error");
     }
+  };
+
+  const EmailCheck = async (email) => {
+    // for VERIFY RESEND
+    const prp_stmt_EmailCheck = db.Prepare(
+      "EmailCheck",
+      "SELECT (email) FROM users WHERE email = $1",
+      [email]
+    );
+  };
+
+  const VerifyEmailToken = async (emailPkg) => {
+    if (!isJson(emailPkg)) {
+      return `{"err": "ERR_UNKNOWNERROR"}`
+    }
+
+    const pkg = JSON.parse(emailPkg);
+    if (
+      pkg.length !== 2
+      // || pkg?.email === undefined
+      // || pkg?.token === undefined
+      ) {
+      return `{"err": "ERR_UNKNOWNERROR"}`
+    }
+
+    const email = emailPkg?.token;
+
+    // TODO
+    // token received from client will be base64 encoded here...
+    const decodedToken = cryptoManager.decode_base64(email);
+    const prp_stmt_VerifyEmailToken = db.Prepare(
+      "VerifyEmailToken",
+      "SELECT (email, token, token_expr) FROM email_tokens WHERE email = $1 AND token = $2",
+      [email, decodedToken]
+    );
+
+    const verifyRes = await db.Exec(prp_stmt_VerifyEmailToken);
+    logger.info(`verifyRes: ${JSON.stringify(verifyRes)}`);
+    if (!verifyRes) {
+      logger.error("Error occured, or no token exists for that email!");
+      throw new Error("Error");
+    }
+
+    if (isJson(verifyRes)) {
+      logger.info(`VERIFY EMAIL RES: ${JSON.parse(verifyRes)}`);
+    } else {
+      logger.info(verifyRes);
+    }
+
+    const checkResult = verifyRes["row"];
+    const rowValues = checkResult.substring(
+      checkResult.indexOf("(") + 1,
+      checkResult.lastIndexOf(")")
+    ).split(",");
+    const _expiration = rowValues[1];
+    logger.info(rowValues);
+
+    // check if expiration is past
+    if (isTokenExpired(_expiration)) {
+      logger.error("Email verification Token is expired");
+      throw new Error("Error");
+    }
+
+    // token is valid, update user
+    const prp_stmt_EmailVerified = db.Prepare(
+      "EmailVerified",
+      "UPDATE users SET email_verified = TRUE WHERE email = $1",
+      [email]
+    );
+
+    const verifiedRes = await db.Exec(prp_stmt_EmailVerified);
+    logger.info(`verifyRes: ${JSON.stringify(verifiedRes)}`);
+    if (!verifiedRes) {
+      logger.error("Error occured, or no token exists for that email!");
+      throw new Error("Error");
+    }
+
+    if (isJson(verifiedRes)) {
+      logger.info(`VERIFY EMAIL RES: ${JSON.parse(verifiedRes)}`);
+    } else {
+      logger.info(verifiedRes);
+    }
+
+    return `{"res": "RPL_SUCCESS"}`
   };
 
   const Start = async () => {
@@ -164,28 +245,37 @@ const AuthServer = (tls=false) => {
               const module = require(mod);
               logger.info(`After mod require`);
 
+              let res;
               if (args[0] === "authcheck") {
                 logger.info(`args[0] === "authcheck"`);
                 logger.info(`Passing in args:\n${args}`);
-                const authCheckRes = await module.AuthCheck(args[1]);
-                logger.info(`AuthCheck returned: ${authCheckRes}`);
-                socket.write(authCheckRes);
+                res = await module.AuthCheck(args[1]);
+                logger.info(`AuthCheck returned: ${res}`);
               } else if (args[0] === "register") {
                 logger.info("args[0] === register");
-                const registerRes = await module.Register(args[1]);
-                logger.info(`Register returned: ${registerRes}`);
-                socket.write(registerRes);
+                res = await module.Register(args[1]);
+                logger.info(`Register returned: ${res}`);
+              } else if (args[0] === "emailcheck") {
+                logger.info("args[0] === emailcheck");
+                res = await EmailCheck(args[1]);
+                logger.info(`Register returned: ${res}`);
+              } else if (args[0] === "verifyemail") {
+                logger.info("args[0] === verifyemail");
+                res = await VerifyEmailToken(args[1]);
+                logger.info(`VerifyEmailToken returned: ${res}`);
               } else {
-                const res = await module.Exec(args); // pass rest of args into Exec method
+                res = await module.Exec(args); // pass rest of args into Exec method
                 logger.info(`After mod exec`);
                 if (!res) {
                   logger.info(`Error running module ${mod}`);
                   throw new Error("Error");
-                  // socket.write('{"err": "ERR_UNKNOWNERROR"}');
                 }
-              
-                socket.write(res);
               }
+              if (!res) {
+                logger.info(`Auth Server error....`);
+                throw new Error("Error");
+              }
+              socket.write(res);
             } catch (error) {
               logger.info(error);
               socket.write('{"err": "ERR_UNKNOWNERROR"}');

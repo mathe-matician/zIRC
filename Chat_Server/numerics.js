@@ -279,8 +279,8 @@ const RPL_SASLMECHS = (clientNickname="*", mechanisms, serverName) => {
 
 // Made up draft/account-registration numeric numbers
 
-const RPL_SUCCESS = (command="REGISTER", account="*", message="") => {
-  return `909 :${command} SUCCESS ${account} ${message}`
+const RPL_SUCCESS = (command="REGISTER", message="Account successfully registered") => {
+  return `909 ${command} SUCCESS :${message}`
 }
 
 const RPL_VERIFICATIONREQUIRED = (clientNickname="*", email="*", message="Account created, pending verification; verification code has been sent to") => {
@@ -339,7 +339,7 @@ const ERR_TEMPORARILYUNAVAILABLE = (clientNickname="*", command="REGISTER", acco
   return `923 FAIL ${command} TEMPORARILY_UNAVAILABLE ${clientNickname} :${account} ${message}`
 }
 
-const ERR_ACCOUNTREQUIRED = (clientNickname="*", message="") => {
+const ERR_ACCOUNTREQUIRED = (clientNickname="*", message="Account Required.") => {
   return `924 FAIL ACCOUNT_REQUIRED ${clientNickname} :${message}`
 }
 
@@ -385,6 +385,7 @@ const Numerics = {
   "ERR_NORECIPIENT": ERR_NORECIPIENT,
   "RPL_VERIFICATIONREQUIRED": RPL_VERIFICATIONREQUIRED,
   "ERR_REGISTERFAIL": ERR_REGISTERFAIL,
+  "RPL_SUCCESS": RPL_SUCCESS
 }
 
 module.exports = { 

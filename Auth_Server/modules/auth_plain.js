@@ -15,11 +15,31 @@ const Register = async (registerPkg) => {
   }
 
   const parsedRegisterPkg = JSON.parse(registerPkg);
-  const hash = await cryptoManager.gen_hash(parsedRegisterPkg["password"])
+  const password_hash = await cryptoManager.gen_hash(parsedRegisterPkg["password"])
+
+  // generate email verification token here
+  const token = cryptoManager.gen_random_bytes();
+  const token_expr = new Date()
+  token_expr.setHours(token_expr.getHours() + parseInt(process.env.EMAIL_TOKEN_EXPIRATION_HOURS));
+
   const prp_stmt_Register = db.Prepare(
     "Auth_PLAIN_Register",
-    `INSERT INTO users VALUES (default, $1, $2, $3, $4)`,
-    [parsedRegisterPkg?.email, hash, "", parsedRegisterPkg?.nickname]
+    `
+    BEGIN;
+    INSERT INTO users (email, password, nickname) VALUES ($1, $2, $3);
+    IF FOUND THEN
+      INSERT INTO email_tokens (email) values ($1, $4, $5);
+    END IF;
+    COMMIT;
+    `,
+    // INSERT INTO users VALUES (default, $1, $2, $3)
+    [
+      parsedRegisterPkg?.email, 
+      password_hash, 
+      parsedRegisterPkg?.nickname,
+      token,
+      token_expr.toISOString()
+    ]
   );
 
   const registerRes = await db.Exec(prp_stmt_Register);

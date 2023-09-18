@@ -41,8 +41,8 @@ const Server = (
     // prepopulate the server with a General channel
     // TEST ADMIN
     const testUsers = {
-      "GymleteAdmin": {
-        "clientObj": Client("GymleteAdmin"),
+      "zircAdmin": {
+        "clientObj": Client("zircAdmin"),
         "prefixes": ["~"]
       }, // setup default admin
     };
