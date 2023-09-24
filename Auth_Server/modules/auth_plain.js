@@ -1,6 +1,7 @@
 const { DB } = require("../db");
 const cryptoManager = require('../Crypto/crypto_manager');
 const { isJson } = require("../utils");
+const { Mailer } = require("../Mailer/mailer");
 require('dotenv').config();
 const _logger = require('pino')();
 const logger = _logger.child({ Service: 'Auth Server', Auth_Module: "auth_plain" });
@@ -50,6 +51,9 @@ const Register = async (registerPkg) => {
   }
 
   logger.info(`Successfully inserted new user into db`);
+
+  // const MailerInstance = Mailer();
+
 
   return '{"res": ""}';
 };

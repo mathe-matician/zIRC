@@ -74,7 +74,12 @@ const Mailer = () => {
         });
     }; 
 
-    return { CreateTransport, SendMail, SendMailTest };
+    return { 
+        CreateTransport, 
+        CreateTransportOAUTH, 
+        SendMail, 
+        SendMailTest 
+    };
 }
 
 // SendMail().catch(console.error);

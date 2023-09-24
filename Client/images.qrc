@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/images">
+        <file>qt_logo_green_128x128px.png</file>
+    </qresource>
+    <qresource prefix="/icons"/>
+</RCC>

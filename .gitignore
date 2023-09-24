@@ -6,3 +6,4 @@ Auth_Server/node_modules
 *.pem
 Auth_Server/TMP-Generators
 Chat_Server/TestClient/*-*-*-*-*
+build-*
