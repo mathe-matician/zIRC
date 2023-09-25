@@ -29,6 +29,7 @@ public slots:
 
 private:
     Ui::StartPage *ui;
+    QString m_tokenPkg;
 };
 
 #endif // STARTPAGE_H

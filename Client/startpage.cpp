@@ -8,6 +8,11 @@ StartPage::StartPage(QSettings *g_settings, QWidget *parent) :
 {
     ui->setupUi(this);
 
+    m_tokenPkg = g_settings->value("tokenPkg").toString();
+    qDebug() << "Tokenpkg == " << m_tokenPkg;
+
+    //g_settings->setValue("tokenPkg", "HELLO TOKENPKG");
+
     m_socketManager = new SocketManager();
 
     m_loginpage = new LoginPage(this);
