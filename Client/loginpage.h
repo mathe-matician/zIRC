@@ -27,6 +27,7 @@ public slots:
     void Login();
     void Register();
     void ForgotPW();
+    //void HostLookupSuccessful();
 
 private:
     Ui::LoginPage *ui;
