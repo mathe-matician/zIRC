@@ -14,7 +14,7 @@ LoginPage::LoginPage(QWidget *parent) :
     m_socketManager->ServerConnect();
 
     connect(ui->BTNlogin, SIGNAL(clicked()), this, SLOT(Login()));
-    connect(ui->BTNlogin, SIGNAL(clicked()), this->parentWidget(), SLOT(ShowRegisterPage()));
+    connect(ui->BTNregister, SIGNAL(clicked()), this->parentWidget(), SLOT(ShowRegisterPage()));
     connect(ui->BTNforgotpw, SIGNAL(clicked()), this, SLOT(ForgotPW()));
 
     ui->INPUTpassword->setEchoMode(QLineEdit::Password);
@@ -60,11 +60,12 @@ void LoginPage::Login()
         }
     }
 */
+    // TODO what IRC command is this? LOGIN or AUTHENTICATE? Probably AUTHENTICATE
+    QString l_msg = QString("LOGIN %1 %2").arg(l_email).arg(l_password);
 
     // TODO check if tokenPkg exists in state
-    // TODO get nickname from local state
-
-    QString l_final_data = QString(":%1@%2 %3 \r\n").arg("nickname").arg(m_socketManager->socket->localAddress().toString()).arg("message");
+    // TODO get nickname from local state OR have the user pass it in with email
+    QString l_final_data = QString(":%1@%2 %3 \r\n").arg("nickname").arg(m_socketManager->socket->localAddress().toString()).arg(l_msg);
 
     m_socketManager->Write_Data(l_final_data.toUtf8());
 }

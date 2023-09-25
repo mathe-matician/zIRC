@@ -10,7 +10,7 @@ StartPage::StartPage(QWidget *parent) :
 
     m_loginpage = new LoginPage(this);
     m_registerpage = new Registerpage(this);
-    //m_socketManager = new SocketManager();
+
     m_registerpage->hide();
     m_loginpage->show();
 }
