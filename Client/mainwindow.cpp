@@ -6,8 +6,9 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    g_settings = new QSettings();
 
-    m_startpage = new StartPage(this);
+    m_startpage = new StartPage(g_settings, this);
     m_startpage->show();
 }
 

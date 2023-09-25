@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QSettings>
 #include "startpage.h"
 
 QT_BEGIN_NAMESPACE
@@ -16,6 +17,7 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
     StartPage *m_startpage;
+    QSettings *g_settings;
 
 private:
     Ui::MainWindow *ui;

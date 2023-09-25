@@ -2,6 +2,7 @@
 #define STARTPAGE_H
 
 #include <QWidget>
+#include <QSettings>
 #include "loginpage.h"
 #include "registerpage.h"
 #include "socketmanager.h"
@@ -15,7 +16,7 @@ class StartPage : public QWidget
     Q_OBJECT
 
 public:
-    explicit StartPage(QWidget *parent = nullptr);
+    explicit StartPage(QSettings *g_settings, QWidget *parent = nullptr);
     ~StartPage();
 
     LoginPage *m_loginpage;

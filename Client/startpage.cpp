@@ -2,11 +2,13 @@
 #include "ui_startpage.h"
 #include <QDebug>
 
-StartPage::StartPage(QWidget *parent) :
+StartPage::StartPage(QSettings *g_settings, QWidget *parent) :
     QWidget(parent),
     ui(new Ui::StartPage)
 {
     ui->setupUi(this);
+
+    m_socketManager = new SocketManager();
 
     m_loginpage = new LoginPage(this);
     m_registerpage = new Registerpage(this);
