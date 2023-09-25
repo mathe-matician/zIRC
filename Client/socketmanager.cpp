@@ -12,7 +12,7 @@ SocketManager::SocketManager()
     connect(this, SIGNAL(disconnected()), this, SLOT(Success_Disconnected()));
     connect(this, SIGNAL(errorOccurred(QAbstractSocket::SocketError)), this, SLOT(Error_Occurred(QAbstractSocket::SocketError)));
     connect(this, SIGNAL(bytesWritten(qint64)), this, SLOT(Bytes_Written(qint64)));
-    connect(this, SIGNAL(readyRead()), this, SLOT(Bytes_Written(qint64)));
+    connect(this, SIGNAL(readyRead()), this, SLOT(Read_Data()));
 }
 
 
