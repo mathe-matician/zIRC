@@ -3,16 +3,28 @@
 #include <QString>
 #include <QDebug>
 
+#ifdef __EMSCRIPTEN__
+#include <QWebSocket>
+#else
+#include <QTcpSocket>
+#endif
+
 SocketManager::SocketManager()
 {
     qDebug() << "SocketManager created";
 
-    connect(this, SIGNAL(hostFound()), this, SLOT(Success_HostLookup()));
-    connect(this, SIGNAL(connected()), this, SLOT(Success_Connected()));
-    connect(this, SIGNAL(disconnected()), this, SLOT(Success_Disconnected()));
-    connect(this, SIGNAL(errorOccurred(QAbstractSocket::SocketError)), this, SLOT(Error_Occurred(QAbstractSocket::SocketError)));
-    connect(this, SIGNAL(bytesWritten(qint64)), this, SLOT(Bytes_Written(qint64)));
-    connect(this, SIGNAL(readyRead()), this, SLOT(Read_Data()));
+#ifdef __EMSCRIPTEN__
+    socket = new QWebSocket();
+#else
+    socket = new QTcpSocket();
+    QObject::connect(socket, SIGNAL(hostFound()), this, SLOT(Success_HostLookup()));
+    QObject::connect(socket, SIGNAL(readyRead()), this, SLOT(Read_Data()));
+#endif
+    connect(socket, SIGNAL(connected()), this, SLOT(Success_Connected()));
+    connect(socket, SIGNAL(disconnected()), this, SLOT(Success_Disconnected()));
+    connect(socket, SIGNAL(errorOccurred(QAbstractSocket::SocketError)), this, SLOT(Error_Occurred(QAbstractSocket::SocketError)));
+    connect(socket, SIGNAL(bytesWritten(qint64)), this, SLOT(Bytes_Written(qint64)));
+    connect(socket, SIGNAL(connected()), this, SLOT(Success_Connected()));
 }
 
 
@@ -21,25 +33,36 @@ void SocketManager::ServerConnect()
     qDebug() << "ServerConnect started";
     QString l_host = QString();
     quint16 l_port;
+
 #ifdef QT_DEBUG
     l_host.append("localhost");
     l_port = 6667;
+#else
+    l_host.append("localhost");
+    l_port = 6667;
 #endif
-    this->connectToHost(l_host, l_port);
-    if (this->waitForConnected(1000))
-        qDebug("SocketManager::ServerConnect(): Waiting for connected success");
 
-    //if (this->isValid())
+#ifndef __EMSCRIPTEN__
+    socket->connectToHost(l_host, l_port);
+    if (socket->waitForConnected(1000))
+        qDebug("SocketManager::ServerConnect(): Waiting for connected success");
+#else
+    QUrl l_url(l_host);
+    l_url.port(l_port);
+    socket->open(l_url);
+#endif
 }
 
+#ifndef __EMSCRIPTEN__
 void SocketManager::Success_HostLookup()
 {
     qDebug() << "Host lookup successful!!";
 }
+#endif
 
 void SocketManager::Success_Connected()
 {
-    qDebug() << "Successfully connected to server: " << this->peerName() << this->peerAddress().toString() << ":" << this->peerPort();
+    qDebug() << "Successfully connected to server: " << socket->peerName() << socket->peerAddress().toString() << ":" << socket->peerPort();
 }
 
 void SocketManager::Success_Disconnected()
@@ -57,8 +80,21 @@ void SocketManager::Bytes_Written(qint64 bytes)
     qDebug() << "Bytes_Written num of bytes: " << bytes;
 }
 
+#ifndef __EMSCRIPTEN__
 void SocketManager::Read_Data()
 {
-    QByteArray res = this->readAll();
+    QByteArray res = socket->readAll();
     qDebug() << "RES: " << res.toStdString();
+}
+#endif
+
+
+void SocketManager::Write_Data(const QByteArray &data)
+{
+    qint64 l_bytes_written = socket->write(data);
+    if (l_bytes_written == -1) {
+        qDebug() << "Error writing to socket";
+    }
+
+    qDebug() << l_bytes_written << " bytes written to socket";
 }

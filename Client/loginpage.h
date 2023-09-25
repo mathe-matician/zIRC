@@ -2,7 +2,7 @@
 #define LOGINPAGE_H
 
 #include <QWidget>
-#include <QPushButton>
+//#include <QPushButton>
 #include "socketmanager.h"
 
 namespace Ui {
@@ -17,9 +17,11 @@ public:
     explicit LoginPage(QWidget *parent = nullptr);
     ~LoginPage();
 
+    /*
     QPushButton *m_loginBTN;
     QPushButton *m_registerBTN;
     QPushButton *m_forgotpwBTN;
+*/
 
     SocketManager *m_socketManager;
 
@@ -27,7 +29,6 @@ public slots:
     void Login();
     void Register();
     void ForgotPW();
-    //void HostLookupSuccessful();
 
 private:
     Ui::LoginPage *ui;

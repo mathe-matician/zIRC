@@ -11,16 +11,11 @@ LoginPage::LoginPage(QWidget *parent) :
     ui->setupUi(this);
 
     m_socketManager = new SocketManager();
-    //m_socketManager->ServerConnect();
+    m_socketManager->ServerConnect();
 
-    m_loginBTN = ui->BTNlogin;
-    m_registerBTN = ui->BTNregister;
-    m_forgotpwBTN = ui->BTNforgotpw;
-
-    //connect(m_loginBTN, SIGNAL(clicked()), m_socketManager, SLOT(ServerConnect()));
-    connect(m_loginBTN, SIGNAL(clicked()), m_socketManager, SLOT(ServerConnect()));
-    connect(m_registerBTN, SIGNAL(clicked()), this->parentWidget(), SLOT(ShowRegisterPage()));
-    connect(m_forgotpwBTN, SIGNAL(clicked()), this, SLOT(ForgotPW()));
+    connect(ui->BTNlogin, SIGNAL(clicked()), this, SLOT(Login()));
+    connect(ui->BTNlogin, SIGNAL(clicked()), this->parentWidget(), SLOT(ShowRegisterPage()));
+    connect(ui->BTNforgotpw, SIGNAL(clicked()), this, SLOT(ForgotPW()));
 
     ui->INPUTpassword->setEchoMode(QLineEdit::Password);
 
@@ -42,6 +37,36 @@ LoginPage::~LoginPage()
 void LoginPage::Login()
 {
     qDebug() << "Login";
+    QString l_email = ui->INPUTemail->text();
+    QString l_password = ui->INPUTpassword->text();
+    qDebug() << "Email: " << l_email << " Password: " << l_password;
+
+    if (l_email.isEmpty()) {
+        qDebug() << "Email is empty";
+    }
+
+    if (l_password.isEmpty()) {
+        qDebug() << "Password is empty";
+    }
+    /*
+    if (client) {
+        // console.log(`CLIENT UID: '${clientUID}', clientUIDExists: ${clientUIDExists}`);
+        if (tokenExists) {
+            client.write(`tokenPkg::${tokenpkg} :${nickname}@${host} ${line} \r\n`);
+        } else if (clientUIDExists) {
+            client.write(`clientUID::${clientUID} :${nickname}@${host} ${line} \r\n`)
+        } else {
+            client.write(`:${nickname}@${host} ${line} \r\n`)
+        }
+    }
+*/
+
+    // TODO check if tokenPkg exists in state
+    // TODO get nickname from local state
+
+    QString l_final_data = QString(":%1@%2 %3 \r\n").arg("nickname").arg(m_socketManager->socket->localAddress().toString()).arg("message");
+
+    m_socketManager->Write_Data(l_final_data.toUtf8());
 }
 
 void LoginPage::Register()

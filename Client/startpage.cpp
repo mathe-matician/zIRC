@@ -20,16 +20,20 @@ StartPage::~StartPage()
     delete ui;
 }
 
-void StartPage::ShowLoginPage()
-{
-
-}
-
 void StartPage::ShowRegisterPage()
 {
     qDebug() << "StartPage::ShowRegisterPage";
-    if (m_loginpage->isEnabled()) {
+    if (m_loginpage->isVisible()) {
         m_loginpage->hide();
     }
     m_registerpage->show();
+}
+
+void StartPage::ShowLoginPage()
+{
+    qDebug() << "StartPage::ShowLoginPage";
+    if (m_registerpage->isVisible()) {
+        m_registerpage->hide();
+    }
+    m_loginpage->show();
 }

@@ -6,6 +6,8 @@ Registerpage::Registerpage(QWidget *parent) :
     ui(new Ui::Registerpage)
 {
     ui->setupUi(this);
+
+    connect(ui->BTN_back, SIGNAL(clicked()), this->parentWidget(), SLOT(ShowLoginPage()));
 }
 
 Registerpage::~Registerpage()
