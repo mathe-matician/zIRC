@@ -83,8 +83,11 @@ void SocketManager::Bytes_Written(qint64 bytes)
 #ifndef __EMSCRIPTEN__
 void SocketManager::Read_Data()
 {
+    // TODO
+    // Run in separate thread for i/o
     QByteArray res = socket->readAll();
-    qDebug() << "RES: " << res.toStdString();
+    qDebug() << "SocketManager::Read_Data() RES: " << res.toStdString();
+    m_result = res;
 }
 #endif
 
@@ -98,3 +101,9 @@ void SocketManager::Write_Data(const QByteArray &data)
 
     qDebug() << l_bytes_written << " bytes written to socket";
 }
+
+///////////////
+// GETTERS
+///////////////
+
+QByteArray SocketManager::Get_Message_Result() { return this->m_result; }

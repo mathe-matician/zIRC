@@ -31,6 +31,8 @@ public slots:
     void Read_Data();
     void Write_Data(const QByteArray &data);
 
+    QByteArray Get_Message_Result();
+
 #ifdef __EMSCRIPTEN__
 
 #else
@@ -38,6 +40,7 @@ public slots:
 #endif
 
 private:
+    QByteArray m_result;
 
 };
 

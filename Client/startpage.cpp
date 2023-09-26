@@ -17,7 +17,7 @@ StartPage::StartPage(QSettings *g_settings, QWidget *parent) :
     m_socketManager->ServerConnect();
 
     m_loginpage = new LoginPage(this, m_socketManager);
-    m_registerpage = new Registerpage(this);
+    m_registerpage = new Registerpage(this, m_socketManager);
 
     m_registerpage->hide();
     m_loginpage->show();

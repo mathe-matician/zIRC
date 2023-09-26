@@ -29,6 +29,8 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         startpage.h startpage.cpp startpage.ui
         verifyemailpage.h verifyemailpage.cpp verifyemailpage.ui
         socketmanager.h socketmanager.cpp
+        parsermanager.h parsermanager.cpp
+        messagecard.h messagecard.cpp messagecard.ui
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET irc APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR

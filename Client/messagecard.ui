@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MessageCard</class>
+ <widget class="QWidget" name="MessageCard">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>304</width>
+    <height>220</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true">QWidget {
+	color: white;
+     background-color: rgb(181, 9, 21);
+	font: 500 13pt &quot;Futura&quot;;
+     border-style: outset;
+	border-width: 3px;
+	border-color: rgb(27, 9, 6);
+     font: bold 20px;
+     padding: 6px;
+}</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QLabel" name="LABEL_msg">
+     <property name="styleSheet">
+      <string notr="true">QLabel {
+	border-width: 0px;
+}</string>
+     </property>
+     <property name="frameShadow">
+      <enum>QFrame::Raised</enum>
+     </property>
+     <property name="text">
+      <string>Test Message</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPushButton" name="BTN">
+     <property name="styleSheet">
+      <string notr="true">QPushButton {
+	color: white;
+     background-color: rgb(181, 9, 21);
+	font: 500 13pt &quot;Futura&quot;;
+     border-style: outset;
+     border-width: 3px;
+	height: 25;
+     border-color: rgb(27, 9, 6);
+	border-top-right-radius: 4;
+	border-top-left-radius: 4;
+	border-bottom-left-radius: 4;
+	border-bottom-right-radius: 4;
+     font: bold 20px;
+     padding: 2px;
+}
+
+QPushButton:pressed {
+    background-color: rgb(76, 76, 76);
+}</string>
+     </property>
+     <property name="text">
+      <string>Ok</string>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

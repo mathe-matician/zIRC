@@ -1,5 +1,7 @@
 #include "registerpage.h"
 #include "ui_registerpage.h"
+#include "parsermanager.h"
+#include "messagecard.h"
 
 Registerpage::Registerpage(QWidget *parent, SocketManager *a_socketManager) :
     QWidget(parent),
@@ -32,7 +34,10 @@ void Registerpage::Register()
     qDebug() << "REGISTER sending: " << l_msg;
 
     QString l_final_data = QString(":%1@%2 %3 \r\n").arg(l_nickname).arg(m_socketManager->socket->localAddress().toString()).arg(l_msg);
-    qDebug() << "Before write";
     m_socketManager->Write_Data(l_final_data.toUtf8());
-    qDebug() << "After write";
+
+    MessageCard *l_msgcard = new MessageCard(this);
+    l_msgcard->show();
+
+    //ParserManager l_parser = ParserManager(m_socketManager->Get_Message_Result());
 }
