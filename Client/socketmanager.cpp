@@ -94,12 +94,17 @@ void SocketManager::Read_Data()
 
 void SocketManager::Write_Data(const QByteArray &data)
 {
+#ifdef __EMSCRIPTEN__
+    qint64 l_bytes_written = socket->sendBinaryMessage(data);
+#else
     qint64 l_bytes_written = socket->write(data);
+#endif
     if (l_bytes_written == -1) {
         qDebug() << "Error writing to socket";
     }
 
     qDebug() << l_bytes_written << " bytes written to socket";
+
 }
 
 ///////////////
