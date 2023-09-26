@@ -13,7 +13,7 @@ class LoginPage : public QWidget
     Q_OBJECT
 
 public:
-    explicit LoginPage(QWidget *parent = nullptr);
+    explicit LoginPage(QWidget *parent = nullptr, SocketManager *a_socketManager = nullptr);
     ~LoginPage();
 
     SocketManager *m_socketManager;

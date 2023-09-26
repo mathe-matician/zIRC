@@ -4,14 +4,13 @@
 #include <QLineEdit>
 #include <QDebug>
 
-LoginPage::LoginPage(QWidget *parent) :
+LoginPage::LoginPage(QWidget *parent, SocketManager *a_socketManager) :
     QWidget(parent),
     ui(new Ui::LoginPage)
 {
     ui->setupUi(this);
 
-    m_socketManager = new SocketManager();
-    m_socketManager->ServerConnect();
+    m_socketManager = a_socketManager;
 
     connect(ui->BTNlogin, SIGNAL(clicked()), this, SLOT(Login()));
     connect(ui->BTNregister, SIGNAL(clicked()), this->parentWidget(), SLOT(ShowRegisterPage()));

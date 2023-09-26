@@ -14,8 +14,9 @@ StartPage::StartPage(QSettings *g_settings, QWidget *parent) :
     //g_settings->setValue("tokenPkg", "HELLO TOKENPKG");
 
     m_socketManager = new SocketManager();
+    m_socketManager->ServerConnect();
 
-    m_loginpage = new LoginPage(this);
+    m_loginpage = new LoginPage(this, m_socketManager);
     m_registerpage = new Registerpage(this);
 
     m_registerpage->hide();
