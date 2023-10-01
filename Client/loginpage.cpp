@@ -3,6 +3,7 @@
 
 #include <QLineEdit>
 #include <QDebug>
+#include <QMessageBox>
 
 LoginPage::LoginPage(QWidget *parent, SocketManager *a_socketManager) :
     QWidget(parent),
@@ -77,5 +78,8 @@ void LoginPage::Register()
 void LoginPage::ForgotPW()
 {
     qDebug() << "ForgotPW";
+    QMessageBox msgBox;
+    msgBox.setText("TUFF LUCK SUCKA");
+    msgBox.exec();
 }
 
