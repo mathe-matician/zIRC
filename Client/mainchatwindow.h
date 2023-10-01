@@ -9,6 +9,7 @@
 #include "chatchannelselectionwindow.h"
 #include "chatinboxwindow.h"
 #include "chatbox.h"
+#include "chatview.h"
 
 namespace Ui {
 class MainChatWindow;
@@ -27,6 +28,7 @@ public:
     ChatChannelSelectionWindow *m_channelSelectionWindow = nullptr;
     ChatInboxWindow *m_inboxWindow = nullptr;
     ChatBox *m_chatBox = nullptr;
+    ChatView *m_chatView = nullptr;
 
 public slots:
     void MenuItemDoubleClicked(QTreeWidgetItem *a_item, int column);

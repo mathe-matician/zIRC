@@ -163,6 +163,25 @@ void MainChatWindow::MenuItemDoubleClicked(QTreeWidgetItem *a_item, int column)
             // else some sub menu was selected so open up a view for that
             qDebug() << "Other selected: " << l_selectedItem;
 
+            QString l_activeWidget = m_vLayout->layout()->itemAt(0)->widget()->objectName();
+            if (l_activeWidget == "ChatChannelSelectionWindow") {
+                m_channelSelectionWindow = nullptr;
+            } else if (l_activeWidget == "ChatInboxWindow") {
+                m_inboxWindow = nullptr;
+            }
+
+            m_vLayout->layout()->itemAt(0)->widget()->deleteLater();
+
+            // TODO
+            // Insert chat view of proposed chat
+            // Get cached chat from database
+            // get chat values from server if no cache exists
+            m_chatView = new ChatView();
+            m_vLayout->insertWidget(0, m_chatView);
+
+            // TODO
+            // nullout ChatView in other views above
+
             if (m_vLayout->layout()->findChild<QWidget *>(QString("ChatBox")) == nullptr) {
                 m_chatBox = new ChatBox();
                 m_vLayout->insertWidget(1, m_chatBox);

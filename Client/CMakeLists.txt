@@ -40,6 +40,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         chatchannelselectionwindow.h chatchannelselectionwindow.cpp chatchannelselectionwindow.ui
         chatinboxwindow.h chatinboxwindow.cpp chatinboxwindow.ui
         chatbox.h chatbox.cpp chatbox.ui
+        chatview.h chatview.cpp chatview.ui
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET irc APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR

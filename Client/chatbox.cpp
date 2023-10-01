@@ -22,8 +22,8 @@ ChatBox::~ChatBox()
 
 bool ChatBox::eventFilter(QObject* obj, QEvent* event)
 {
-    qDebug() << "eventFilter::event = " << event->type();
-    qDebug() << "Focus = " << this->focusWidget();
+    //qDebug() << "eventFilter::event = " << event->type();
+    //qDebug() << "Focus = " << this->focusWidget();
 
     if (this->focusWidget() && this->focusWidget()->objectName() == "chatBox") {
         qDebug() << "FOCUS == chatBox";
