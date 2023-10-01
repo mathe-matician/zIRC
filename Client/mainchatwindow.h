@@ -8,6 +8,7 @@
 #include "socketmanager.h"
 #include "chatchannelselectionwindow.h"
 #include "chatinboxwindow.h"
+#include "chatbox.h"
 
 namespace Ui {
 class MainChatWindow;
@@ -25,6 +26,7 @@ public:
     QVBoxLayout *m_vLayout;
     ChatChannelSelectionWindow *m_channelSelectionWindow = nullptr;
     ChatInboxWindow *m_inboxWindow = nullptr;
+    ChatBox *m_chatBox = nullptr;
 
 public slots:
     void MenuItemDoubleClicked(QTreeWidgetItem *a_item, int column);

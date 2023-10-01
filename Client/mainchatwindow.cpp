@@ -12,6 +12,7 @@ MainChatWindow::MainChatWindow(QWidget *parent, SocketManager *a_socketManager) 
     ui->setupUi(this);
     m_vLayout = ui->verticalLayout;
     // insertWidget(index)
+    ui->chatBox->hide();
     m_channelSelectionWindow = new ChatChannelSelectionWindow();
     m_vLayout->insertWidget(0, m_channelSelectionWindow);
     ui->treeWidget->setFixedWidth(160);
@@ -33,7 +34,7 @@ MainChatWindow::MainChatWindow(QWidget *parent, SocketManager *a_socketManager) 
     // Create new item and add as child item
     QTreeWidgetItem *item=new QTreeWidgetItem(topLevelItem);
     // Set text for item
-    item->setText(0,"#General");
+    item->setText(0,"General");
 
     QTreeWidgetItem *inbox = new QTreeWidgetItem(ui->treeWidget);
     // Add it on our tree as the top item.
@@ -120,6 +121,12 @@ void MainChatWindow::MenuItemDoubleClicked(QTreeWidgetItem *a_item, int column)
                     m_inboxWindow = nullptr;
                 }
 
+                QWidget *l_chatbox = m_vLayout->layout()->findChild<QWidget *>(QString("ChatBox"));
+                if (l_chatbox != nullptr) {
+                    m_chatBox = nullptr;
+                    l_chatbox->deleteLater();
+                }
+
                 m_vLayout->layout()->itemAt(0)->widget()->deleteLater();
 
                 if (m_channelSelectionWindow == nullptr) {
@@ -138,6 +145,12 @@ void MainChatWindow::MenuItemDoubleClicked(QTreeWidgetItem *a_item, int column)
                     m_channelSelectionWindow = nullptr;
                 }
 
+                QWidget *l_chatbox = m_vLayout->layout()->findChild<QWidget *>(QString("ChatBox"));
+                if (l_chatbox != nullptr) {
+                    m_chatBox = nullptr;
+                    l_chatbox->deleteLater();
+                }
+
                 m_vLayout->layout()->itemAt(0)->widget()->deleteLater();
 
                 if (m_inboxWindow == nullptr) {
@@ -145,6 +158,14 @@ void MainChatWindow::MenuItemDoubleClicked(QTreeWidgetItem *a_item, int column)
                 }
 
                 m_vLayout->insertWidget(0, m_inboxWindow);
+            }
+        } else {
+            // else some sub menu was selected so open up a view for that
+            qDebug() << "Other selected: " << l_selectedItem;
+
+            if (m_vLayout->layout()->findChild<QWidget *>(QString("ChatBox")) == nullptr) {
+                m_chatBox = new ChatBox();
+                m_vLayout->insertWidget(1, m_chatBox);
             }
         }
     } else {
