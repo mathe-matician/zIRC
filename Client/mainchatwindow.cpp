@@ -3,7 +3,6 @@
 
 #include <QTreeWidgetItem>
 #include <QFileSystemModel>
-#include <iostream>
 //#include <QValidator>
 
 MainChatWindow::MainChatWindow(QWidget *parent, SocketManager *a_socketManager) :
@@ -11,6 +10,10 @@ MainChatWindow::MainChatWindow(QWidget *parent, SocketManager *a_socketManager) 
     ui(new Ui::MainChatWindow)
 {
     ui->setupUi(this);
+    m_vLayout = ui->verticalLayout;
+    // insertWidget(index)
+    m_channelSelectionWindow = new ChatChannelSelectionWindow();
+    m_vLayout->insertWidget(0, m_channelSelectionWindow);
     ui->treeWidget->setFixedWidth(160);
 
     m_socketManager = a_socketManager;
@@ -37,6 +40,11 @@ MainChatWindow::MainChatWindow(QWidget *parent, SocketManager *a_socketManager) 
     ui->treeWidget->addTopLevelItem(inbox);
     // Set text for item
     inbox->setText(0,"Inbox");
+
+
+    //itemDoubleClicked(QTreeWidgetItem *item, int column)
+    //connect(ui->treeWidget, SIGNAL(itemDoubleClicked(QTreeWidgetItem*, int)), this, SLOT(MenuItemDoubleClicked(QTreeWidgetItem*, int)));
+    connect(ui->treeWidget, SIGNAL(itemClicked(QTreeWidgetItem*, int)), this, SLOT(MenuItemDoubleClicked(QTreeWidgetItem*, int)));
 }
 
 MainChatWindow::~MainChatWindow()
@@ -94,4 +102,46 @@ bool MainChatWindow::eventFilter(QObject* obj, QEvent* event)
     }
 */
     return false;
+}
+
+void MainChatWindow::MenuItemDoubleClicked(QTreeWidgetItem *a_item, int column)
+{
+    qDebug() << "MainChatWindow::MenuItemDoubleClicked start";
+    if (a_item != nullptr) {
+        QString l_selectedItem = a_item->text(column);
+        qDebug() << "Text == " << l_selectedItem;
+
+        if (l_selectedItem == "Channels") {
+            qDebug() << "Channels Selected";
+
+            if (!m_vLayout->layout()->isEmpty()) {
+                // && m_vLayout->layout()->widget()->objectName() != ...
+                // to avoid allocs
+                qDebug() << "Layout not empty!: ";
+                m_vLayout->layout()->itemAt(0)->widget()->deleteLater();
+            }
+
+            if (m_channelSelectionWindow == nullptr) {
+                m_channelSelectionWindow = new ChatChannelSelectionWindow();
+            }
+
+            m_vLayout->insertWidget(0, m_channelSelectionWindow);
+
+        } else if (l_selectedItem == "Inbox") {
+            qDebug() << "Inbox Selected";
+
+            if (!m_vLayout->layout()->isEmpty()) {
+                qDebug() << "Layout not empty!: ";
+                m_vLayout->layout()->itemAt(0)->widget()->deleteLater();
+            }
+
+            if (m_inboxWindow == nullptr) {
+                m_inboxWindow = new ChatInboxWindow();
+            }
+
+            m_vLayout->insertWidget(0, m_inboxWindow);
+        }
+    } else {
+        qDebug() << "Nothing selected";
+    }
 }
