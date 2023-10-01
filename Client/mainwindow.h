@@ -3,7 +3,11 @@
 
 #include <QMainWindow>
 #include <QSettings>
-#include "startpage.h"
+
+#include "loginpage.h"
+#include "registerpage.h"
+#include "socketmanager.h"
+#include "mainchatwindow.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -16,10 +20,23 @@ class MainWindow : public QMainWindow
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
-    StartPage *m_startpage;
     QSettings *g_settings;
 
+    LoginPage *m_loginpage;
+    Registerpage *m_registerpage;
+    SocketManager *m_socketManager;
+    MainChatWindow *m_mainChatWindow;
+
+public slots:
+    void ShowLoginPage();
+    void ShowRegisterPage();
+    void ShowMainChatPage();
+
 private:
+    void IsPageActive();
+
+    QString m_tokenPkg;
     Ui::MainWindow *ui;
+
 };
 #endif // MAINWINDOW_H

@@ -32,6 +32,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         parsermanager.h parsermanager.cpp
         messagecard.h messagecard.cpp messagecard.ui
         cardmanager.h cardmanager.cpp
+        mainchatwindow.h mainchatwindow.cpp mainchatwindow.ui
     )
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET irc APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR

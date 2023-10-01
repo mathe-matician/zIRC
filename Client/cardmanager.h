@@ -5,7 +5,7 @@
 
 #include "socketmanager.h"
 
-class CardManager
+class CardManager : public QObject
 {
     Q_OBJECT
 public:
