@@ -4,8 +4,6 @@
 //#include "messagecard.h"
 #include "mainchatwindow.h"
 
-#include <QMainWindow>
-
 Registerpage::Registerpage(QWidget *parent, SocketManager *a_socketManager) :
     QWidget(parent),
     ui(new Ui::Registerpage)
@@ -27,6 +25,7 @@ Registerpage::~Registerpage()
 
 void Registerpage::Register()
 {
+#ifndef SKIP_REGISTER
     qDebug() << "Registerpage::Register Start";
     QString l_email = ui->INPUT_email->text();
     QString l_nickname = ui->INPUT_nick->text();
@@ -41,6 +40,7 @@ void Registerpage::Register()
 
     //MessageCard *l_msgcard = new MessageCard(this);
     //l_msgcard->show();
+#endif
 
     //qobject_cast<MainWindow *>(this->parentWidget());
     emit RegisterSuccess();

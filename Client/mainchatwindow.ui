@@ -15,7 +15,13 @@
   </property>
   <layout class="QHBoxLayout" name="horizontalLayout">
    <item>
-    <widget class="QTreeView" name="treeView"/>
+    <widget class="QTreeWidget" name="treeWidget">
+     <column>
+      <property name="text">
+       <string>zIRC</string>
+      </property>
+     </column>
+    </widget>
    </item>
    <item>
     <layout class="QVBoxLayout" name="verticalLayout">
