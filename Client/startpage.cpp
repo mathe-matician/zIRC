@@ -13,6 +13,10 @@ StartPage::StartPage(QSettings *g_settings, QWidget *parent) :
 
     //g_settings->setValue("tokenPkg", "HELLO TOKENPKG");
 
+    // TODO
+    // There is a big assumption here that this socket will always be valid
+    // if there is a connection drop we need to ensure that everything that needs the valid socket gets re instantiated with it.
+
     m_socketManager = new SocketManager();
     m_socketManager->ServerConnect();
 

@@ -26,14 +26,13 @@ const Register = async (registerPkg) => {
   const prp_stmt_Register = db.Prepare(
     "Auth_PLAIN_Register",
     `
-    BEGIN;
-    INSERT INTO users (email, password, nickname) VALUES ($1, $2, $3);
-    IF FOUND THEN
-      INSERT INTO email_tokens (email) values ($1, $4, $5);
-    END IF;
-    COMMIT;
+    WITH user_insrt AS (
+      INSERT INTO users VALUES (default, $1, $2, $3)
+      ON CONFLICT DO NOTHING
+    RETURNING email
+    )
+    INSERT INTO email_tokens VALUES (default, (select email from user_insrt), $4, $5) ON CONFLICT DO NOTHING;
     `,
-    // INSERT INTO users VALUES (default, $1, $2, $3)
     [
       parsedRegisterPkg?.email, 
       password_hash, 
@@ -44,7 +43,12 @@ const Register = async (registerPkg) => {
   );
 
   const registerRes = await db.Exec(prp_stmt_Register);
-  logger.info(`registerRes: ${registerRes}`);
+  if (isJson(registerRes)) {
+    logger.info(`registerRes: ${JSON.stringify(registerRes)}`);
+  } else {
+    logger.info(`registerRes: ${registerRes}`);
+  }
+  
   if (!registerRes) {
     logger.error("Failed registration when trying to insert into DB");
     return '{"err": "ERR_REGISTERFAIL"}';
@@ -52,10 +56,12 @@ const Register = async (registerPkg) => {
 
   logger.info(`Successfully inserted new user into db`);
 
+  // TODO
+  // send email with token
   // const MailerInstance = Mailer();
 
 
-  return '{"res": ""}';
+  return `{"res": ""}`;
 };
 
 const AuthCheck = async (token) => {

@@ -7,3 +7,4 @@ Auth_Server/node_modules
 Auth_Server/TMP-Generators
 Chat_Server/TestClient/*-*-*-*-*
 build-*
+android_release*

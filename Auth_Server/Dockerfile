@@ -1,7 +1,7 @@
 FROM node:16.20.2
 
 COPY package.json package-lock.json server.js db.js .env utils.js /auth_server/
-
+COPY Mailer/mailer.js /auth_server/Mailer/
 COPY modules/ /auth_server/modules/
 COPY Crypto/ /auth_server/Crypto/
 

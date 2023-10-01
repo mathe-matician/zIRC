@@ -5,7 +5,16 @@
 
 namespace Ui {
 class MessageCard;
+enum class CardType;
 }
+
+enum class CardType
+{
+    Error,
+    Ok,
+    YesNo,
+    Widget
+};
 
 class MessageCard : public QWidget
 {
