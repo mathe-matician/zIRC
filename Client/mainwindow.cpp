@@ -39,6 +39,8 @@ void MainWindow::ShowRegisterPage()
     }
 
     m_registerpage = new Registerpage(this, m_socketManager);
+    connect(m_registerpage, SIGNAL(RegisterSuccess()), this, SLOT(ShowMainChatPage()));
+
     this->centralWidget()->layout()->addWidget(m_registerpage);
 }
 

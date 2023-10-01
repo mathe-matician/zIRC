@@ -21,6 +21,9 @@ public:
 public slots:
     void Register();
 
+signals:
+    void RegisterSuccess();
+
 private:
     Ui::Registerpage *ui;
 };

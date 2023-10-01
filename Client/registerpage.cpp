@@ -4,6 +4,8 @@
 //#include "messagecard.h"
 #include "mainchatwindow.h"
 
+#include <QMainWindow>
+
 Registerpage::Registerpage(QWidget *parent, SocketManager *a_socketManager) :
     QWidget(parent),
     ui(new Ui::Registerpage)
@@ -40,8 +42,8 @@ void Registerpage::Register()
     //MessageCard *l_msgcard = new MessageCard(this);
     //l_msgcard->show();
 
-    MainChatWindow *l_mainChatWindow = new MainChatWindow();
-    l_mainChatWindow->show();
+    //qobject_cast<MainWindow *>(this->parentWidget());
+    emit RegisterSuccess();
 
     //ParserManager l_parser = ParserManager(m_socketManager->Get_Message_Result());
 }
