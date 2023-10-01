@@ -35,6 +35,7 @@ public slots:
     void Error_Occurred(QAbstractSocket::SocketError socketError);
     void Bytes_Written(qint64 bytes);
     void Read_Data();
+    void Debug_Send(QByteArray data);
 /*
 #ifndef __EMSCRIPTEN__
     void Read_Data();

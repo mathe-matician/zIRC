@@ -143,6 +143,11 @@ void SocketManager::Write_Data(const QByteArray &data)
 
 }
 
+void SocketManager::Debug_Send(QByteArray data)
+{
+    qDebug() << "Debug_Send " << data.toStdString();
+}
+
 ///////////////
 // GETTERS
 ///////////////

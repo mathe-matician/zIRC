@@ -46,7 +46,7 @@
       </spacer>
      </item>
      <item>
-      <widget class="QPlainTextEdit" name="plainTextEdit"/>
+      <widget class="QPlainTextEdit" name="chatBox"/>
      </item>
     </layout>
    </item>
