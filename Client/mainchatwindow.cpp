@@ -32,11 +32,11 @@ MainChatWindow::MainChatWindow(QWidget *parent, SocketManager *a_socketManager) 
     // Set text for item
     item->setText(0,"#General");
 
-    QTreeWidgetItem *dms = new QTreeWidgetItem(ui->treeWidget);
+    QTreeWidgetItem *inbox = new QTreeWidgetItem(ui->treeWidget);
     // Add it on our tree as the top item.
-    ui->treeWidget->addTopLevelItem(dms);
+    ui->treeWidget->addTopLevelItem(inbox);
     // Set text for item
-    topLevelItem->setText(0,"dms");
+    inbox->setText(0,"Inbox");
 }
 
 MainChatWindow::~MainChatWindow()
