@@ -114,32 +114,38 @@ void MainChatWindow::MenuItemDoubleClicked(QTreeWidgetItem *a_item, int column)
         if (l_selectedItem == "Channels") {
             qDebug() << "Channels Selected";
 
-            if (!m_vLayout->layout()->isEmpty()) {
-                // && m_vLayout->layout()->widget()->objectName() != ...
-                // to avoid allocs
+            if (!m_vLayout->layout()->isEmpty() && m_vLayout->layout()->itemAt(0)->widget()->objectName() != "ChatChannelSelectionWindow") {
                 qDebug() << "Layout not empty!: ";
+                if (m_vLayout->layout()->itemAt(0)->widget()->objectName() == "ChatInboxWindow") {
+                    m_inboxWindow = nullptr;
+                }
+
                 m_vLayout->layout()->itemAt(0)->widget()->deleteLater();
+
+                if (m_channelSelectionWindow == nullptr) {
+                    m_channelSelectionWindow = new ChatChannelSelectionWindow();
+                }
+
+                m_vLayout->insertWidget(0, m_channelSelectionWindow);
             }
-
-            if (m_channelSelectionWindow == nullptr) {
-                m_channelSelectionWindow = new ChatChannelSelectionWindow();
-            }
-
-            m_vLayout->insertWidget(0, m_channelSelectionWindow);
-
         } else if (l_selectedItem == "Inbox") {
             qDebug() << "Inbox Selected";
 
-            if (!m_vLayout->layout()->isEmpty()) {
+            if (!m_vLayout->layout()->isEmpty() && m_vLayout->layout()->itemAt(0)->widget()->objectName() != "ChatInboxWindow") {
                 qDebug() << "Layout not empty!: ";
+                qDebug() << "ACtive objec tname = " << m_vLayout->layout()->itemAt(0)->widget()->objectName();
+                if (m_vLayout->layout()->itemAt(0)->widget()->objectName() == "ChatChannelSelectionWindow") {
+                    m_channelSelectionWindow = nullptr;
+                }
+
                 m_vLayout->layout()->itemAt(0)->widget()->deleteLater();
-            }
 
-            if (m_inboxWindow == nullptr) {
-                m_inboxWindow = new ChatInboxWindow();
-            }
+                if (m_inboxWindow == nullptr) {
+                    m_inboxWindow = new ChatInboxWindow();
+                }
 
-            m_vLayout->insertWidget(0, m_inboxWindow);
+                m_vLayout->insertWidget(0, m_inboxWindow);
+            }
         }
     } else {
         qDebug() << "Nothing selected";

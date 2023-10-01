@@ -23,7 +23,7 @@ public:
     bool eventFilter(QObject *object, QEvent *event);
 
     QVBoxLayout *m_vLayout;
-    ChatChannelSelectionWindow *m_channelSelectionWindow;
+    ChatChannelSelectionWindow *m_channelSelectionWindow = nullptr;
     ChatInboxWindow *m_inboxWindow = nullptr;
 
 public slots:
