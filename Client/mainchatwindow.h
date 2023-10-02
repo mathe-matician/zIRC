@@ -22,7 +22,6 @@ class MainChatWindow : public QWidget
 public:
     explicit MainChatWindow(QWidget *parent = nullptr, SocketManager *a_socketManager = nullptr);
     ~MainChatWindow();
-    bool eventFilter(QObject *object, QEvent *event);
 
     QVBoxLayout *m_vLayout;
     ChatChannelSelectionWindow *m_channelSelectionWindow = nullptr;
@@ -36,6 +35,7 @@ public slots:
 private:
     Ui::MainChatWindow *ui;
     SocketManager *m_socketManager;
+    QString m_currentChan;
 };
 
 #endif // MAINCHATWINDOW_H

@@ -11,8 +11,6 @@ MainChatWindow::MainChatWindow(QWidget *parent, SocketManager *a_socketManager) 
 {
     ui->setupUi(this);
     m_vLayout = ui->verticalLayout;
-    // insertWidget(index)
-    ui->chatBox->hide();
     m_channelSelectionWindow = new ChatChannelSelectionWindow();
     m_vLayout->insertWidget(0, m_channelSelectionWindow);
     ui->treeWidget->setFixedWidth(160);
@@ -21,9 +19,6 @@ MainChatWindow::MainChatWindow(QWidget *parent, SocketManager *a_socketManager) 
 
     // user the event filter defined in this object
     this->installEventFilter(this);
-
-    // chatbox
-    ui->chatBox->setFixedHeight(40);
 
     // Create new item (top level item)
     QTreeWidgetItem *topLevelItem = new QTreeWidgetItem(ui->treeWidget);
@@ -53,6 +48,7 @@ MainChatWindow::~MainChatWindow()
     delete ui;
 }
 
+/*
 bool MainChatWindow::eventFilter(QObject* obj, QEvent* event)
 {
     //qDebug() << "eventFilter::event = " << event->type();
@@ -101,9 +97,10 @@ bool MainChatWindow::eventFilter(QObject* obj, QEvent* event)
     } else {
         return QObject::eventFilter(obj, event);
     }
-*/
+
     return false;
 }
+*/
 
 void MainChatWindow::MenuItemDoubleClicked(QTreeWidgetItem *a_item, int column)
 {
@@ -121,19 +118,22 @@ void MainChatWindow::MenuItemDoubleClicked(QTreeWidgetItem *a_item, int column)
                     m_inboxWindow = nullptr;
                 }
 
-                QWidget *l_chatbox = m_vLayout->layout()->findChild<QWidget *>(QString("ChatBox"));
-                if (l_chatbox != nullptr) {
+                if (m_vLayout->layout()->itemAt(0)->widget()->objectName() == "ChatView") {
+                    qDebug() << "l_chatbox != nullptr";
                     m_chatBox = nullptr;
-                    l_chatbox->deleteLater();
+                    m_vLayout->layout()->itemAt(1)->widget()->deleteLater();
+                    m_vLayout->layout()->removeWidget(m_vLayout->layout()->itemAt(1)->widget());
                 }
 
                 m_vLayout->layout()->itemAt(0)->widget()->deleteLater();
+                m_vLayout->layout()->removeWidget(m_vLayout->layout()->itemAt(0)->widget());
 
                 if (m_channelSelectionWindow == nullptr) {
                     m_channelSelectionWindow = new ChatChannelSelectionWindow();
                 }
 
                 m_vLayout->insertWidget(0, m_channelSelectionWindow);
+                m_currentChan = "";
             }
         } else if (l_selectedItem == "Inbox") {
             qDebug() << "Inbox Selected";
@@ -145,23 +145,34 @@ void MainChatWindow::MenuItemDoubleClicked(QTreeWidgetItem *a_item, int column)
                     m_channelSelectionWindow = nullptr;
                 }
 
-                QWidget *l_chatbox = m_vLayout->layout()->findChild<QWidget *>(QString("ChatBox"));
-                if (l_chatbox != nullptr) {
+                if (m_vLayout->layout()->itemAt(0)->widget()->objectName() == "ChatView") {
+                    // if ChatView exists, ChatBox will always exist as well, so remove the ChatBox
+                    qDebug() << "l_chatbox != nullptr";
                     m_chatBox = nullptr;
-                    l_chatbox->deleteLater();
+                    m_vLayout->layout()->itemAt(1)->widget()->deleteLater();
+                    m_vLayout->layout()->removeWidget(m_vLayout->layout()->itemAt(1)->widget());
                 }
 
                 m_vLayout->layout()->itemAt(0)->widget()->deleteLater();
+                m_vLayout->layout()->removeWidget(m_vLayout->layout()->itemAt(0)->widget());
 
                 if (m_inboxWindow == nullptr) {
                     m_inboxWindow = new ChatInboxWindow();
                 }
 
                 m_vLayout->insertWidget(0, m_inboxWindow);
+                m_currentChan = "";
             }
         } else {
             // else some sub menu was selected so open up a view for that
             qDebug() << "Other selected: " << l_selectedItem;
+
+            if (l_selectedItem == m_currentChan) {
+                qDebug() << "Channel already selected";
+                return;
+            }
+
+            m_currentChan = l_selectedItem;
 
             QString l_activeWidget = m_vLayout->layout()->itemAt(0)->widget()->objectName();
             if (l_activeWidget == "ChatChannelSelectionWindow") {
