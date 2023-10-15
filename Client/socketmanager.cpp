@@ -86,6 +86,16 @@ void SocketManager::Success_HostLookup()
     qDebug() << "Host lookup successful!!";
 }
 
+QString SocketManager::nick() const
+{
+    return m_nick;
+}
+
+void SocketManager::setNick(const QString &newNick)
+{
+    m_nick = newNick;
+}
+
 void SocketManager::Success_Connected()
 {
     qDebug() << "Successfully connected to server: " << socket->peerName() << socket->peerAddress().toString() << ":" << socket->peerPort();
@@ -133,6 +143,7 @@ void SocketManager::Write_Data(const QByteArray &data)
 //#ifdef __EMSCRIPTEN__
     //qint64 l_bytes_written = socket->sendBinaryMessage(data);
 //#else
+    //QString l_final_data = QString(":%1@%2 %3 \r\n").arg(l_nickname).arg(m_socketManager->socket->localAddress().toString()).arg(l_msg);
     qint64 l_bytes_written = socket->write(data);
 //#endif
     if (l_bytes_written == -1) {
@@ -146,6 +157,13 @@ void SocketManager::Write_Data(const QByteArray &data)
 void SocketManager::Debug_Send(QByteArray data)
 {
     qDebug() << "Debug_Send " << data.toStdString();
+}
+
+void SocketManager::PRIVMSG(QByteArray data)
+{
+    qDebug() << "PRIVMSG: " << data.toStdString();
+    QString l_nick = m_nick.isEmpty() ? "*" : m_nick;
+    QString l_msg = QString("PRIVMSG %1 %2").arg(l_nick).arg(data.toStdString());
 }
 
 ///////////////

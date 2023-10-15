@@ -23,6 +23,11 @@ public:
     explicit MainChatWindow(QWidget *parent = nullptr, SocketManager *a_socketManager = nullptr);
     ~MainChatWindow();
 
+    enum SaveFormat { Json, Binary };
+
+    bool m_loadState(SaveFormat saveFormat);
+    const bool m_saveState(SaveFormat saveFormat);
+
     QVBoxLayout *m_vLayout;
     ChatChannelSelectionWindow *m_channelSelectionWindow = nullptr;
     ChatInboxWindow *m_inboxWindow = nullptr;

@@ -6,6 +6,7 @@ ChatView::ChatView(QWidget *parent) :
     ui(new Ui::ChatView)
 {
     ui->setupUi(this);
+    ui->plainTextEdit->setReadOnly(true);
 }
 
 ChatView::~ChatView()

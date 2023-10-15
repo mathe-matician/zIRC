@@ -25,8 +25,25 @@ Registerpage::~Registerpage()
 
 void Registerpage::Register()
 {
+    // TODO
+    // add block if fields arnt filled out
+    /*
+    if (ui->INPUT_email->text().isEmpty()) {
+
+    }
+
+    if (ui->INPUT_nick->text().isEmpty()) {
+
+    }
+
+    if (ui->INPUT_password->text().isEmpty()) {
+
+    }
+*/
+
 #ifndef SKIP_REGISTER
     qDebug() << "Registerpage::Register Start";
+
     QString l_email = ui->INPUT_email->text();
     QString l_nickname = ui->INPUT_nick->text();
     QString l_password = ui->INPUT_password->text();

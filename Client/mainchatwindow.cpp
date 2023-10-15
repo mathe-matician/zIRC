@@ -3,6 +3,10 @@
 
 #include <QTreeWidgetItem>
 #include <QFileSystemModel>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QCborValue>
+#include <QCborMap>
 //#include <QValidator>
 
 MainChatWindow::MainChatWindow(QWidget *parent, SocketManager *a_socketManager) :
@@ -48,59 +52,43 @@ MainChatWindow::~MainChatWindow()
     delete ui;
 }
 
-/*
-bool MainChatWindow::eventFilter(QObject* obj, QEvent* event)
+bool MainChatWindow::m_loadState(SaveFormat saveFormat)
 {
-    //qDebug() << "eventFilter::event = " << event->type();
+    QFile loadFile(saveFormat == Json ? "state.json" : "state.dat");
 
-    if (this->focusWidget() && this->focusWidget()->objectName() == "chatBox") {
-        qDebug() << "FOCUS == chatBox";
-        if (event->type()==QEvent::KeyRelease || event->type()==QEvent::KeyPress) {
-            QKeyEvent* key = static_cast<QKeyEvent*>(event);
-
-            if ((key->modifiers() & Qt::ShiftModifier) && (key->key() == Qt::Key_Enter || key->key() == Qt::Key_Return)) {
-                qDebug() << "Shift + Enter pressed - create newline";
-            } else if ((key->key()==Qt::Key_Enter) || (key->key()==Qt::Key_Return)) {
-                qDebug() << "KeyRelease was enter or return";
-                event->ignore();
-                if (!ui->chatBox->document()->isEmpty()) {
-                    qDebug() << "chatbox NOT EMPTY";
-                    m_socketManager->Debug_Send(ui->chatBox->document()->toPlainText().toUtf8());
-                    ui->chatBox->clear();
-                } else {
-                    qDebug() << "chatbox EMPTY";
-                }
-            }
-        }
+    if (!loadFile.open(QIODevice::ReadOnly)) {
+        qWarning("Couldn't open save file.");
+        return false;
     }
 
-    /*
-    if (event->type()==QEvent::KeyPress) {
-        QKeyEvent* key = static_cast<QKeyEvent*>(event);
-        if ( (key->key()==Qt::Key_Enter) || (key->key()==Qt::Key_Return) ) {
-            //Enter or return was pressed
-            qDebug() << "Enter or return was pressed";
+    QByteArray saveData = loadFile.readAll();
 
-            if (this->focusWidget() && this->focusWidget()->objectName() == "chatBox") {
-                qDebug() << "chatbox focus AND enter pressed";
+    QJsonDocument loadDoc(saveFormat == Json
+                              ? QJsonDocument::fromJson(saveData)
+                              : QJsonDocument(QCborValue::fromCbor(saveData).toMap().toJsonObject()));
 
-                if (!ui->chatBox->document()->isEmpty()) {
-                    qDebug() << "chatbox empty second";
-                }
-            }
+    //read(loadDoc.object());
 
-        } else {
-            qDebug() << "Another key was pressed";
-            return QObject::eventFilter(obj, event);
-        }
-        return true;
-    } else {
-        return QObject::eventFilter(obj, event);
-    }
-
-    return false;
+    QTextStream(stdout) << "Loaded save for " << loadDoc["player"]["name"].toString()
+                        << " using " << (saveFormat != Json ? "CBOR" : "JSON") << "...\n";
+    return true;
 }
-*/
+
+const bool MainChatWindow::m_saveState(SaveFormat saveFormat)
+{
+    QFile saveFile(saveFormat == Json ? "save.json" : "save.dat");
+
+    if (!saveFile.open(QIODevice::WriteOnly)) {
+        qWarning("Couldn't open save file.");
+        return false;
+    }
+
+    //QJsonObject gameObject = toJson();
+    //saveFile.write(saveFormat == Json ? QJsonDocument(gameObject).toJson()
+                                      //: QCborValue::fromJsonValue(gameObject).toCbor());
+
+    return true;
+}
 
 void MainChatWindow::MenuItemDoubleClicked(QTreeWidgetItem *a_item, int column)
 {

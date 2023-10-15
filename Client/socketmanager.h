@@ -28,6 +28,9 @@ public:
 
     SocketManager();
 
+    QString nick() const;
+    void setNick(const QString &newNick);
+
 public slots:
     void ServerConnect();
     void Success_Connected();
@@ -36,6 +39,7 @@ public slots:
     void Bytes_Written(qint64 bytes);
     void Read_Data();
     void Debug_Send(QByteArray data);
+    void PRIVMSG(QByteArray data);
 /*
 #ifndef __EMSCRIPTEN__
     void Read_Data();
@@ -53,6 +57,7 @@ signals:
 
 private:
     QByteArray m_result;
+    QString m_nick;
 
 };
 
