@@ -49,6 +49,8 @@ void SocketManager::ServerConnect()
 #if defined(QT_DEBUG)
     #if defined(Q_OS_ANDROID)
         l_host.append("10.0.2.2");
+    #elif defined(Q_OS_IOS)
+        lhost.append("localhost");
     #else
         l_host.append("localhost");
     #endif
@@ -165,9 +167,10 @@ void SocketManager::Debug_Send(QByteArray data)
 
 void SocketManager::PRIVMSG(QByteArray data)
 {
-    qDebug() << "PRIVMSG: " << data.toStdString();
+    qDebug() << "PRIVMSG start: " << data.toStdString();
     QString l_nick = m_nick.isEmpty() ? "*" : m_nick;
     QString l_msg = QString("PRIVMSG %1 %2").arg(l_nick).arg(data);
+    qDebug() << "PRIVMSG cmd: " + l_msg;
 }
 
 ///////////////
