@@ -38,7 +38,7 @@ ApplicationWindow {
                 Layout.fillWidth: true
                 cursorVisible: true
                 leftPadding: 4
-                topPadding: 2
+                topPadding: 4
                 echoMode: TextInput.Normal
             }
         }

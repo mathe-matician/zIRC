@@ -33,8 +33,8 @@ ApplicationWindow {
             }
             Label {
                 id: label
-                text: "#General"
-                anchors.centerIn: parent
+                text: qsTr("#General")
+                Layout.alignment: center
                 elide: Label.ElideRight
                 horizontalAlignment: Qt.AlignHCenter
                 verticalAlignment: Qt.AlignVCenter
@@ -246,10 +246,10 @@ ApplicationWindow {
                 }
 
                 RoundButton {
-                    id: send_msg
-                    text: ">"
-                    font.pixelSize: 27
+                    id: send_msg_btn
                     scale: 0.7
+                    icon.source: "qrc:/send_msg_icon.png"
+                    icon.color: "transparent"
                     onClicked: console.log("Send message!")
                 }
             }
