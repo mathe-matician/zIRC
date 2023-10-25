@@ -235,13 +235,23 @@ ApplicationWindow {
                 }
             }
 
-            TextField {
-                id: chat_input
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                cursorVisible: true
-                leftPadding: 4
-                topPadding: 2
+            RowLayout {
+                TextArea {
+                    id: chat_input
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    cursorVisible: true
+                    leftPadding: 4
+                    topPadding: 2
+                }
+
+                RoundButton {
+                    id: send_msg
+                    text: ">"
+                    font.pixelSize: 27
+                    scale: 0.7
+                    onClicked: console.log("Send message!")
+                }
             }
 
         }
