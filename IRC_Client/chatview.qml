@@ -247,9 +247,12 @@ ApplicationWindow {
 
                 RoundButton {
                     id: send_msg_btn
-                    scale: 0.7
-                    icon.source: "qrc:/send_msg_icon.png"
-                    icon.color: "transparent"
+                    scale: 1
+                    icon.source: "qml/images/send_msg_icon.png"
+                    //icon.color: "transparent"
+//                    icon.height: height
+//                    icon.width: width
+//                    padding: 0
                     onClicked: console.log("Send message!")
                 }
             }

@@ -24,7 +24,7 @@ qt_add_qml_module(appIRC_Client
         QML_FILES register.qml
         QML_FILES chatview.qml
         QML_FILES MessageModel.qml
-        RESOURCES resources.qrc
+        RESOURCES qml.qrc
 )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
