@@ -1,6 +1,7 @@
 import QtQuick
-import QtQuick.Controls
 import QtQuick.Layouts
+import QtQuick.Controls
+import QtQuick.Controls.Material
 
 ApplicationWindow {
     id: register_window
@@ -66,7 +67,7 @@ ApplicationWindow {
         Button {
             id: register_btn
             text: qsTr("Register")
-            onClicked: pageLoader.source = "sidepanel.qml"
+            onClicked: pageLoader.source = "chatview.qml"
         }
 
         Item {
