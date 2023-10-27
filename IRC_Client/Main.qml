@@ -45,14 +45,24 @@ ApplicationWindow {
 
 //    Image {
 //        id: login_logo
+//        anchors.horizontalCenter: parent.horizontalCenter
 //        source: ":/qt-logo.png"
 //        width: 100
 //        height: 100
 //    }
 
+    Rectangle {
+        id: test
+        color: "#95e295"
+        anchors.horizontalCenter: parent.horizontalCenter
+        width: 100
+        height: 100
+    }
+
     TextField {
         id: email_input
-        anchors.centerIn: parent
+        anchors.top: test.bottom
+        anchors.horizontalCenter: test.horizontalCenter
         placeholderText: "email"
         cursorVisible: true
         leftPadding: 4
