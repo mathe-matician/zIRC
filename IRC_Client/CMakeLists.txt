@@ -28,7 +28,6 @@ qt_add_qml_module(appIRC_Client
         QML_FILES chatview.qml
         QML_FILES MessageModel.qml
         RESOURCES qml.qrc
-        SOURCES loginpage.h loginpage.cpp
         QML_FILES popupError.qml
 )
 

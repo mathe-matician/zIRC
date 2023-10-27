@@ -28,7 +28,7 @@ public slots:
     void Read_Data();
     void Debug_Send(QByteArray data);
     void PRIVMSG(QByteArray data);
-    void Write_Data(const QByteArray &data);
+    Q_INVOKABLE void Write_Data(const QByteArray &data);
 
     QByteArray Get_Message_Result();
     void Success_HostLookup();

@@ -81,7 +81,27 @@ ApplicationWindow {
         Button {
             id: next_page_btn
             text: qsTr("Login")
-            onClicked: console.log("Login btn clicked")
+            onClicked: {
+                console.log("Login btn clicked")
+                var err = "";
+                if (email_input.text === "") {
+                    console.log("Need email input!")
+                    err += "Need Email\n"
+                }
+
+                if (password_input.text === "") {
+                    console.log("Need password")
+                    err += "Need password"
+                }
+
+                if (err !== "")
+                    popup.openWithContent(err, "error")
+//                else
+//                    // TODO what IRC command is this? LOGIN or AUTHENTICATE? Probably AUTHENTICATE
+//                    const l_msg = `LOGIN ${email_input.text} ${password_input.text}`
+//                    const l_final_data = `:${nickname}@${localAddr} ${l_msg} \r\n`
+//                    socketmanager.Write_Data(l_final_data.toString("utf8"))
+            }
         }
 
         Button {
@@ -108,6 +128,7 @@ ApplicationWindow {
         Popup {
             property string popup_text
             property string border_color
+            property string popup_title
 
             id: popup
             width: 200
@@ -121,15 +142,28 @@ ApplicationWindow {
                 popup.popup_text = text
                 if (type === "error") {
                    popup.border_color = "red"
+                   popup.popup_title = "Error"
                 } else {
                     popup.border_color = "white"
+                    popup.popup_title = "Alert"
                 }
 
                 popup.open()
             }
 
-            contentItem: Text {
-                text: qsTr(popup.popup_text)
+            contentItem: Item{
+                ColumnLayout {
+                    Text {
+                        id: content_title
+                        text: "<h1>" + popup.popup_title + "</h1>"
+                        horizontalAlignment: Text.AlignHCenter
+                    }
+
+                    Text {
+                        id: content_body
+                        text: popup.popup_text
+                    }
+                }
             }
 
             background: Rectangle {
