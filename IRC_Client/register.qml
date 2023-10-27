@@ -38,6 +38,7 @@ ApplicationWindow {
         placeholderText: "password"
         anchors.top: email_input.bottom
         anchors.left: email_input.left
+        anchors.topMargin: 10
         width: parent.width / 2
         cursorVisible: true
         leftPadding: 4
@@ -46,23 +47,12 @@ ApplicationWindow {
         maximumLength: 256
     }
 
-    RoundButton {
-        id: forgot_password_btn
-        text: qsTr("?")
-        width: 30
-        height: 30
-        anchors.left: password_input.right
-        anchors.verticalCenter: password_input.verticalCenter
-        onClicked: {
-            popup.openWithContent("Password Reset Sent", "info")
-        }
-    }
-
     TextField {
         id: password_confirm_input
         placeholderText: "confirm password"
         anchors.top: password_input.bottom
         anchors.left: password_input.left
+        anchors.topMargin: 10
         width: parent.width / 2
         cursorVisible: true
         leftPadding: 4
@@ -94,6 +84,7 @@ ApplicationWindow {
         id: register_btn
         anchors.top: password_confirm_input.bottom
         anchors.left: password_confirm_input.left
+        anchors.topMargin: 10
         width: login_btn.width
         text: qsTr("Register")
         onClicked: {

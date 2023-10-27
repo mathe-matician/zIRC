@@ -79,6 +79,7 @@ ApplicationWindow {
         placeholderText: "password"
         anchors.top: email_input.bottom
         anchors.left: email_input.left
+        anchors.topMargin: 10
         width: parent.width / 2
         cursorVisible: true
         leftPadding: 4
@@ -94,6 +95,7 @@ ApplicationWindow {
         height: 30
         anchors.left: password_input.right
         anchors.verticalCenter: password_input.verticalCenter
+        anchors.topMargin: 10
         onClicked: {
             popup.openWithContent("Password Reset Sent", "info")
         }
@@ -103,6 +105,7 @@ ApplicationWindow {
         id: login_btn
         anchors.top: password_input.bottom
         anchors.left: password_input.left
+        anchors.topMargin: 10
         width: password_input.width
         text: qsTr("Login")
         onClicked: {
@@ -133,6 +136,7 @@ ApplicationWindow {
         id: register_btn
         anchors.top: login_btn.bottom
         anchors.left: login_btn.left
+        anchors.topMargin: 10
         width: login_btn.width
         text: qsTr("Register")
         onClicked: {
