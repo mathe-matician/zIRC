@@ -60,23 +60,9 @@ ApplicationWindow {
         echoMode: TextInput.Password
         maximumLength: 256
 
-//        Component.onCompleted: {
-//            password_confirm_input.editingFinished.connect()
-//        }
-
-//        function checkPassword() {
-//            if (password_confirm_input.text !== password_input.text) {
-//                console.log("passwords don't match");
-//            }
-//        }
-
         Connections {
             target: password_confirm_input
-            function editingFinished() {
-                if (password_input.text !== password_confirm_input.text) {
-                    console.log("PASSWORDS DONT MATCH");
-                }
-            }
+            onEditingFinished: password_input.text !== password_confirm_input.text ? console.log("PASSWORDS DONT MATCH") : console.log("passwords match!")
         }
     }
 
@@ -92,68 +78,4 @@ ApplicationWindow {
                                  {x: register_window.x, y: register_window.y})
         }
     }
-
-//    ColumnLayout {
-//        anchors.fill: parent
-
-//        RowLayout {
-//            Label {
-//                id: email_label
-//                Layout.fillWidth: true
-//                text: qsTr("Email")
-//            }
-//            TextField {
-//                id: email_input
-//                Layout.fillWidth: true
-//                cursorVisible: true
-//                leftPadding: 4
-//                topPadding: 2
-//                echoMode: TextInput.Normal
-//                maximumLength: 256
-//            }
-//        }
-
-//        RowLayout {
-//            Label {
-//                id: password_label
-//                Layout.fillWidth: true
-//                text: qsTr("Password")
-//            }
-//            TextField {
-//                id: password_input
-//                Layout.fillWidth: true
-//                cursorVisible: true
-//                leftPadding: 4
-//                topPadding: 2
-//                echoMode: TextInput.Password
-//                maximumLength: 256
-//            }
-//        }
-
-//        RowLayout {
-//            Label {
-//                id: password_confirm_label
-//                Layout.fillWidth: true
-//                text: qsTr("Confirm Password")
-//            }
-//            TextField {
-//                id: password_confirm_input
-//                Layout.fillWidth: true
-//                leftPadding: 4
-//                cursorVisible: true
-//                topPadding: 2
-//                echoMode: TextInput.Password
-//                maximumLength: 256
-//            }
-//        }
-
-//        Button {
-//            id: register_btn
-//            text: qsTr("Register")
-//            onClicked: {
-//                pageLoader.setSource("chatview.qml",
-//                                     {x: register_window.x, y: register_window.y})
-//            }
-//        }
-//    }
 }
