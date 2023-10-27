@@ -11,7 +11,6 @@ int main(int argc, char *argv[])
         &app, []() { QCoreApplication::exit(-1); },
         Qt::QueuedConnection);
     engine.loadFromModule("IRC_Client", "Main");
-    //engine.load(QUrl("qrc:/login.qml"));
 
     return app.exec();
 }

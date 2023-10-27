@@ -67,7 +67,10 @@ ApplicationWindow {
         Button {
             id: register_btn
             text: qsTr("Register")
-            onClicked: pageLoader.source = "chatview.qml"
+            onClicked: {
+                pageLoader.setSource("chatview.qml",
+                                     {x: register_window.x, y: register_window.y})
+            }
         }
 
         Item {

@@ -11,6 +11,7 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
 import QtQuick.Controls.Material
+import IRC_Client
 
 
 ApplicationWindow {
@@ -19,6 +20,24 @@ ApplicationWindow {
     height: 520
     visible: true
     title: qsTr("Login")
+
+    SocketManager {
+        id: socketmanager
+        Component.onCompleted: {
+            socketmanager.ServerConnect();
+        }
+    }
+
+//    BackEnd {
+//        id: myBackend
+//        onNumberEmitted: (num) => {
+//                            console.log(num)
+//                            randNum.text = num
+//                         }
+//        Component.onCompleted: {
+//            myBackend.generateNumber(1,100);
+//        }
+//    }
 
     Loader {
         id: pageLoader
@@ -68,8 +87,67 @@ ApplicationWindow {
         Button {
             id: register_btn
             text: qsTr("Register")
-            onClicked: pageLoader.source = "register.qml"
+            onClicked: {
+                login_window.hide()
+                pageLoader.setSource("register.qml",
+                                     {x: login_window.x, y: login_window.y})
+            }
         }
+
+        Button {
+            id: callfunc
+            text: qsTr("Forgot Password")
+//            onClicked: {
+//                myBackend.generateNumber(1,100)
+//            }
+            onClicked: {
+                popup.openWithContent("TUFF LUK", "error")
+            }
+        }
+
+        Popup {
+            property string popup_text
+            property string border_color
+
+            id: popup
+            width: 200
+            height: 200
+            modal: true
+            focus: true
+            // centers
+            anchors.centerIn: Overlay.overlay
+
+            function openWithContent(text, type) {
+                popup.popup_text = text
+                if (type === "error") {
+                   popup.border_color = "red"
+                } else {
+                    popup.border_color = "white"
+                }
+
+                popup.open()
+            }
+
+            contentItem: Text {
+                text: qsTr(popup.popup_text)
+            }
+
+            background: Rectangle {
+                id: background
+                color: "white"
+                border.color: popup.border_color
+                border.width: 3
+                radius: 7
+            }
+//            contentItem: popup.popup_content
+
+            closePolicy: Popup.CloseOnPressOutside
+        }
+
+//        Label {
+//            id: randNum
+//            text: ""
+//        }
 
         Item {
             // spacer item
