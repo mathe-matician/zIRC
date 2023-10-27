@@ -69,9 +69,8 @@ ApplicationWindow {
         Connections {
             target: password_confirm_input
             function onEditingFinished() {
-                if (password_input.text !== password_confirm_input.text
-                    || password_input.text.length === 0
-                    || password_confirm_input.text.length === 0) {
+                if (password_input.text !== password_confirm_input.text) {
+                    //password_confirm_input.placeholderText = "<font color=\"red\">confirm password</font>"
                     console.log("PASSWORDS DO NOT MATCH AND CANT BE EMPTY")
                 } else {
                     console.log(`passwords match: ${password_input.text} and ${password_confirm_input.text}`)
@@ -105,6 +104,7 @@ ApplicationWindow {
 
             if (password_input.text !== password_confirm_input.text) {
                 console.log("PASSWORDS DO NOT MATCH")
+
                 popup.openWithContent("Passwords do not match", "error")
             } else {
                 console.log(`passwords match: ${password_input.text} and ${password_confirm_input.text}`)
