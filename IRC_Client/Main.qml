@@ -21,6 +21,10 @@ ApplicationWindow {
     visible: true
     title: qsTr("Login")
 
+    function show_alert(text, type) {
+        popup.openWithContent(text, type)
+    }
+
     MouseArea {
         id: base_mousearea
         anchors.fill: parent
@@ -153,6 +157,17 @@ ApplicationWindow {
         }
     }
 
+    Button {
+        id: bypass
+        anchors.top: register_btn.bottom
+        anchors.left: register_btn.left
+        text: "Bypass to Chat"
+        onClicked: {
+            login_window.hide()
+            pageLoader.setSource("chatview.qml", {x: login_window.x, y: login_window.y})
+        }
+    }
+
     Popup {
         property string popup_text
         property string border_color
@@ -163,7 +178,7 @@ ApplicationWindow {
         height: 200
         modal: true
         focus: true
-        // centers
+        // centers in the global overlay
         anchors.centerIn: Overlay.overlay
 
         function openWithContent(text, type) {
