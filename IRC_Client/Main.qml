@@ -21,6 +21,12 @@ ApplicationWindow {
     visible: true
     title: qsTr("Login")
 
+    MouseArea {
+        id: base_mousearea
+        anchors.fill: parent
+        onClicked: forceActiveFocus()
+    }
+
     SocketManager {
         id: socketmanager
         Component.onCompleted: {
