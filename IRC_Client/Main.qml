@@ -52,22 +52,26 @@ ApplicationWindow {
 //    }
 
     Rectangle {
-        id: test
+        id: image_placeholder
         color: "#95e295"
         anchors.horizontalCenter: parent.horizontalCenter
+        anchors.topMargin: 30
         width: 100
         height: 100
     }
 
     TextField {
         id: email_input
-        anchors.top: test.bottom
-        anchors.horizontalCenter: test.horizontalCenter
+        anchors.top: image_placeholder.bottom
+        anchors.horizontalCenter: image_placeholder.horizontalCenter
+        anchors.topMargin: 30
+        width: parent.width / 2
         placeholderText: "email"
         cursorVisible: true
         leftPadding: 4
         topPadding: 4
         echoMode: TextInput.Normal
+        maximumLength: 256
     }
 
     TextField {
@@ -75,10 +79,12 @@ ApplicationWindow {
         placeholderText: "password"
         anchors.top: email_input.bottom
         anchors.left: email_input.left
+        width: parent.width / 2
         cursorVisible: true
         leftPadding: 4
         topPadding: 2
         echoMode: TextInput.Password
+        maximumLength: 256
     }
 
     RoundButton {
@@ -186,9 +192,4 @@ ApplicationWindow {
 
         closePolicy: Popup.CloseOnPressOutside
     }
-
-//        Label {
-//            id: randNum
-//            text: ""
-//        }
 }
