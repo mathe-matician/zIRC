@@ -1,5 +1,5 @@
 <RCC>
     <qresource prefix="/">
-        <file>images/send_msg_icon.png</file>
+        <file>images/qt-logo.png</file>
     </qresource>
 </RCC>
