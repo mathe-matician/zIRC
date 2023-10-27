@@ -114,6 +114,7 @@ ApplicationWindow {
         anchors.topMargin: 10
         width: password_input.width
         text: qsTr("Login")
+        enabled: email_input.text.length !== 0 && password_input.text.length !== 0 ? true : false
         onClicked: {
             console.log("Login btn clicked")
             var err = "";

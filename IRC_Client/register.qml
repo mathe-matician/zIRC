@@ -31,7 +31,7 @@ ApplicationWindow {
         anchors.horizontalCenter: image_placeholder.horizontalCenter
         anchors.topMargin: 30
         width: parent.width / 2
-        placeholderText: "email"
+        placeholderText: email_input.text.length === 0 ? "<font color=\"red\">*</font>email" : "email"
         cursorVisible: true
         leftPadding: 4
         topPadding: 4
@@ -41,7 +41,7 @@ ApplicationWindow {
 
     TextField {
         id: password_input
-        placeholderText: "password"
+        placeholderText: password_input.text.length === 0 ? "<font color=\"red\">*</font>password" : "password"
         anchors.top: email_input.bottom
         anchors.left: email_input.left
         anchors.topMargin: 10
@@ -55,7 +55,7 @@ ApplicationWindow {
 
     TextField {
         id: password_confirm_input
-        placeholderText: "confirm password"
+        placeholderText: password_confirm_input.text.length === 0 ? "<font color=\"red\">*</font>confirm password" : "confirm password"
         anchors.top: password_input.bottom
         anchors.left: password_input.left
         anchors.topMargin: 10
@@ -88,11 +88,23 @@ ApplicationWindow {
         anchors.topMargin: 10
         width: login_btn.width
         text: qsTr("Register")
+        enabled: email_input.text.length !== 0 && password_input.text.length !== 0 && password_confirm_input.text.length !== 0 ? true : false
         onClicked: {
-            if (password_input.text !== password_confirm_input.text
-                || password_input.text.length === 0
+            if (password_input.text.length === 0
                 || password_confirm_input.text.length === 0) {
-                console.log("PASSWORDS DO NOT MATCH AND CANT BE EMPTY")
+                console.log("PASSWORDS CANT BE EMPTY")
+                popup.openWithContent("Password fields are empty", "error")
+                return
+            }
+
+            if (email_input.text.length === 0) {
+                console.log("EMAIL CANT BE EMPTY")
+                popup.openWithContent("Email field is empty", "error")
+                return
+            }
+
+            if (password_input.text !== password_confirm_input.text) {
+                console.log("PASSWORDS DO NOT MATCH")
                 popup.openWithContent("Passwords do not match", "error")
             } else {
                 console.log(`passwords match: ${password_input.text} and ${password_confirm_input.text}`)
