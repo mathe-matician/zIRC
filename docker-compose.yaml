@@ -33,3 +33,9 @@ services:
       - "5432:5432"
     volumes:
       - $HOME/postgres:/var/lib/postgresql/data
+
+  zirc_verify_server:
+    build: 
+      context: "./Verify_Server"
+    ports:
+      - "8080:8080"

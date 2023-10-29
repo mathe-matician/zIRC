@@ -9,6 +9,8 @@
 #include <QJsonObject>
 #include <QJsonArray>
 
+#include "authgen.h"
+
 // Get these from https://console.developers.google.com/apis/credentials
 #define CLIENT_ID "CLIENT-ID"
 #define CLIENT_SECRET "CLIENT-SECRET"
@@ -26,13 +28,23 @@ GoogleSSO::~GoogleSSO() {
 // Invoked externally to initiate
 void GoogleSSO::authenticate() {
     this->google = new QOAuth2AuthorizationCodeFlow(this);
-    this->google->setScope("email");
+    // https://developers.google.com/identity/openid-connect/openid-connect#sendauthrequest
+    // use OIDC and OAuth2
+    this->google->setScope("openid email");
+
+    // TODO
+    // 1. Generate state here
+    // 2. store state (in memory?) to be compared to response state
+    // 3. when response is received, compare my state with that state to ensure no alteration has occured
+    m_state = AuthGen().genRandom(quint8(256));
+    this->google->setState(m_state);
 
     connect(this->google, &QOAuth2AuthorizationCodeFlow::authorizeWithBrowser, [=](QUrl url) {
         QUrlQuery query(url);
 
         query.addQueryItem("prompt", "consent");      // Param required to get data everytime
         query.addQueryItem("access_type", "offline"); // Needed for Refresh Token (as AccessToken expires shortly)
+        query.addQueryItem("login_hint", "zach@syllogi.io"); //
         url.setQuery(query);
 
         // TODO
@@ -56,6 +68,9 @@ void GoogleSSO::authenticate() {
         }
     });
 
+    // TODO
+    // this should then point to a server that can verify our state?
+    // https://developers.google.com/identity/openid-connect/openid-connect#confirmxsrftoken
     auto replyHandler = new QOAuthHttpServerReplyHandler(8080, this);
     this->google->setReplyHandler(replyHandler);
 
@@ -63,6 +78,11 @@ void GoogleSSO::authenticate() {
     connect(this->google, &QOAuth2AuthorizationCodeFlow::granted, [=](){
         qDebug() << __FUNCTION__ << __LINE__ << "Access Granted!";
         qDebug() << "User token: " << this->google->token();
+        qDebug() << "Current State: " << this->google->state();
+        qDebug() << "Stored State: " << m_state;
+        if (this->google->state() != m_state) {
+            qDebug() << "STATES DO NOT MATCH";
+        }
 //        auto reply = this->google->get(QUrl("https://www.googleapis.com/plus/v1/people/me"));
 //        connect(reply, &QNetworkReply::finished, [reply](){
 //            qDebug() << "REQUEST FINISHED. Error? " << (reply->error() != QNetworkReply::NoError);

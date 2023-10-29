@@ -22,6 +22,7 @@ signals:
 
 private:
     QOAuth2AuthorizationCodeFlow * google;
+    QByteArray m_state;
 };
 
 #endif // GOOGLESSO_H
