@@ -109,10 +109,10 @@ ApplicationWindow {
             } else {
                 console.log(`passwords match: ${password_input.text} and ${password_confirm_input.text}`)
                 console.log(`passwords match: ${typeof(password_input.text)} and ${password_confirm_input.text.length}`)
-                login_window.x = register_window.x
-                login_window.y = register_window.y
-                login_window.show()
-                login_window.show_alert("Please confirm your email", "info")
+                main_window.x = register_window.x
+                main_window.y = register_window.y
+                main_window.show()
+                main_window.show_alert("Please confirm your email", "info")
 
                 // TODO
                 // ONLY WHEN DATA IS CONFIRMED TO BE SENT TO SERVER, CLOSE WINDOW

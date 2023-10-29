@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(QT_QUICK_CONTROLS_CONF "qtquickcontrols2.conf")
 
-find_package(Qt6 6.5 REQUIRED COMPONENTS Core Gui Quick)
+find_package(Qt6 6.5 REQUIRED COMPONENTS Core Gui Quick NetworkAuth)
 
 qt_standard_project_setup(REQUIRES 6.5)
 
@@ -29,6 +29,7 @@ qt_add_qml_module(appIRC_Client
         QML_FILES MessageModel.qml
         QML_FILES popupError.qml
         RESOURCES resc.qrc
+        SOURCES googlesso.h googlesso.cpp
 )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
@@ -46,6 +47,7 @@ target_link_libraries(appIRC_Client
     PRIVATE Qt6::Core
     PRIVATE Qt6::Gui
     PRIVATE Qt6::Quick
+    PRIVATE Qt6::NetworkAuth
 )
 
 include(GNUInstallDirs)

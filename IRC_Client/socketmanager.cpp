@@ -38,6 +38,8 @@ SocketManager::SocketManager(QObject *parent) :
     connect(socket, SIGNAL(errorOccurred(QAbstractSocket::SocketError)), this, SLOT(Error_Occurred(QAbstractSocket::SocketError)));
     connect(socket, SIGNAL(bytesWritten(qint64)), this, SLOT(Bytes_Written(qint64)));
     connect(socket, SIGNAL(connected()), this, SLOT(Success_Connected()));
+
+
 }
 
 

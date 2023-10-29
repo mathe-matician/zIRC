@@ -1,12 +1,3 @@
-//import QtQuick
-//import QtQuick.Window
-
-//Window {
-//    width: 640
-//    height: 480
-//    visible: true
-//    title: qsTr("Hello World")
-//}
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
@@ -15,7 +6,7 @@ import IRC_Client
 
 
 ApplicationWindow {
-    id: login_window
+    id: main_window
     width: 360
     height: 520
     visible: true
@@ -29,6 +20,10 @@ ApplicationWindow {
         id: base_mousearea
         anchors.fill: parent
         onClicked: forceActiveFocus()
+    }
+
+    GoogleSSO {
+        id: google_sso
     }
 
     SocketManager {
@@ -151,9 +146,9 @@ ApplicationWindow {
         width: login_btn.width
         text: qsTr("Register")
         onClicked: {
-            login_window.hide()
+            main_window.hide()
             pageLoader.setSource("register.qml",
-                                 {x: login_window.x, y: login_window.y})
+                                 {x: main_window.x, y: main_window.y})
         }
     }
 
@@ -163,8 +158,18 @@ ApplicationWindow {
         anchors.left: register_btn.left
         text: "Bypass to Chat"
         onClicked: {
-            login_window.hide()
-            pageLoader.setSource("chatview.qml", {x: login_window.x, y: login_window.y})
+            main_window.hide()
+            pageLoader.setSource("chatview.qml", {x: main_window.x, y: main_window.y})
+        }
+    }
+
+    Button {
+        id: sso
+        anchors.top: bypass.bottom
+        anchors.left: bypass.left
+        text: "LOGIN WITH GOOGLE"
+        onClicked: {
+            google_sso.authenticate();
         }
     }
 
