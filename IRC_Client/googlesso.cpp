@@ -32,11 +32,7 @@ void GoogleSSO::authenticate() {
     // use OIDC and OAuth2
     this->google->setScope("openid email");
 
-    // TODO
-    // 1. Generate state here
-    // 2. store state (in memory?) to be compared to response state
-    // 3. when response is received, compare my state with that state to ensure no alteration has occured
-    m_state = AuthGen().genRandom(quint8(256));
+    m_state = QByteArray(AuthGen().genRandom(quint8(255)));
     this->google->setState(m_state);
 
     connect(this->google, &QOAuth2AuthorizationCodeFlow::authorizeWithBrowser, [=](QUrl url) {
@@ -68,21 +64,32 @@ void GoogleSSO::authenticate() {
         }
     });
 
-    // TODO
-    // this should then point to a server that can verify our state?
-    // https://developers.google.com/identity/openid-connect/openid-connect#confirmxsrftoken
     auto replyHandler = new QOAuthHttpServerReplyHandler(8080, this);
     this->google->setReplyHandler(replyHandler);
 
-
     connect(this->google, &QOAuth2AuthorizationCodeFlow::granted, [=](){
         qDebug() << __FUNCTION__ << __LINE__ << "Access Granted!";
-        qDebug() << "User token: " << this->google->token();
-        qDebug() << "Current State: " << this->google->state();
-        qDebug() << "Stored State: " << m_state;
-        if (this->google->state() != m_state) {
-            qDebug() << "STATES DO NOT MATCH";
+
+        if (this->google->extraTokens().value("state").toString() == m_state) {
+            // TODO
+            // error handling if they do not match - something seriously went wrong!
+            qDebug() << "STATES MATCH YO!";
         }
+
+
+        qDebug() << "Extra token id_token: " << this->google->extraTokens().value("id_token");
+
+        /*
+            authuser
+            hd
+            id_token
+            prompt
+            scope
+            state
+        */
+//        for (auto i : this->google->extraTokens().keys()) {
+//            qDebug() << "Extra token key: " << i;
+//        }
 //        auto reply = this->google->get(QUrl("https://www.googleapis.com/plus/v1/people/me"));
 //        connect(reply, &QNetworkReply::finished, [reply](){
 //            qDebug() << "REQUEST FINISHED. Error? " << (reply->error() != QNetworkReply::NoError);
