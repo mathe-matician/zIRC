@@ -12,8 +12,8 @@
 #include "authgen.h"
 
 // Get these from https://console.developers.google.com/apis/credentials
-#define CLIENT_ID "CLIENT-ID"
-#define CLIENT_SECRET "CLIENT-SECRET"
+#define CLIENT_ID "CLIENT_ID"
+#define CLIENT_SECRET "CLIENT_SECRET"
 #define AUTH_URI "https://accounts.google.com/o/oauth2/auth"
 #define TOKEN_URI "https://oauth2.googleapis.com/token"
 #define REDIRECT_URI "http://127.0.0.1:8080/"
@@ -59,6 +59,7 @@ void GoogleSSO::authenticate() {
     this->google->setModifyParametersFunction([](QAbstractOAuth::Stage stage, QMultiMap<QString, QVariant> *parameters) -> void {
         // Percent-decode the "code" parameter so Google can match it
         if (stage == QAbstractOAuth::Stage::RequestingAccessToken) {
+            qDebug() << "CODE: " << parameters->value("code").toString();
             QByteArray code = parameters->value("code").toByteArray();
             parameters->replace("code", QUrl::fromPercentEncoding(code));
         }
@@ -76,8 +77,35 @@ void GoogleSSO::authenticate() {
             qDebug() << "STATES MATCH YO!";
         }
 
-
+        QString id_token = this->google->extraTokens().value("id_token").toString();
+        qDebug() << "Extra token id_token.toString: " << this->google->extraTokens().value("id_token").toString();
         qDebug() << "Extra token id_token: " << this->google->extraTokens().value("id_token");
+
+        // JWT will be separated via .
+        // There should be 3 sections:
+        // 1. Header
+        // 2. Payload
+        // 3. Verify Signature
+        if (!id_token.contains(".")) {
+            qDebug() << "NOT A JWT TOKEN";
+        }
+
+        QStringList l_token_pkg = id_token.split(".");
+        if (l_token_pkg.length() != 3) {
+            qDebug() << "Token pkg of wrong length???";
+        }
+        QByteArray l_jwt_header_json_str = QByteArray::fromBase64(l_token_pkg[0].toUtf8(), QByteArray::AbortOnBase64DecodingErrors);
+        qDebug() << "JWT header: " << l_jwt_header_json_str;
+        QByteArray l_jwt_payload_json_str = QByteArray::fromBase64(l_token_pkg[1].toUtf8(), QByteArray::AbortOnBase64DecodingErrors);
+        qDebug() << "JWT payload: " << l_jwt_payload_json_str;
+        QByteArray l_jwt_verify_signature_json_str = l_token_pkg[2].toUtf8();
+        qDebug() << "JWT verify signature: " << l_jwt_verify_signature_json_str;
+
+        QString l_jwt_header_str = QString(l_jwt_header_json_str);
+        QJsonValue l_jwt_header_json = QJsonValue(l_jwt_header_str);
+        QString l_jwt_payload_str = QString(l_jwt_header_json_str);
+        QJsonValue l_jwt_payload_json = QJsonValue(l_jwt_payload_str);
+        QString l_jwt_verify_signature_str = QString(l_jwt_header_json_str);
 
         /*
             authuser

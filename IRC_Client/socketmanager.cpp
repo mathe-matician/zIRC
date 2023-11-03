@@ -53,7 +53,7 @@ void SocketManager::ServerConnect()
 #if defined(Q_OS_ANDROID)
     l_host.append("10.0.2.2");
 #elif defined(Q_OS_IOS)
-    lhost.append("localhost");
+    l_host.append("localhost");
 #else
     l_host.append("localhost");
 #endif

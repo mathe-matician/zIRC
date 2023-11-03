@@ -31,6 +31,7 @@ qt_add_qml_module(appIRC_Client
         RESOURCES resc.qrc
         SOURCES googlesso.h googlesso.cpp
         SOURCES authgen.h authgen.cpp
+
 )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.

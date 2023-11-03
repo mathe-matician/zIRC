@@ -8,3 +8,6 @@ Auth_Server/TMP-Generators
 Chat_Server/TestClient/*-*-*-*-*
 build-*
 android_release*
+
+# ANDROID
+android/
