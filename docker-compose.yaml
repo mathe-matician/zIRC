@@ -3,6 +3,7 @@ services:
   zirc_chat_server:
     container_name: zirc_chat_server
     # image: zirc_chat_server
+    env_file: ./Chat_Server/.env
     build:
       context: ./Chat_Server
       dockerfile: Dockerfile
@@ -12,6 +13,7 @@ services:
   zirc_auth_server:
     container_name: zirc_auth_server
     # image: zirc_auth_server
+    env_file: ./Auth_Server/.env
     build:
       context: ./Auth_Server
       dockerfile: Dockerfile
