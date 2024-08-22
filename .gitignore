@@ -2,7 +2,6 @@ ChatClient
 Chat_Server/node_modules
 Chat_Client_CLI
 Auth_Server/node_modules
-.env
 *.pem
 Auth_Server/TMP-Generators
 Chat_Server/TestClient/*-*-*-*-*
@@ -11,3 +10,6 @@ android_release*
 
 # ANDROID
 android/
+
+# firebase sdk
+firebase_cpp_sdk/
