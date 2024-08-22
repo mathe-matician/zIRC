@@ -53,27 +53,27 @@ will output:
 
 > :Z.IRC 704 * :** Help System **
 >
->:Z.IRC 705 * :
->:Z.IRC 705 * :Try HELP <commmand> for specific help
->:Z.IRC 705 * :HELP USERCMDS to list available commands,
->:Z.IRC 706 * :or join the #help channel 
+>:Z.IRC 705 * :<br/>
+>:Z.IRC 705 * :Try HELP <commmand> for specific help<br/>
+>:Z.IRC 705 * :HELP USERCMDS to list available commands,<br/>
+>:Z.IRC 706 * :or join the #help channel
 >
->HELP USERCMDS
+>HELP USERCMDS<br/>
 >:Z.IRC 704 * :** Help User Commands **
 >
->:Z.IRC 705 * :
->:Z.IRC 705 * :CAP
+>:Z.IRC 705 * :<br/>
+>:Z.IRC 705 * :CAP<br/>
 >:Z.IRC 705 * :JOIN
 >
 >:Z.IRC 705 * :NICK
 >
->:Z.IRC 705 * :SEND
->:Z.IRC 705 * :PASS
->:Z.IRC 705 * :AUTHENTICATE
->:Z.IRC 705 * :USER
->:Z.IRC 705 * :LIST
->:Z.IRC 705 * :PRIVMSG
->:Z.IRC 705 * :HELP
->:Z.IRC 706 * :REGISTER 
+>:Z.IRC 705 * :SEND<br/>
+>:Z.IRC 705 * :PASS<br/>
+>:Z.IRC 705 * :AUTHENTICATE<br/>
+>:Z.IRC 705 * :USER<br/>
+>:Z.IRC 705 * :LIST<br/>
+>:Z.IRC 705 * :PRIVMSG<br/>
+>:Z.IRC 705 * :HELP<br/>
+>:Z.IRC 706 * :REGISTER<br/>
 
 You can then type in `HELP <cmd>` to output the help description for that particular command.
