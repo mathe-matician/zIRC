@@ -1,3 +1,4 @@
+.DS_Store
 ChatClient
 Chat_Server/node_modules
 Chat_Client_CLI
