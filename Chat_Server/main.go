@@ -1,13 +1,23 @@
 package main
 
 import (
-	"bytes"
 	"io"
 	"net"
 	"os"
 
+	"zirc/chat"
+
 	"github.com/phuslu/log"
 )
+
+type RemoteConn struct {
+	Host string
+	Port string
+}
+
+func (c *RemoteConn) MarshalObject(e *log.Entry) {
+	e.Str("host", c.Host).Str("port", c.Port)
+}
 
 func main() {
 	log_level := log.DebugLevel
@@ -53,8 +63,15 @@ func handleConnection(conn net.Conn) {
 	//		  if no PONG is received, terminate the connection
 	//		  used to determine dead connections
 	defer conn.Close()
+
 	remote_addr := conn.RemoteAddr()
-	log.Info().Msgf("Client connected: %s", remote_addr)
+	remote_host, remote_port, err := net.SplitHostPort(remote_addr.String())
+	if err != nil {
+		log.Error().Str("remote_addr", remote_addr.String()).Msgf("Error splitting remote addr: %s", err.Error())
+	}
+	remote_conn := RemoteConn{Host: remote_host, Port: remote_port}
+	log.Info().EmbedObject(&remote_conn).Msg("Client connected")
+
 	recv_buf := make([]byte, 1024)
 
 	for {
@@ -62,29 +79,18 @@ func handleConnection(conn net.Conn) {
 		_, err := conn.Read(recv_buf)
 		if err != nil {
 			if err == io.EOF {
-				log.Info().Msgf("Connection closed by client: %s", remote_addr)
+				log.Info().EmbedObject(&remote_conn).Msg("Client disconnected")
 			} else {
-				log.Error().Str("ip", remote_addr.String()).Msgf("Error reading data from connection: %s", err.Error())
+				log.Error().EmbedObject(&remote_conn).Msgf("Error reading data from connection: %s", err.Error())
 			}
 			return
 		}
 
-		process_message(&recv_buf)
+		response := chat.ProcessMessage(&recv_buf)
 
-		b := []byte("hi from irc server")
-		if _, err := conn.Write(b); err != nil {
-			log.Error().Str("ip", remote_addr.String()).Msgf("Error writing to client: %s", err.Error())
+		if _, err := conn.Write(response); err != nil {
+			log.Error().EmbedObject(&remote_conn).Msgf("Error writing to client: %s", err.Error())
 			break
 		}
 	}
-}
-
-func process_message(recv_buf *[]byte) {
-	log.Debug().Msg("------------MSG START------------")
-	trimmed_msg := string(bytes.Trim(bytes.TrimLeft(*recv_buf, " "), "\x00"))
-	log.Info().Msgf("Raw Client msg: %s", trimmed_msg)
-
-	log.Info().Msg("Before parsing tag data")
-	// TODO - do tag parsing
-	log.Debug().Msg("------------MSG END------------")
 }
