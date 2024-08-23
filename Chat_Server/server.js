@@ -352,7 +352,7 @@ const Server = (
       let clientNick;
       let clientName;
 
-      if (String(source).includes("@")) {
+      if (String( ).includes("@")) {
         const tmpSplit = String(source).split("@");
         clientIP = tmpSplit[1]
         if (tmpSplit.includes("!")) {

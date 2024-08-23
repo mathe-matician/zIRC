@@ -1,12 +1,24 @@
 version: '3'
 services:
-  zirc_chat_server:
+  zirc_chat_server_old:
     container_name: zirc_chat_server
     # image: zirc_chat_server
     env_file: ./Chat_Server/.env
     build:
       context: ./Chat_Server
       dockerfile: Dockerfile
+    ports:
+      - "6667:6667"
+    profiles:
+      - old
+
+  zirc_chat_server:
+    container_name: zirc_chat_server
+    # image: zirc_chat_server
+    env_file: ./Chat_Server/.env
+    build:
+      context: ./Chat_Server
+      dockerfile: go.Dockerfile
     ports:
       - "6667:6667"
 
@@ -29,6 +41,8 @@ services:
       - $HOME/mongo_chat:/data/db
       - ./Chat_Server/db/mongodb/dump:/dump
       - ./Chat_Server/db/mongodb/restore.sh:/docker-entrypoint-initdb.d/restore.sh
+    profiles:
+      - old
 
   zirc_postgres:
     container_name: zirc_postgres

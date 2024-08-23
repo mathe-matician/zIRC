@@ -3,7 +3,6 @@ package main
 import (
 	"io"
 	"net"
-	"os"
 
 	"zirc/chat"
 
@@ -20,19 +19,29 @@ func (c *RemoteConn) MarshalObject(e *log.Entry) {
 }
 
 func main() {
-	log_level := log.DebugLevel
-	level := os.Getenv("IRC_CHAT_SERVER_LOG_LEVEL")
-	if level != "" {
-		log_level = log.ParseLevel(level)
-	}
 
-	log.DefaultLogger = log.Logger{
-		Level:      log_level,
-		Caller:     1,
-		TimeField:  "date",
-		TimeFormat: "2006-01-02",
-		Writer:     &log.IOWriter{os.Stdout},
-	}
+	// TODO - for whatever reason overriding go's default logger
+	// 		  with "github.com/phuslu/log"'s configuration doesn't show logs
+	//		  within docker containers.
+
+	// log_level := log.DebugLevel
+	// level := os.Getenv("IRC_CHAT_SERVER_LOG_LEVEL")
+	// if level != "" {
+	// 	log_level = log.ParseLevel(level)
+	// }
+
+	// log.DefaultLogger = log.Logger{
+	// 	Level:      log_level,
+	// 	Caller:     1,
+	// 	TimeField:  "date",
+	// 	TimeFormat: "2006-01-02",
+	// 	// Writer:     &log.IOWriter{os.Stderr},
+	// 	Writer: &log.ConsoleWriter{
+	// 		ColorOutput:    true,
+	// 		QuoteString:    true,
+	// 		EndWithMessage: true,
+	// 	},
+	// }
 
 	// fmt.Println("IRC_DEFAULT_SERVER_NAME:", os.Getenv("IRC_DEFAULT_SERVER_NAME"))
 	// fmt.Println("IRC_HOST:", os.Getenv("IRC_HOST"))
@@ -46,6 +55,8 @@ func main() {
 		log.Error().Msg(err.Error())
 		return
 	}
+
+	log.Info().Msg("Server started")
 
 	for {
 		conn, err := ln.Accept()
