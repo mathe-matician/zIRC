@@ -1,11 +1,30 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"net"
+	"os"
+
+	"github.com/phuslu/log"
 )
 
 func main() {
+	log_level := log.InfoLevel
+	level := os.Getenv("IRC_CHAT_SERVER_LOG_LEVEL")
+	if level != "" {
+		log_level = log.ParseLevel(level)
+	}
+
+	log.DefaultLogger = log.Logger{
+		Level:      log_level,
+		Caller:     1,
+		TimeField:  "date",
+		TimeFormat: "2006-01-02",
+		Writer:     &log.IOWriter{os.Stdout},
+	}
+
 	// fmt.Println("IRC_DEFAULT_SERVER_NAME:", os.Getenv("IRC_DEFAULT_SERVER_NAME"))
 	// fmt.Println("IRC_HOST:", os.Getenv("IRC_HOST"))
 	// fmt.Println("IRC_ENABLE_TLS:", os.Getenv("IRC_ENABLE_TLS"))
@@ -35,23 +54,33 @@ func handleConnection(conn net.Conn) {
 	//		  if no PONG is received, terminate the connection
 	//		  used to determine dead connections
 	defer conn.Close()
-	fmt.Printf("Client connected: %s\n", conn.RemoteAddr())
-	server_buf := make([]byte, 1024)
-	// client_buf := make([]byte, 1024)
+	remote_addr := conn.RemoteAddr()
+	log.Info().Msgf("Client connected: %s", remote_addr)
+	recv_buf := make([]byte, 1024)
 
 	for {
 		// TODO - clear buffers so no extra data is sent?
-		_, err := conn.Read(server_buf)
+		_, err := conn.Read(recv_buf)
 		if err != nil {
-			fmt.Println(err)
+			if err == io.EOF {
+				log.Info().Msgf("Connection closed by client: %s", remote_addr)
+			} else {
+				fmt.Println(err)
+			}
 			return
 		}
 
-		fmt.Printf("Client sent: %s\n", server_buf)
+		process_message(&recv_buf)
+
 		b := []byte("hi from irc server")
 		if _, err := conn.Write(b); err != nil {
 			fmt.Printf("Server got error %s\n", err)
 			break
 		}
 	}
+}
+
+func process_message(recv_buf *[]byte) {
+	trimmed_msg := bytes.Trim(bytes.TrimLeft(*recv_buf, " "), "\x00")
+	log.Info().Msgf("Raw Client msg: %s", trimmed_msg)
 }
