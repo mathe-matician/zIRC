@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"net"
 	"os"
@@ -11,7 +10,7 @@ import (
 )
 
 func main() {
-	log_level := log.InfoLevel
+	log_level := log.DebugLevel
 	level := os.Getenv("IRC_CHAT_SERVER_LOG_LEVEL")
 	if level != "" {
 		log_level = log.ParseLevel(level)
@@ -34,14 +33,14 @@ func main() {
 
 	ln, err := net.Listen("tcp", "0.0.0.0:6667")
 	if err != nil {
-		fmt.Println(err)
+		log.Error().Msg(err.Error())
 		return
 	}
 
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
-			fmt.Println(err)
+			log.Error().Msgf("Error accepting connection: %s", err.Error())
 			continue
 		}
 
@@ -65,7 +64,7 @@ func handleConnection(conn net.Conn) {
 			if err == io.EOF {
 				log.Info().Msgf("Connection closed by client: %s", remote_addr)
 			} else {
-				fmt.Println(err)
+				log.Error().Str("ip", remote_addr.String()).Msgf("Error reading data from connection: %s", err.Error())
 			}
 			return
 		}
@@ -74,13 +73,18 @@ func handleConnection(conn net.Conn) {
 
 		b := []byte("hi from irc server")
 		if _, err := conn.Write(b); err != nil {
-			fmt.Printf("Server got error %s\n", err)
+			log.Error().Str("ip", remote_addr.String()).Msgf("Error writing to client: %s", err.Error())
 			break
 		}
 	}
 }
 
 func process_message(recv_buf *[]byte) {
-	trimmed_msg := bytes.Trim(bytes.TrimLeft(*recv_buf, " "), "\x00")
+	log.Debug().Msg("------------MSG START------------")
+	trimmed_msg := string(bytes.Trim(bytes.TrimLeft(*recv_buf, " "), "\x00"))
 	log.Info().Msgf("Raw Client msg: %s", trimmed_msg)
+
+	log.Info().Msg("Before parsing tag data")
+	// TODO - do tag parsing
+	log.Debug().Msg("------------MSG END------------")
 }
