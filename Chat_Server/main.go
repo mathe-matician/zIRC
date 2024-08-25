@@ -113,7 +113,12 @@ func handleConnection(conn net.Conn, server_manager *sm.ServerManager) {
 		_, err := conn.Read(recv_buf)
 		if err != nil {
 			if err == io.EOF {
-				log.Info().EmbedObject(client).Msg("Client disconnected")
+				end_timestamp, err := client.SetSessionEndTimestamp()
+				if err != nil {
+					log.Error().EmbedObject(client).Msg(err.Error())
+				}
+				log.Info().EmbedObject(client).Msgf("Client disconnected: %s", *end_timestamp)
+				// TODO - write session duration as a metric / possible analysis
 			} else {
 				log.Error().EmbedObject(client).Msgf("Error reading data from connection: %s", err.Error())
 			}
