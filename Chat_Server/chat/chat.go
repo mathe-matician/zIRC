@@ -5,6 +5,7 @@ import (
 	"errors"
 	"strings"
 
+	"zirc/commands"
 	sm "zirc/servermanager"
 
 	"github.com/phuslu/log"
@@ -74,9 +75,15 @@ func ProcessMessage(recv_buf *[]byte, server_manager *sm.ServerManager) []byte {
 
 	// TODO - process command as it should be the next thing in the message
 	log.Info().Msgf("Validating command %s", split_msg[0])
+	cmd, err := commands.VerifyCommand(split_msg[0])
+	if err != nil {
+		return []byte(err.Error())
+	}
+
+	res := cmd.Fn()
 
 	log.Debug().Msg("------------MSG END------------")
-	msg := "Server echo cmd: " + split_msg[0]
-	b := []byte(msg)
+	// msg := "Server echo cmd: " + split_msg[0]
+	b := []byte(res)
 	return b
 }

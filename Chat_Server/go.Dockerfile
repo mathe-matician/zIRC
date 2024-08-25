@@ -12,7 +12,7 @@ COPY helpers/ helpers/
 COPY server/ server/
 COPY servermanager/ servermanager/
 COPY remote_conn/ remote_conn/
-COPY cmds/ cmds/
+COPY commands/ commands/
 COPY client/ client/
 
 RUN go build zirc
