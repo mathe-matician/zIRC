@@ -19,6 +19,9 @@ console.log(`//// Available Commands:`);
 console.log(`//// \tuse <user>:`);
 console.log(`//// \t\tSelect the user to use. E.g. 0, 1, 2, 3, admin (whatever the file is named)`);
 console.log(`//// \t\tIf user doesn't exist, create uid and save it.`);
+console.log(`//// \rrole <role>:`);
+console.log(`//// \t\tclient: Sends messages without a source prefix`);
+console.log(`//// \t\tserver: Sends messages with source prefix`);
 console.log(`//// \tconnect: Connects to IRC server`);
 console.log(`/////////////////////////////////////////////////////////////////////////////////////\n\n`);
 const reader = readline.createInterface({ input: process.stdin });
@@ -39,7 +42,14 @@ const reader = readline.createInterface({ input: process.stdin });
         } else if (clientUIDExists) {
           client.write(`clientUID::${clientUID} :${nickname}@${host} ${line} \r\n`)
         } else {
-          client.write(`:${nickname}@${host} ${line} \r\n`)
+          prefix = ""
+          if (line.includes("use")) {
+            const res = line.split(" ");
+            if (res === "server") {
+              prefix += `:${nickname}@${host} `
+            }
+          }
+          client.write(`${prefix}${line} \r\n`)
         }
       }
     }

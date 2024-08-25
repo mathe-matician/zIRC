@@ -5,18 +5,20 @@ import (
 	"net"
 
 	"zirc/chat"
+	"zirc/helpers"
+	rc "zirc/remote_conn"
+	sm "zirc/servermanager"
 
+	"github.com/google/uuid"
 	"github.com/phuslu/log"
 )
 
-type RemoteConn struct {
-	Host string
-	Port string
-}
+const MAX_BUFFER_SIZE = 4096
 
-func (c *RemoteConn) MarshalObject(e *log.Entry) {
-	e.Str("host", c.Host).Str("port", c.Port)
-}
+// type RemoteConn struct {
+// 	Host string
+// 	Port string
+// }
 
 func main() {
 
@@ -56,7 +58,17 @@ func main() {
 		return
 	}
 
-	log.Info().Msg("Server started")
+	server_mode := helpers.GetEnv("IRC_SERVER_ROLE", "leaf")
+	err = helpers.VerifyServerMode(server_mode)
+	if err != nil {
+		log.Error().Msg(err.Error())
+		return
+	}
+
+	log.Info().Msgf("Server started as %s node", server_mode)
+
+	server_manager := sm.ServerManager{}
+	go server_manager.Run()
 
 	for {
 		conn, err := ln.Accept()
@@ -65,28 +77,41 @@ func main() {
 			continue
 		}
 
-		go handleConnection(conn)
+		go handleConnection(conn, &server_manager)
 	}
 }
 
-func handleConnection(conn net.Conn) {
-	// TODO - send periodic PING commands
-	//		  if no PONG is received, terminate the connection
-	//		  used to determine dead connections
+// handleConnection is the starting point for handling a client connection
+// it is intended to be run in a go routine
+// and will run forever until the client connection is closed or an error is hit
+func handleConnection(conn net.Conn, server_manager *sm.ServerManager) {
 	defer conn.Close()
 
 	remote_addr := conn.RemoteAddr()
-	remote_host, remote_port, err := net.SplitHostPort(remote_addr.String())
+	remote_ip, remote_port, err := net.SplitHostPort(remote_addr.String())
 	if err != nil {
 		log.Error().Str("remote_addr", remote_addr.String()).Msgf("Error splitting remote addr: %s", err.Error())
 	}
-	remote_conn := RemoteConn{Host: remote_host, Port: remote_port}
-	log.Info().EmbedObject(&remote_conn).Msg("Client connected")
+	// TODO - resolve DNS name here for additional checks / verification
+	// e.g. w/ servers and compare to server list
+	remote_conn := rc.RemoteConn{Host: "", Ip: remote_ip, Port: remote_port}
+	uuid, err := uuid.NewV7()
 
-	recv_buf := make([]byte, 1024)
+	if err != nil {
+		log.Error().EmbedObject(&remote_conn).Msgf("Error generating uuid %s", err.Error())
+		return
+	}
+
+	timestamp_s, timestamp_ns := uuid.Time().UnixTime()
+	log.Info().EmbedObject(&remote_conn).Msgf("Client connected at %d.%d", timestamp_s, timestamp_ns)
+
+	recv_buf := make([]byte, MAX_BUFFER_SIZE)
 
 	for {
 		// TODO - clear buffers so no extra data is sent?
+		// TODO - send periodic PING commands
+		//		  if no PONG is received, terminate the connection
+		//		  used to determine dead connections
 		_, err := conn.Read(recv_buf)
 		if err != nil {
 			if err == io.EOF {
@@ -97,7 +122,8 @@ func handleConnection(conn net.Conn) {
 			return
 		}
 
-		response := chat.ProcessMessage(&recv_buf)
+		response := chat.ProcessMessage(&recv_buf, server_manager)
+		// response := []byte("hi from IRC...!")
 
 		if _, err := conn.Write(response); err != nil {
 			log.Error().EmbedObject(&remote_conn).Msgf("Error writing to client: %s", err.Error())
