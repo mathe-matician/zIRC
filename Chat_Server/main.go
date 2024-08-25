@@ -123,7 +123,6 @@ func handleConnection(conn net.Conn, server_manager *sm.ServerManager) {
 		}
 
 		response := chat.ProcessMessage(&recv_buf, server_manager)
-		// response := []byte("hi from IRC...!")
 
 		if _, err := conn.Write(response); err != nil {
 			log.Error().EmbedObject(&remote_conn).Msgf("Error writing to client: %s", err.Error())
