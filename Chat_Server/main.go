@@ -5,11 +5,11 @@ import (
 	"net"
 
 	"zirc/chat"
+	c "zirc/client"
 	"zirc/helpers"
 	rc "zirc/remote_conn"
 	sm "zirc/servermanager"
 
-	"github.com/google/uuid"
 	"github.com/phuslu/log"
 )
 
@@ -94,16 +94,14 @@ func handleConnection(conn net.Conn, server_manager *sm.ServerManager) {
 	}
 	// TODO - resolve DNS name here for additional checks / verification
 	// e.g. w/ servers and compare to server list
-	remote_conn := rc.RemoteConn{Host: "", Ip: remote_ip, Port: remote_port}
-	uuid, err := uuid.NewV7()
-
+	remote_conn := rc.NewRemoteConn("", remote_ip, remote_port)
+	client, session_timestamp, err := c.NewClient("", "", remote_conn)
 	if err != nil {
-		log.Error().EmbedObject(&remote_conn).Msgf("Error generating uuid %s", err.Error())
+		log.Error().EmbedObject(client).Msgf(err.Error())
 		return
 	}
 
-	timestamp_s, timestamp_ns := uuid.Time().UnixTime()
-	log.Info().EmbedObject(&remote_conn).Msgf("Client connected at %d.%d", timestamp_s, timestamp_ns)
+	log.Info().EmbedObject(client).Msgf("Client connected at %s", *session_timestamp)
 
 	recv_buf := make([]byte, MAX_BUFFER_SIZE)
 
@@ -115,9 +113,9 @@ func handleConnection(conn net.Conn, server_manager *sm.ServerManager) {
 		_, err := conn.Read(recv_buf)
 		if err != nil {
 			if err == io.EOF {
-				log.Info().EmbedObject(&remote_conn).Msg("Client disconnected")
+				log.Info().EmbedObject(client).Msg("Client disconnected")
 			} else {
-				log.Error().EmbedObject(&remote_conn).Msgf("Error reading data from connection: %s", err.Error())
+				log.Error().EmbedObject(client).Msgf("Error reading data from connection: %s", err.Error())
 			}
 			return
 		}
@@ -125,7 +123,7 @@ func handleConnection(conn net.Conn, server_manager *sm.ServerManager) {
 		response := chat.ProcessMessage(&recv_buf, server_manager)
 
 		if _, err := conn.Write(response); err != nil {
-			log.Error().EmbedObject(&remote_conn).Msgf("Error writing to client: %s", err.Error())
+			log.Error().EmbedObject(client).Msgf("Error writing to client: %s", err.Error())
 			break
 		}
 	}

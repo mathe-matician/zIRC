@@ -74,7 +74,7 @@ func ProcessMessage(recv_buf *[]byte, server_manager *sm.ServerManager) []byte {
 	//		  S2S communication uses cmds like PING/PONG, SYNCHRONIZE
 
 	// TODO - process command as it should be the next thing in the message
-	log.Info().Msgf("Validating command %s", split_msg[0])
+	log.Debug().Msgf("Validating command %s", split_msg[0])
 	cmd, err := commands.VerifyCommand(split_msg[0])
 	if err != nil {
 		return []byte(err.Error())
