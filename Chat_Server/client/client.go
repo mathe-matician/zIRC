@@ -2,6 +2,8 @@ package client
 
 import (
 	"strconv"
+
+	"zirc/helpers"
 	rc "zirc/remote_conn"
 
 	"github.com/google/uuid"
@@ -16,6 +18,7 @@ type Session struct {
 type Client struct {
 	nick    string
 	user    string
+	server  string
 	session Session
 	conn    *rc.RemoteConn
 	send    chan string
@@ -27,6 +30,9 @@ func stringTimeFromUnixTimestamp(time uuid.Time) string {
 	return timestamp
 }
 
+// NewClient creats a new client struct
+// This is run on the current server, so IRC_SERVER_DNS_NAME
+// will be set to the server's name
 func NewClient(nick string, user string, conn *rc.RemoteConn) (*Client, *string, error) {
 	s, err := NewSession()
 	if err != nil {
@@ -35,13 +41,12 @@ func NewClient(nick string, user string, conn *rc.RemoteConn) (*Client, *string,
 	}
 	session_timestamp := stringTimeFromUnixTimestamp(s.id.Time())
 
-	// sessions := []Session{*s}
-
 	s_chan := make(chan string)
 
 	return &Client{
 		nick:    nick,
 		user:    user,
+		server:  helpers.GetEnv("IRC_SERVER_DNS_NAME", "localhost"),
 		session: *s,
 		conn:    conn,
 		send:    s_chan,
@@ -74,6 +79,14 @@ func (c *Client) SetSessionEndTimestamp() (*string, error) {
 	c.session.end_timestamp = &time
 	end_timestamp := stringTimeFromUnixTimestamp(time)
 	return &end_timestamp, nil
+}
+
+func (c *Client) Nick() string {
+	return c.nick
+}
+
+func (c *Client) User() string {
+	return c.user
 }
 
 func (c *Client) SetNick(nick string) {

@@ -125,7 +125,7 @@ func handleConnection(conn net.Conn, server_manager *sm.ServerManager) {
 			return
 		}
 
-		response := chat.ProcessMessage(&recv_buf, server_manager)
+		response := chat.ProcessMessage(&recv_buf, client, server_manager)
 
 		if _, err := conn.Write(response); err != nil {
 			log.Error().EmbedObject(client).Msgf("Error writing to client: %s", err.Error())

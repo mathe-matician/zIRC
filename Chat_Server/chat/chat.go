@@ -5,13 +5,14 @@ import (
 	"errors"
 	"strings"
 
+	c "zirc/client"
 	"zirc/commands"
 	sm "zirc/servermanager"
 
 	"github.com/phuslu/log"
 )
 
-func ProcessMessage(recv_buf *[]byte, server_manager *sm.ServerManager) []byte {
+func ProcessMessage(recv_buf *[]byte, client *c.Client, server_manager *sm.ServerManager) []byte {
 	log.Debug().Msg("------------MSG START------------")
 	trimmed_msg := string(bytes.Trim(bytes.TrimLeft(*recv_buf, " "), "\x00"))
 	log.Info().Msgf("Raw Client msg: %s", trimmed_msg)
@@ -73,9 +74,8 @@ func ProcessMessage(recv_buf *[]byte, server_manager *sm.ServerManager) []byte {
 	//		  ---
 	//		  S2S communication uses cmds like PING/PONG, SYNCHRONIZE
 
-	// TODO - process command as it should be the next thing in the message
 	log.Debug().Msgf("Validating command %s", split_msg[0])
-	cmd, err := commands.VerifyCommand(split_msg[0])
+	cmd, err := commands.CommandValidation(split_msg[0], client)
 	if err != nil {
 		return []byte(err.Error())
 	}
