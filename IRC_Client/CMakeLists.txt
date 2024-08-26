@@ -6,9 +6,27 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(QT_QUICK_CONTROLS_CONF "qtquickcontrols2.conf")
 
+set(FIREBASE_CPP_SDK_DIR "/Users/gween/repos/irc/IRC_Client/firebase_cpp_sdk")
+
 find_package(Qt6 6.5 REQUIRED COMPONENTS Core Gui Quick NetworkAuth)
 
 qt_standard_project_setup(REQUIRES 6.5)
+
+# Add Firebase libraries to the target using the function from the SDK.
+add_subdirectory(${FIREBASE_CPP_SDK_DIR} bin/ EXCLUDE_FROM_ALL)
+
+# The Firebase C++ library `firebase_app` is required,
+# and it must always be listed last.
+
+# Add the Firebase SDKs for the products you want to use in your app
+# For example, to use Analytics, Firebase Authentication, and Firebase Realtime Database
+set(firebase_libs
+  firebase_analytics
+  firebase_auth
+  firebase_database
+  firebase_app
+)
+#target_link_libraries(${target_name} "${firebase_libs}")
 
 qt_add_executable(appIRC_Client
     main.cpp
@@ -31,6 +49,7 @@ qt_add_qml_module(appIRC_Client
         RESOURCES resc.qrc
         SOURCES googlesso.h googlesso.cpp
         SOURCES authgen.h authgen.cpp
+        RESOURCES QtAndroidService.java
 
 )
 
@@ -47,9 +66,11 @@ set_target_properties(appIRC_Client PROPERTIES
 
 target_link_libraries(appIRC_Client
     PRIVATE Qt6::Core
+    PRIVATE Qt6::CorePrivate
     PRIVATE Qt6::Gui
     PRIVATE Qt6::Quick
     PRIVATE Qt6::NetworkAuth
+    "${firebase_libs}"
 )
 
 include(GNUInstallDirs)

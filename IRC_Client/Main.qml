@@ -164,9 +164,19 @@ ApplicationWindow {
     }
 
     Button {
-        id: sso
+        id: firebase_basic
         anchors.top: bypass.bottom
         anchors.left: bypass.left
+        text: "Firebase basic"
+        onClicked: {
+            google_sso.firebase_basic_auth("zach@syllogi.io", "1234567890");
+        }
+    }
+
+    Button {
+        id: sso
+        anchors.top: firebase_basic.bottom
+        anchors.left: firebase_basic.left
         text: "LOGIN WITH GOOGLE"
         onClicked: {
             google_sso.authenticate();

@@ -16,6 +16,7 @@ public:
 
 public slots:
     Q_INVOKABLE void authenticate();
+    Q_INVOKABLE void firebase_basic_auth(QString a_mail, QString a_password);
 
 signals:
     void gotToken(const QString& token);
@@ -23,6 +24,9 @@ signals:
 private:
     QOAuth2AuthorizationCodeFlow * google;
     QByteArray m_state;
+
+    const char* m_email;
+    const char* m_password;
 };
 
 #endif // GOOGLESSO_H

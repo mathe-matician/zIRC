@@ -9,11 +9,25 @@
 #include <QJsonObject>
 #include <QJsonArray>
 
+//#include <QJniEnvironment>
+#include <QCoreApplication>
+
+// Firebase
+//#include"firebase/app.h"
+//#include "firebase/auth.h"
+
 #include "authgen.h"
 
 // Get these from https://console.developers.google.com/apis/credentials
-#define CLIENT_ID "CLIENT_ID"
-#define CLIENT_SECRET "CLIENT_SECRET"
+#if defined(Q_OS_ANDROID)
+    #define CLIENT_ID ""
+#elif defined(Q_OS_IOS)
+    #define CLIENT_ID "CLIENT_ID"
+    #define CLIENT_SECRET "CLIENT_SECRET"
+#elif defined(Q_OS_MACOS)
+    #define CLIENT_ID ""
+    #define CLIENT_SECRET ""
+#endif
 #define AUTH_URI "https://accounts.google.com/o/oauth2/auth"
 #define TOKEN_URI "https://oauth2.googleapis.com/token"
 #define REDIRECT_URI "http://127.0.0.1:8080/"
@@ -24,6 +38,8 @@ GoogleSSO::GoogleSSO(QObject *parent) : QObject(parent) {
 GoogleSSO::~GoogleSSO() {
     delete this->google;
 }
+
+
 
 // Invoked externally to initiate
 void GoogleSSO::authenticate() {
@@ -40,7 +56,6 @@ void GoogleSSO::authenticate() {
 
         query.addQueryItem("prompt", "consent");      // Param required to get data everytime
         query.addQueryItem("access_type", "offline"); // Needed for Refresh Token (as AccessToken expires shortly)
-        query.addQueryItem("login_hint", "zach@syllogi.io"); //
         url.setQuery(query);
 
         // TODO
@@ -54,7 +69,11 @@ void GoogleSSO::authenticate() {
     this->google->setAuthorizationUrl(QUrl(AUTH_URI));
     this->google->setAccessTokenUrl(QUrl(TOKEN_URI));
     this->google->setClientIdentifier(CLIENT_ID);
+#ifndef Q_OS_ANDROID
+    // android doesn't need client secret
+    // https://developers.google.com/identity/protocols/oauth2/native-app
     this->google->setClientIdentifierSharedKey(CLIENT_SECRET);
+#endif
 
     this->google->setModifyParametersFunction([](QAbstractOAuth::Stage stage, QMultiMap<QString, QVariant> *parameters) -> void {
         // Percent-decode the "code" parameter so Google can match it
@@ -126,4 +145,43 @@ void GoogleSSO::authenticate() {
     });
 
     this->google->grant();
+}
+
+void GoogleSSO::firebase_basic_auth(QString a_mail, QString a_password)
+{
+    //jobject activity;
+    //a.callStaticMethod();
+
+    // GOOD
+    //QJniEnvironment l_jni_env = QJniEnvironment();
+
+
+    // BAD
+//    jclass javaActivityClass = l_jni_env.findClass("android/app/Activity");
+//    QJniObject l_activity = QJniObject::callStaticMethod<jobject>(javaActivityClass, "getActivity");
+
+//    jclass clsAct = l_jni_env->FindClass("android/app/Activity");
+//    qDebug() << "Activity: " << clsAct;
+//    jmethodID methodId = l_jni_env.findStaticMethod(clsAct, "getActivity");
+//    QJniObject l_activity = QJniObject::callStaticMethod<jobject>(clsAct, methodId);
+//    if (methodId != 0) {
+//        QJniObject l_activity = QJniObject::callStaticMethod<jobject>(clsAct, methodId);
+//    }
+
+    /// GOOD
+
+//#if defined(__ANDROID__)
+//    firebase::App* app = firebase::App::Create(firebase::AppOptions(), l_jni_env.jniEnv(), QNativeInterface::QAndroidApplication::context());
+//#else
+//    firebase::App::Create(firebase::AppOptions());
+//#endif  // defined(__ANDROID__)
+//    firebase::auth::Auth* auth = firebase::auth::Auth::GetAuth(app);
+
+//    // todo
+//    // do checks on input
+//    // covert qstring to const char
+//    m_email = a_mail.toUtf8().constData();
+//    m_password = a_password.toUtf8().constData();
+
+//    firebase::Future<firebase::auth::AuthResult> result = auth->CreateUserWithEmailAndPassword(m_email, m_password);
 }

@@ -3,6 +3,10 @@
 #include <QString>
 #include <QDebug>
 
+#if defined(Q_OS_ANDROID)
+#include <QtCore/private/qandroidextras_p.h>
+#endif
+
 /*
 #ifdef __EMSCRIPTEN__
 #include <QWebSocket>
@@ -39,6 +43,14 @@ SocketManager::SocketManager(QObject *parent) :
     connect(socket, SIGNAL(bytesWritten(qint64)), this, SLOT(Bytes_Written(qint64)));
     connect(socket, SIGNAL(connected()), this, SLOT(Success_Connected()));
 
+
+//    auto activity = QJniObject(QNativeInterface::QAndroidApplication::context());
+//    QAndroidIntent serviceIntent(activity.object(),
+//                                 "org/qtproject/example/appIRC_Client/QtAndroidService");
+//    QJniObject result = activity.callObjectMethod(
+//        "startService",
+//        "(Landroid/content/Intent;)Landroid/content/ComponentName;",
+//        serviceIntent.handle().object());
 
 }
 
