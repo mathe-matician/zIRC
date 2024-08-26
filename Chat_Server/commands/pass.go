@@ -30,7 +30,7 @@ func pass(params []string) string {
 	err := bcrypt.CompareHashAndPassword([]byte(server_password), []byte(password))
 	if err != nil {
 		log.Error().Msg(err.Error())
-		return "ERROR :You need to send your password before registering"
+		return "ERROR :Closing Link: <username>[<hostname>] (Password incorrect)"
 	}
 
 	return ""

@@ -13,7 +13,7 @@ import (
 	"github.com/phuslu/log"
 )
 
-const MAX_BUFFER_SIZE = 4096
+const MAX_BUFFER_SIZE = 8192 // should this be a runtime configuration?
 
 var server_dns_name = helpers.GetEnv("IRC_SERVER_DNS_NAME", "localhost")
 

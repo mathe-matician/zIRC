@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	c "zirc/client"
+	"zirc/helpers"
 
 	"github.com/phuslu/log"
 )
@@ -54,6 +55,11 @@ func CommandValidation(cmd string, client *c.Client) (*Command, error) {
 	val, ok := command_map[cmd]
 	if !ok {
 		return nil, errors.New("unknown command")
+	}
+
+	server_password := helpers.GetEnv("IRC_SERVER_PASSWORD", "")
+	if len(server_password) != 0 && cmd != "PASS" {
+		return nil, errors.New("ERROR: You need to send your password before registering")
 	}
 
 	_, auth_req := command_map[cmd].Metadata["auth_req"]
