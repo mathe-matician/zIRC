@@ -16,9 +16,6 @@ console.log(`///////////////////////////////////////////////////////////////////
 console.log(`//// TEST CLIENT`);
 console.log(`/////////////////////////////////////////////////////////////////////////////////////`);
 console.log(`//// Available Commands:`);
-console.log(`//// \tuse <user>:`);
-console.log(`//// \t\tSelect the user to use. E.g. 0, 1, 2, 3, admin (whatever the file is named)`);
-console.log(`//// \t\tIf user doesn't exist, create uid and save it.`);
 console.log(`//// \trole <role>:`);
 console.log(`//// \t\tclient (default): Sends messages without a source prefix`);
 console.log(`//// \t\tserver: Sends messages with source prefix`);
@@ -43,7 +40,7 @@ const reader = readline.createInterface({ input: process.stdin });
           client.write(`clientUID::${clientUID} :${nickname}@${host} ${line} \r\n`)
         } else {
           prefix = ""
-          if (line.includes("use")) {
+          if (line.includes("role")) {
             const res = line.split(" ");
             if (res === "server") {
               prefix += `:${nickname}@${host} `
