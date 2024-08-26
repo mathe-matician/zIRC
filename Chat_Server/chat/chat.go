@@ -40,8 +40,8 @@ func ProcessMessage(recv_buf *[]byte, client *c.Client, server_manager *sm.Serve
 		log.Info().Msg("Message has tag data. Processing source first.")
 		processTags(strings.Trim(split_msg[0], " "))
 		// TODO - remove tags so the next chunk is the optional source
-		split_msg = split_msg[1:]
-		split_msg = re.FindAllStringSubmatch(split_msg[0], -1)[0]
+		trimmed_msg = trimmed_msg[1:]
+		split_msg = re.FindAllStringSubmatch(trimmed_msg, -1)[0]
 	}
 
 	if len(split_msg) == 0 {
@@ -60,8 +60,8 @@ func ProcessMessage(recv_buf *[]byte, client *c.Client, server_manager *sm.Serve
 		// Clients MUST NOT include a source when sending a message.
 		// E.g. clients must be able to process messages whether from a server or client
 		log.Info().Msg("Message contains source prefix. Must be from another server...")
-		split_msg = split_msg[1:]
-		split_msg = re.FindAllStringSubmatch(split_msg[0], -1)[0]
+		trimmed_msg = trimmed_msg[1:]
+		split_msg = re.FindAllStringSubmatch(trimmed_msg, -1)[0]
 	}
 
 	if len(split_msg) == 0 {
@@ -89,17 +89,33 @@ func ProcessMessage(recv_buf *[]byte, client *c.Client, server_manager *sm.Serve
 	}
 
 	// remove command
-	cmd_params := split_msg[1:]
-	log.Debug().Msgf("Cmd params %s, len: ", cmd_params, len(cmd_params))
+	str_cmd := re.FindAllStringSubmatch(trimmed_msg, -1)[0]
+	log.Debug().Msgf("Cmd: %s, Cmd len: %d", str_cmd, len(str_cmd[0]))
+	cmd_params := trimmed_msg[len(str_cmd[0])+1:]
+	log.Debug().Msgf("Trimmed_msg AFTER regex && trim: %s", cmd_params)
 
 	// TODO - params aren't being passed correctly - something with REGEX
 
-	// TODO - handle "chunked" messages where no CRLF exists - need to wait for the rest of the message
-	//		timeout if the rest of the message doesn't come through - i.e. we don't get a CRLF in x seconds
-	//
-	// 		Also check that the client hasn't exceeded 8192 bytes (8 KB) which is the max message size
+	if !strings.HasSuffix(cmd_params, "\r\n") {
+		// TODO - handle "chunked" messages where no CRLF exists - need to wait for the rest of the message
+		//		timeout if the rest of the message doesn't come through - i.e. we don't get a CRLF in x seconds
+		//
+		// 		Also check that the client hasn't exceeded 8192 bytes (8 KB) which is the max message size
+		// note we already define the max buffer in main.go - but double check the actualy max size 4k or 8k?
+		log.Info().Msgf("TODO: Message has no CRLF... wait for rest of message!")
+	}
 
-	res := cmd.Fn(cmd_params)
+	cmd_params = strings.TrimSuffix(cmd_params, "\r\n")
+
+	var cmd_param_slice []string
+	log.Debug().Msgf("Cmd params %s, len: %d", cmd_params, len(cmd_params))
+	if len(cmd_params) == 0 {
+		cmd_param_slice = []string{}
+	} else {
+		cmd_param_slice = append(cmd_param_slice, cmd_params)
+	}
+
+	res := cmd.Fn(cmd_param_slice)
 
 	log.Debug().Msg("------------MSG END------------")
 

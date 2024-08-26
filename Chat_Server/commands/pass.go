@@ -13,6 +13,8 @@ func pass(params []string) string {
 	msg := "Running PASS..."
 	log.Info().Msg(msg)
 
+	log.Debug().Msgf("Pass params: %s, len: %d", params, len(params))
+
 	if len(params) < 1 {
 		// not enough params
 		// 461 ERR_NEEDMOREPARAMS
