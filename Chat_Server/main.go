@@ -15,6 +15,8 @@ import (
 
 const MAX_BUFFER_SIZE = 4096
 
+var server_dns_name = helpers.GetEnv("IRC_SERVER_DNS_NAME", "localhost")
+
 // type RemoteConn struct {
 // 	Host string
 // 	Port string
@@ -67,7 +69,7 @@ func main() {
 
 	log.Info().Msgf("Server started as %s node", server_mode)
 
-	server_manager := sm.ServerManager{}
+	server_manager := sm.ServerManager{Name: server_dns_name}
 	go server_manager.Run()
 
 	for {

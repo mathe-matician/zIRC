@@ -3,21 +3,27 @@ package chat
 import (
 	"bytes"
 	"errors"
+	"fmt"
+	"regexp"
 	"strings"
 
 	c "zirc/client"
 	"zirc/commands"
+	"zirc/helpers"
 	sm "zirc/servermanager"
 
 	"github.com/phuslu/log"
 )
+
+var re = regexp.MustCompile(`^\S*`) // captures until first space
 
 func ProcessMessage(recv_buf *[]byte, client *c.Client, server_manager *sm.ServerManager) []byte {
 	log.Debug().Msg("------------MSG START------------")
 	trimmed_msg := string(bytes.Trim(bytes.TrimLeft(*recv_buf, " "), "\x00"))
 	log.Info().Msgf("Raw Client msg: %s", trimmed_msg)
 
-	split_msg := strings.Split(trimmed_msg, " ")
+	split_msg := re.FindAllStringSubmatch(trimmed_msg, -1)[0]
+	log.Debug().Msgf("Split Msg: %s", split_msg)
 	if len(split_msg) == 0 {
 		err := errors.New("message is empty")
 		log.Error().Msg(err.Error())
@@ -32,9 +38,10 @@ func ProcessMessage(recv_buf *[]byte, client *c.Client, server_manager *sm.Serve
 	// parse tag data
 	if string(split_msg[0][0]) == "@" {
 		log.Info().Msg("Message has tag data. Processing source first.")
-		processTags(split_msg[0])
+		processTags(strings.Trim(split_msg[0], " "))
 		// TODO - remove tags so the next chunk is the optional source
 		split_msg = split_msg[1:]
+		split_msg = re.FindAllStringSubmatch(split_msg[0], -1)[0]
 	}
 
 	if len(split_msg) == 0 {
@@ -54,6 +61,7 @@ func ProcessMessage(recv_buf *[]byte, client *c.Client, server_manager *sm.Serve
 		// E.g. clients must be able to process messages whether from a server or client
 		log.Info().Msg("Message contains source prefix. Must be from another server...")
 		split_msg = split_msg[1:]
+		split_msg = re.FindAllStringSubmatch(split_msg[0], -1)[0]
 	}
 
 	if len(split_msg) == 0 {
@@ -75,15 +83,26 @@ func ProcessMessage(recv_buf *[]byte, client *c.Client, server_manager *sm.Serve
 	//		  S2S communication uses cmds like PING/PONG, SYNCHRONIZE
 
 	log.Debug().Msgf("Validating command %s", split_msg[0])
-	cmd, err := commands.CommandValidation(split_msg[0], client)
+	cmd, err := commands.CommandValidation(strings.Trim(split_msg[0], " "), client)
 	if err != nil {
 		return []byte(err.Error())
 	}
 
-	res := cmd.Fn()
+	// remove command
+	cmd_params := split_msg[1:]
+	log.Debug().Msgf("Cmd params %s, len: ", cmd_params, len(cmd_params))
+
+	// TODO - params aren't being passed correctly - something with REGEX
+
+	// TODO - handle "chunked" messages where no CRLF exists - need to wait for the rest of the message
+	//		timeout if the rest of the message doesn't come through - i.e. we don't get a CRLF in x seconds
+	//
+	// 		Also check that the client hasn't exceeded 8192 bytes (8 KB) which is the max message size
+
+	res := cmd.Fn(cmd_params)
 
 	log.Debug().Msg("------------MSG END------------")
-	// msg := "Server echo cmd: " + split_msg[0]
-	b := []byte(res)
-	return b
+
+	response := []byte(fmt.Sprintf(":%s code target %s \r\n", helpers.GetEnv("IRC_SERVER_DNS_NAME", "localhost"), res))
+	return response
 }

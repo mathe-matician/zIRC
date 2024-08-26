@@ -8,7 +8,7 @@ import (
 	"github.com/phuslu/log"
 )
 
-type CommandFunc func() string
+type CommandFunc func([]string) string
 
 type Command struct {
 	Fn       CommandFunc
@@ -27,8 +27,8 @@ var command_map = map[string]Command{
 	"PRIVMSG":      *NewCommand(privmsg, map[string]string{"auth_req": "true"}),
 	"NOTIFY":       *NewCommand(notify, map[string]string{"auth_req": "true"}),
 	"SERVER":       *NewCommand(server, make(map[string]string)),
-	"WEBIRC":       *NewCommand(webirc, make(map[string]string)),
-	"QUIT":         *NewCommand(quit, make(map[string]string)),
+	// "WEBIRC":       *NewCommand(webirc, make(map[string]string)),
+	"QUIT": *NewCommand(quit, make(map[string]string)),
 }
 
 func NewCommand(fn CommandFunc, metadata map[string]string) *Command {
@@ -58,92 +58,85 @@ func CommandValidation(cmd string, client *c.Client) (*Command, error) {
 
 	_, auth_req := command_map[cmd].Metadata["auth_req"]
 	if (len(client.Nick()) == 0 || len(client.User()) == 0) && auth_req {
-		return nil, errors.New("client hasn't registered")
+		return nil, errors.New("You have not registered")
 	}
 
 	log.Debug().Msgf("Valid command: %s", cmd)
-	// return_cmd := val.(Command) // needs type asseration as the map value is "any"
 	return_cmd := val
 	return &return_cmd, nil
 }
 
-func authenticate() string {
+func authenticate(params []string) string {
 	msg := "Running AUTHENTICATE..."
 	log.Info().Msg(msg)
 	return msg
 }
 
-func cap() string {
+func cap(params []string) string {
 	msg := "Running CAP..."
 	log.Info().Msg(msg)
 	return msg
 }
 
 // Although not commonly used, a client can send an ERROR message to notify the server of a fatal error condition.
-func error_cmd() string {
+func error_cmd(params []string) string {
 	msg := "Running ERROR..."
 	log.Info().Msg(msg)
 	return msg
 }
 
-func pass() string {
-	msg := "Running PASS..."
-	log.Info().Msg(msg)
-	return msg
-}
-
-func ping() string {
+func ping(params []string) string {
 	msg := "Running PING..."
 	log.Info().Msg(msg)
 	return msg
 }
 
-func pong() string {
+func pong(params []string) string {
 	msg := "Running PONG..."
 	log.Info().Msg(msg)
 	return msg
 }
 
-func join() string {
+func join(params []string) string {
 	msg := "Running JOIN..."
 	log.Info().Msg(msg)
 	return msg
 }
 
-func privmsg() string {
+func privmsg(params []string) string {
 	msg := "Running PRIVMSG..."
 	log.Info().Msg(msg)
 	return msg
 }
 
 // This command is used in some IRC networks to negotiate specific protocol features.
-func protoctl() string {
+func protoctl(params []string) string {
 	msg := "Running PROTOCTL..."
 	log.Info().Msg(msg)
 	return msg
 }
 
-func notify() string {
+func notify(params []string) string {
 	msg := "Running NOTIFY..."
 	log.Info().Msg(msg)
 	return msg
 }
 
 // In the case of a server connection, this command can be used for server-to-server communications (typically not used by clients).
-func server() string {
+func server(params []string) string {
 	msg := "Running SERVER..."
 	log.Info().Msg(msg)
 	return msg
 }
 
 // Used in some IRC networks to provide the client’s real IP address when connecting through a web proxy.
-func webirc() string {
-	msg := "Running WEBIRC..."
-	log.Info().Msg(msg)
-	return msg
-}
+// func webirc(pararms []string) string {
+// 	msg := "Running WEBIRC..."
+// 	log.Info().Msg(msg)
+// 	return msg
+// }
 
-func quit() string {
+func quit(params []string) string {
 	msg := "Running QUIT..."
 	log.Info().Msg(msg)
 	return msg

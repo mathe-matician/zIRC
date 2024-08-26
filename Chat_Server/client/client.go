@@ -85,6 +85,10 @@ func (c *Client) Nick() string {
 	return c.nick
 }
 
+func (c *Client) SessionId() string {
+	return c.session.id.String()
+}
+
 func (c *Client) User() string {
 	return c.user
 }

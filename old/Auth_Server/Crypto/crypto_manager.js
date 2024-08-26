@@ -61,6 +61,8 @@ const generate_hash = (value, salt=null) => {
 
 // const _iv = process.env.CRYPT_AES_IV;
 // const _iv = "dd20d485701a465289b7a981b0de0e1d";
+// TODO
+// remove hardcoded test iv
 const iv = Buffer.from("dd20d485701a465289b7a981b0de0e1d");
 
 const decrypt_AES = (value, salt) => {
