@@ -1,15 +1,13 @@
 package commands
 
 import (
-	"errors"
-
 	c "zirc/client"
 	"zirc/helpers"
 
 	"github.com/phuslu/log"
 )
 
-type CommandFunc func(map[string]interface{}) string
+type CommandFunc func(map[string]interface{}) *map[string]string
 
 type Command struct {
 	Fn       CommandFunc
@@ -20,6 +18,7 @@ var command_map = map[string]Command{
 	"AUTHENTICATE": *NewCommand(authenticate, map[string]string{"auth_req": "true"}),
 	"CAP":          *NewCommand(cap, make(map[string]string)),
 	"ERROR":        *NewCommand(error_cmd, make(map[string]string)),
+	"NICK":         *NewCommand(nick, make(map[string]string)),
 	"PASS":         *NewCommand(pass, make(map[string]string)),
 	"PING":         *NewCommand(ping, make(map[string]string)),
 	"PONG":         *NewCommand(pong, make(map[string]string)),
@@ -28,6 +27,7 @@ var command_map = map[string]Command{
 	"PRIVMSG":      *NewCommand(privmsg, map[string]string{"auth_req": "true"}),
 	"NOTIFY":       *NewCommand(notify, map[string]string{"auth_req": "true"}),
 	"SERVER":       *NewCommand(server, make(map[string]string)),
+	"USER":         *NewCommand(user, make(map[string]string)),
 	// "WEBIRC":       *NewCommand(webirc, make(map[string]string)),
 	"QUIT": *NewCommand(quit, make(map[string]string)),
 }
@@ -51,7 +51,7 @@ func (c *Command) DeleteMetadata(cmd, key, value string) {
 // - ensures the command is a valid IRC command
 // - checks whether the client is registered or not and limits commands based on that
 // - checks whether the client is a server or a client and limits more commands based on that
-func CommandValidation(cmd string, client *c.Client) (*Command, error) {
+func CommandValidation(cmd string, client *c.Client) (*Command, *map[string]string) {
 	_client_password_state := client.GetState("server_password")
 	client_password_state := ""
 	if _client_password_state != nil {
@@ -60,19 +60,19 @@ func CommandValidation(cmd string, client *c.Client) (*Command, error) {
 
 	server_password := helpers.GetEnv("IRC_SERVER_PASSWORD", "")
 	if len(server_password) != 0 && cmd != "PASS" && client_password_state != "accepted" {
-		return nil, errors.New(":You need to send your password before registering")
+		return nil, ERR_PASSWDMISMATCH(":You need to send your password before registering")
 	}
 
 	val, ok := command_map[cmd]
 	if !ok {
-		return nil, errors.New("unknown command")
+		return nil, ERR_UNKNOWNCOMMAND("")
 	}
 
-	// TODO - need to check if server here
+	// TODO - need to check if this connection is from a server here
 
 	_, auth_req := command_map[cmd].Metadata["auth_req"]
 	if (len(client.Nick()) == 0 || len(client.User()) == 0) && auth_req {
-		return nil, errors.New("You have not registered")
+		return nil, ERR_NOTREGISTERED("")
 	}
 
 	log.Debug().Msgf("Valid command: %s", cmd)
@@ -80,67 +80,96 @@ func CommandValidation(cmd string, client *c.Client) (*Command, error) {
 	return &return_cmd, nil
 }
 
-func authenticate(params map[string]interface{}) string {
-	msg := "Running AUTHENTICATE..."
-	log.Info().Msg(msg)
-	return msg
+func authenticate(params map[string]interface{}) *map[string]string {
+	log.Info().Msg("Running AUTHENTICATE...")
+	response := map[string]string{
+		"msg": "Running AUTHENTICATE...",
+	}
+	return &response
 }
 
-func cap(params map[string]interface{}) string {
+func cap(params map[string]interface{}) *map[string]string {
 	msg := "Running CAP..."
 	log.Info().Msg(msg)
-	return msg
+	response := map[string]string{
+		"msg": msg,
+	}
+	return &response
 }
 
 // Although not commonly used, a client can send an ERROR message to notify the server of a fatal error condition.
-func error_cmd(params map[string]interface{}) string {
+func error_cmd(params map[string]interface{}) *map[string]string {
 	msg := "Running ERROR..."
 	log.Info().Msg(msg)
-	return msg
+	response := map[string]string{
+		"msg": msg,
+	}
+	return &response
 }
 
-func ping(params map[string]interface{}) string {
+func ping(params map[string]interface{}) *map[string]string {
 	msg := "Running PING..."
 	log.Info().Msg(msg)
-	return msg
+	response := map[string]string{
+		"msg": msg,
+	}
+	return &response
 }
 
-func pong(params map[string]interface{}) string {
+func pong(params map[string]interface{}) *map[string]string {
 	msg := "Running PONG..."
 	log.Info().Msg(msg)
-	return msg
+	response := map[string]string{
+		"msg": msg,
+	}
+	return &response
 }
 
-func join(params map[string]interface{}) string {
+func join(params map[string]interface{}) *map[string]string {
 	msg := "Running JOIN..."
 	log.Info().Msg(msg)
-	return msg
+	response := map[string]string{
+		"msg": msg,
+	}
+	return &response
 }
 
-func privmsg(params map[string]interface{}) string {
+func privmsg(params map[string]interface{}) *map[string]string {
 	msg := "Running PRIVMSG..."
 	log.Info().Msg(msg)
-	return msg
+	response := map[string]string{
+		"msg": msg,
+	}
+	return &response
 }
 
 // This command is used in some IRC networks to negotiate specific protocol features.
-func protoctl(params map[string]interface{}) string {
+func protoctl(params map[string]interface{}) *map[string]string {
 	msg := "Running PROTOCTL..."
 	log.Info().Msg(msg)
-	return msg
+	response := map[string]string{
+		"msg": msg,
+	}
+	return &response
 }
 
-func notify(params map[string]interface{}) string {
+func notify(params map[string]interface{}) *map[string]string {
 	msg := "Running NOTIFY..."
 	log.Info().Msg(msg)
-	return msg
+	response := map[string]string{
+		"msg": msg,
+	}
+	return &response
 }
 
 // In the case of a server connection, this command can be used for server-to-server communications (typically not used by clients).
-func server(params map[string]interface{}) string {
+func server(params map[string]interface{}) *map[string]string {
 	msg := "Running SERVER..."
 	log.Info().Msg(msg)
-	return msg
+	response := map[string]string{
+		"msg": msg,
+	}
+	return &response
 }
 
 // Used in some IRC networks to provide the client’s real IP address when connecting through a web proxy.
@@ -150,8 +179,11 @@ func server(params map[string]interface{}) string {
 // 	return msg
 // }
 
-func quit(params map[string]interface{}) string {
+func quit(params map[string]interface{}) *map[string]string {
 	msg := "Running QUIT..."
 	log.Info().Msg(msg)
-	return msg
+	response := map[string]string{
+		"msg": msg,
+	}
+	return &response
 }

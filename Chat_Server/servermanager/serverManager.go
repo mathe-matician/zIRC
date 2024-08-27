@@ -11,8 +11,8 @@ import (
 type ServerManager struct {
 	Name       string
 	recv       chan string
-	ClientList []c.Client // only contains registered clients
-	ServerList []string
+	ClientList []*c.Client // only contains registered clients
+	ServerList []*string
 	// send        chan string
 }
 

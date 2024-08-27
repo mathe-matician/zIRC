@@ -1,6 +1,7 @@
 package client
 
 import (
+	"fmt"
 	"strconv"
 
 	"zirc/helpers"
@@ -92,6 +93,11 @@ func (c *Client) GetState(key string) interface{} {
 
 func (c *Client) UpdateState(key, value string) {
 	c.session.state[string(key)] = string(value)
+}
+
+// target format :nickname!username@hostname
+func (c *Client) FormattedClientDetails() string {
+	return fmt.Sprintf(":%s!%s@%s", c.nick, c.user, c.conn.Ip)
 }
 
 func (c *Client) Nick() string {

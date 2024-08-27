@@ -3,7 +3,6 @@ package chat
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"regexp"
 	"strings"
 
@@ -21,6 +20,9 @@ func ProcessMessage(recv_buf *[]byte, client *c.Client, server_manager *sm.Serve
 	log.Debug().Msg("------------MSG START------------")
 	trimmed_msg := string(bytes.Trim(bytes.TrimLeft(*recv_buf, " "), "\x00"))
 	log.Info().Msgf("Raw Client msg: %s", trimmed_msg)
+
+	server := helpers.GetEnv("IRC_SERVER_DNS_NAME", "localhost")
+	target := "*"
 
 	split_msg := re.FindAllStringSubmatch(trimmed_msg, -1)[0]
 	log.Debug().Msgf("Split Msg: %s", split_msg)
@@ -83,9 +85,13 @@ func ProcessMessage(recv_buf *[]byte, client *c.Client, server_manager *sm.Serve
 	//		  S2S communication uses cmds like PING/PONG, SYNCHRONIZE
 
 	log.Debug().Msgf("Validating command %s", split_msg[0])
-	cmd, err := commands.CommandValidation(strings.Trim(split_msg[0], " "), client)
-	if err != nil {
-		return []byte(err.Error())
+	cmd, _validation_res := commands.CommandValidation(strings.Trim(split_msg[0], " "), client)
+	if _validation_res != nil {
+		validation_res := *_validation_res
+		if err_code, ok := validation_res["err_code"]; ok {
+			log.Error().Msgf("Error during command validation")
+			return formatResponse(server, err_code, target, validation_res["msg"])
+		}
 	}
 
 	// remove command
@@ -116,13 +122,41 @@ func ProcessMessage(recv_buf *[]byte, client *c.Client, server_manager *sm.Serve
 	cmd_param_slice["client"] = client
 
 	res := cmd.Fn(cmd_param_slice)
+	_response := *res
 
+	log.Info().Msgf("Command res: %s", _response)
 	log.Debug().Msg("------------MSG END------------")
 
-	if len(res) == 0 {
+	msg, ok := _response["msg"]
+	if !ok {
+		// manually create an unknown error
+		msg = ":Unknown error occurred"
+	}
+
+	if len(msg) == 0 {
 		return []byte("")
 	}
 
-	response := []byte(fmt.Sprintf(":%s code target %s \r\n", helpers.GetEnv("IRC_SERVER_DNS_NAME", "localhost"), res))
-	return response
+	err_code, ok := _response["err_code"]
+	if ok {
+		// if ok, that means err_code exists and we should format the message as such
+		return formatResponse(server, err_code, target, msg)
+	}
+
+	// target format :nickname!username@hostname
+	// check for _response["target"] as some responses don't format the same way
+	if len(client.Nick()) != 0 && len(client.User()) != 0 {
+		target = client.FormattedClientDetails()
+	}
+	return formatResponse(server, str_cmd[0], target, msg)
+}
+
+func formatResponse(response_args ...string) []byte {
+	response := ":"
+	for _, val := range response_args {
+		response += val
+		response += " "
+	}
+	response += "\r\n"
+	return []byte(response)
 }

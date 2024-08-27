@@ -104,6 +104,9 @@ func handleConnection(conn net.Conn, server_manager *sm.ServerManager) {
 		return
 	}
 
+	// add the client to the global client list
+	server_manager.ClientList = append(server_manager.ClientList, client)
+
 	log.Info().EmbedObject(client).Msgf("Client connected at %s", *session_timestamp)
 
 	recv_buf := make([]byte, MAX_BUFFER_SIZE)
