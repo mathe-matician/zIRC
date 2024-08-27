@@ -24,5 +24,6 @@ func user(params map[string]interface{}) *map[string]string {
 	client := _client.(*c.Client)
 	client.SetUser(user.(string))
 
+	// no response from USER signals success
 	return EMPTY_RESPONSE()
 }

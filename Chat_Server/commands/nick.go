@@ -7,7 +7,7 @@ import (
 )
 
 func nick(params map[string]interface{}) *map[string]string {
-	log.Info().Msg("Running NICK...")
+	log.Debug().Msg("Running NICK...")
 
 	_client, ok := params["client"]
 	if !ok {
