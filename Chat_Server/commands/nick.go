@@ -15,6 +15,14 @@ func nick(params map[string]interface{}) *map[string]string {
 		return ERR_UNKNOWNERROR("")
 	}
 
+	// when modifying old nickname
+	// :oldnickname!username@hostname NICK :newnickname
+
+	// server then broadcasts :Alice!alice@192.0.2.1 NICK :Alicia
+	// to any channel this client is part of
+	// it is broadcasted to all private converstaions this client is in
+	// as well as all channels this client is in
+
 	nick, ok := params["params"]
 	if !ok {
 		log.Error().Msg("Params not in map!")

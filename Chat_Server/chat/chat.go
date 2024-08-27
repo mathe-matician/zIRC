@@ -143,8 +143,7 @@ func ProcessMessage(recv_buf *[]byte, client *c.Client, server_manager *sm.Serve
 		return formatResponse(server, err_code, target, msg)
 	}
 
-	// target format :nickname!username@hostname
-	// check for _response["target"] as some responses don't format the same way
+	// check for _response["target"] as some responses don't format target the same way
 	if len(client.Nick()) != 0 && len(client.User()) != 0 {
 		target = client.FormattedClientDetails()
 	}
