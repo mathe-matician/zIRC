@@ -107,17 +107,21 @@ func ProcessMessage(recv_buf *[]byte, client *c.Client, server_manager *sm.Serve
 
 	cmd_params = strings.TrimSuffix(cmd_params, "\r\n")
 
-	var cmd_param_slice []string
+	cmd_param_slice := map[string]interface{}{}
 	log.Debug().Msgf("Cmd params %s, len: %d", cmd_params, len(cmd_params))
-	if len(cmd_params) == 0 {
-		cmd_param_slice = []string{}
-	} else {
-		cmd_param_slice = append(cmd_param_slice, cmd_params)
+	if len(cmd_params) != 0 {
+		cmd_param_slice["params"] = strings.Trim(cmd_params, " ")
 	}
+
+	cmd_param_slice["client"] = client
 
 	res := cmd.Fn(cmd_param_slice)
 
 	log.Debug().Msg("------------MSG END------------")
+
+	if len(res) == 0 {
+		return []byte("")
+	}
 
 	response := []byte(fmt.Sprintf(":%s code target %s \r\n", helpers.GetEnv("IRC_SERVER_DNS_NAME", "localhost"), res))
 	return response

@@ -3,6 +3,7 @@ package main
 import (
 	"io"
 	"net"
+	"strings"
 
 	"zirc/chat"
 	c "zirc/client"
@@ -129,8 +130,20 @@ func handleConnection(conn net.Conn, server_manager *sm.ServerManager) {
 
 		response := chat.ProcessMessage(&recv_buf, client, server_manager)
 
+		if len(response) == 0 {
+			// e.g. sometimes the server doesn't send anything back to the client
+			// 		as in the case of correct password via PASS
+			continue
+		}
+
 		if _, err := conn.Write(response); err != nil {
 			log.Error().EmbedObject(client).Msgf("Error writing to client: %s", err.Error())
+			break
+		}
+
+		if strings.Contains(string(response), "ERROR") {
+			log.Error().EmbedObject(client).Msgf("Critical error occurred. Closing client connection: %s", response)
+			conn.Close()
 			break
 		}
 	}

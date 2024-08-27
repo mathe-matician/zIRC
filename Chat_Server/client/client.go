@@ -13,6 +13,7 @@ import (
 type Session struct {
 	id            uuid.UUID
 	end_timestamp *uuid.Time
+	state         map[string]string
 }
 
 type Client struct {
@@ -63,6 +64,7 @@ func NewSession() (*Session, error) {
 	return &Session{
 		id:            uuid,
 		end_timestamp: nil,
+		state:         make(map[string]string),
 	}, nil
 }
 
@@ -79,6 +81,17 @@ func (c *Client) SetSessionEndTimestamp() (*string, error) {
 	c.session.end_timestamp = &time
 	end_timestamp := stringTimeFromUnixTimestamp(time)
 	return &end_timestamp, nil
+}
+
+func (c *Client) GetState(key string) interface{} {
+	if val, ok := c.session.state[key]; ok {
+		return val
+	}
+	return nil
+}
+
+func (c *Client) UpdateState(key, value string) {
+	c.session.state[string(key)] = string(value)
 }
 
 func (c *Client) Nick() string {
