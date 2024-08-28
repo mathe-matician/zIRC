@@ -25,8 +25,9 @@ func ProcessMessage(recv_buf *[]byte, client *c.Client, server_manager *sm.Serve
 	target := "*"
 
 	split_msg := re.FindAllStringSubmatch(trimmed_msg, -1)[0]
-	log.Debug().Msgf("Split Msg: %s", split_msg)
-	if len(split_msg) == 0 {
+	log.Debug().Msgf("Split Msg: %s, len: %d", split_msg, len(split_msg))
+	log.Debug().Msgf("Split Msg[0]: %s, len[0]: %d", split_msg[0], len(split_msg[0]))
+	if len(split_msg) == 0 || len(split_msg[0]) == 0 {
 		err := errors.New("message is empty")
 		log.Error().Msg(err.Error())
 		return []byte(err.Error())
@@ -97,6 +98,7 @@ func ProcessMessage(recv_buf *[]byte, client *c.Client, server_manager *sm.Serve
 	// remove command
 	str_cmd := re.FindAllStringSubmatch(trimmed_msg, -1)[0]
 	log.Debug().Msgf("Cmd: %s, Cmd len: %d", str_cmd, len(str_cmd[0]))
+	log.Debug().Msgf("trimmed_msg: %s, trimmed_msg len: %d", trimmed_msg, len(trimmed_msg))
 	cmd_params := trimmed_msg[len(str_cmd[0])+1:]
 	log.Debug().Msgf("Trimmed_msg AFTER regex && trim: %s", cmd_params)
 

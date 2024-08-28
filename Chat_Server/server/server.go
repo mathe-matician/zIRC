@@ -17,7 +17,7 @@ import (
 
 type Server interface {
 	Run()
-	handleConnection()
+	handleConnection(conn *net.Conn)
 	Stop()
 }
 
@@ -35,30 +35,69 @@ type IrcServer struct {
 	Config        map[string]string
 }
 
-func (is *IrcServer) Run() {
-	// TODO - parse whether it should run w/ TLS or not which will determine the port used
-	is.Addr = helpers.GetEnv("IRC_HOST", "0.0.0.0") + ":" + helpers.GetEnv("IRC_PORT", "6667")
-	is.DnsName = helpers.GetEnv("IRC_SERVER_DNS_NAME", "localhost")
-	is.Config = make(map[string]string)
-	is.Config["MAX_BUFFER_SIZE"] = helpers.GetEnv("IRC_MAX_BUFFER_SIZE", "8192")
-	server_role := helpers.GetEnv("IRC_SERVER_ROLE", "leaf")
+func NewIrcServer(dns_name string, addr string, server_role string, server_list *[]*Server, client_list *[]*c.Client, config *map[string]string) *IrcServer {
+	if len(dns_name) == 0 {
+		dns_name = helpers.GetEnv("IRC_SERVER_DNS_NAME", "localhost")
+	}
+
+	if len(server_role) == 0 {
+		server_role = helpers.GetEnv("IRC_SERVER_ROLE", "leaf")
+	}
 	err := helpers.VerifyServerMode(server_role)
 	if err != nil {
 		log.Error().Msg(err.Error())
 		panic(err.Error())
 	}
-	is.Role = server_role
 
+	if server_list == nil {
+		sl := make([]*Server, 0)
+		server_list = &sl
+	}
+
+	if client_list == nil {
+		cl := make([]*c.Client, 0)
+		client_list = &cl
+	}
+
+	if len(addr) == 0 {
+		addr = helpers.GetEnv("IRC_HOST", "0.0.0.0") + ":" + helpers.GetEnv("IRC_PORT", "6667")
+	}
+
+	if config == nil {
+		conf := map[string]string{
+			"MAX_BUFFER_SIZE": helpers.GetEnv("IRC_MAX_BUFFER_SIZE", "8192"),
+		}
+		config = &conf
+	}
+
+	// TODO - parse whether it should run w/ TLS or not which will determine the port used
+
+	is := IrcServer{
+		DnsName:       dns_name,
+		Addr:          addr,
+		Role:          server_role,
+		Listener:      nil,
+		_ServerManger: &sm.ServerManager{Name: dns_name},
+		Servers:       *server_list,
+		Clients:       *client_list,
+		Config:        *config,
+	}
+	return &is
+}
+
+func (is *IrcServer) Run() {
 	ln, err := net.Listen("tcp", is.Addr)
-	is.Listener = &ln
 	if err != nil {
 		log.Error().Msg(err.Error())
-		return
+		panic(err.Error())
 	}
+	is.Listener = &ln
 
 	log.Info().Msgf("Server started, role: %s, addr: %s, dns: %s, config: %v", is.Role, is.Addr, is.DnsName, is.Config)
 
-	is._ServerManger = &sm.ServerManager{Name: is.DnsName}
+	if is._ServerManger == nil {
+		panic("Server's manager is null!!")
+	}
 	go is._ServerManger.Run()
 
 	for {
