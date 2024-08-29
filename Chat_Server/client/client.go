@@ -21,6 +21,7 @@ type Session struct {
 type Client struct {
 	nick          string
 	user          string
+	Registered    bool
 	server        string
 	session       Session
 	conn          *rc.RemoteConn
@@ -52,6 +53,7 @@ func NewClient(nick string, user string, conn *rc.RemoteConn, Conn *net.Conn) (*
 	return &Client{
 		nick:       nick,
 		user:       user,
+		Registered: false,
 		server:     helpers.GetEnv("IRC_SERVER_DNS_NAME", "localhost"),
 		session:    *s,
 		ClientConn: Conn,
@@ -103,14 +105,6 @@ func (c *Client) UpdateState(key, value string) {
 // target format :nickname!username@hostname
 func (c *Client) FormattedClientDetails() string {
 	return fmt.Sprintf(":%s!%s@%s", c.nick, c.user, c.conn.Ip)
-}
-
-// IsRegistered
-func (c *Client) IsRegistered() bool {
-	if len(c.nick) != 0 && len(c.user) != 0 {
-		return true
-	}
-	return false
 }
 
 func (c *Client) GetConn() *rc.RemoteConn {

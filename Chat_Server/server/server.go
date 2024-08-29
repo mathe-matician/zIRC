@@ -199,7 +199,7 @@ func (w *Worker) Work(job chan string, results chan string, server_manager *Serv
 					continue
 				}
 
-				if c.IsRegistered() {
+				if c.Registered {
 					log.Debug().EmbedObject(w).Msgf("Staring job: %s", j)
 					if c.ClientConn == nil {
 						log.Error().EmbedObject(w).Msg("Client connection is nil!!")

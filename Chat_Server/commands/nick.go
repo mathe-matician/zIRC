@@ -45,5 +45,10 @@ func nick(params map[string]interface{}) Response {
 
 	client.SetNick(nick.(string))
 
+	if len(client.User()) != 0 && !client.Registered {
+		client.Registered = true
+		res = RPL_WELCOME("")
+	}
+
 	return res
 }

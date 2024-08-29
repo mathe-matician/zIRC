@@ -24,6 +24,12 @@ func user(params map[string]interface{}) Response {
 	client := _client.(*c.Client)
 	client.SetUser(user.(string))
 
-	// no response from USER signals success
-	return EMPTY_RESPONSE()
+	res := EMPTY_RESPONSE()
+
+	if len(client.Nick()) != 0 && !client.Registered {
+		client.Registered = true
+		res = RPL_WELCOME("")
+	}
+
+	return res
 }

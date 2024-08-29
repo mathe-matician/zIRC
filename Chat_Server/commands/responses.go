@@ -52,8 +52,34 @@ func EMPTY_RESPONSE() Response {
 	return Reply{}
 }
 
-func RPL_WELCOME() Response {
-	return Reply{}
+func RPL_WELCOME(msg_override string) Response {
+	return Reply{
+		code: "001",
+		msg:  ":Welcome to the IRC Network",
+	}
+}
+
+func RPL_YOURHOST(msg_override string) Response {
+	return Reply{
+		code: "002",
+		msg:  ":Your host is <server>, running version <version>",
+	}
+}
+
+func RPL_CREATED(msg_override string) Response {
+	return Reply{
+		code: "003",
+		msg:  ":This server was created <date>",
+	}
+}
+
+// usermodes: The list of available user modes (e.g., o, i, w, s).
+// channelmodes: The list of available channel modes (e.g., o, p, s, m, t).
+func RPL_MYINFO(msg_override string) Response {
+	return Reply{
+		code: "004",
+		msg:  "<nickname> <server> <version> <usermodes> <channelmodes>",
+	}
 }
 
 func ERR_UNKNOWNERROR(msg_override string) Response {
