@@ -22,7 +22,7 @@ func TestPASS_Disabled(t *testing.T) {
 		t.Parallel()
 		mc := zt.MockClient{}
 		dont_want := ":localhost 451 * :You need to send your password before registering \r\n"
-		got := mc.Send(is.Addr, "JOIN", false)
+		got := mc.Send(is.Addr, "JOIN \r\n", false)
 
 		if dont_want == got {
 			t.Errorf("unexpected response:\ndont_want: '%s'\ngot: '%s'", dont_want, got)
@@ -61,7 +61,7 @@ func TestPASS_Enabled(t *testing.T) {
 		got := mc.Send(is.Addr, "1235 \r\n", false)
 
 		if want != got {
-			t.Errorf("unexpected response:\ndo_not_want: '%s'\ngot: '%s'", want, got)
+			t.Errorf("unexpected response:\nwant: '%s'\ngot: '%s'", want, got)
 		}
 	})
 
