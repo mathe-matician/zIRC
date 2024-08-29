@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	zs "zirc/server"
+	zt "zirc/tests"
 )
 
 func TestPASS_Disabled(t *testing.T) {
@@ -19,7 +20,7 @@ func TestPASS_Disabled(t *testing.T) {
 
 	t.Run("Test 1: dont get the pw required response", func(t *testing.T) {
 		t.Parallel()
-		mc := MockClient{}
+		mc := zt.MockClient{}
 		dont_want := ":localhost 451 * :You need to send your password before registering \r\n"
 		got := mc.Send(is.Addr, "JOIN", false)
 
