@@ -1,6 +1,7 @@
 .DS_Store
 ChatClient
 Chat_Server/node_modules
+Chat_Server/commands/tests/__debug*
 Chat_Client_CLI
 Auth_Server/node_modules
 *.pem

@@ -87,7 +87,7 @@ func ProcessMessage(recv_buf *[]byte, client *c.Client, task_runner chan string)
 
 	log.Debug().Msgf("Validating command %s", split_msg[0])
 	cmd, _validation_res := commands.CommandValidation(strings.Trim(split_msg[0], " "), client)
-	if reflect.TypeOf(_validation_res).Name() == "ErrorResponse" {
+	if reflect.TypeOf(_validation_res).Name() == "ErrorResponse" || cmd == nil {
 		log.Error().Msgf("Error during command validation")
 		return formatResponse(server, _validation_res.Code(), target, _validation_res.Msg())
 	}
@@ -121,6 +121,7 @@ func ProcessMessage(recv_buf *[]byte, client *c.Client, task_runner chan string)
 	cmd_param_slice["client"] = client
 	cmd_param_slice["task_runner"] = task_runner
 
+	log.Info().Msgf("Before running func")
 	_response := cmd.Fn(cmd_param_slice)
 
 	log.Info().Msgf("Command res: %s", _response)
@@ -138,7 +139,7 @@ func ProcessMessage(recv_buf *[]byte, client *c.Client, task_runner chan string)
 	}
 
 	// check for _response["target"] as some responses don't format target the same way
-	if len(client.Nick()) != 0 && len(client.User()) != 0 {
+	if client.Registered {
 		target = client.FormattedClientDetails()
 	}
 	return formatResponse(server, str_cmd[0], target, msg)
