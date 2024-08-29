@@ -10,7 +10,7 @@ import (
 
 // pass - Used to set a connection password before registration.
 // Needed when the server requires a password
-func pass(params map[string]interface{}) *map[string]string {
+func pass(params map[string]interface{}) Response {
 	log.Info().Msg("Running PASS...")
 
 	server_password := helpers.GetEnv("IRC_SERVER_PASSWORD", "")

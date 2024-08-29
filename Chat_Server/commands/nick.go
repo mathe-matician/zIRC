@@ -7,7 +7,7 @@ import (
 	"github.com/phuslu/log"
 )
 
-func nick(params map[string]interface{}) *map[string]string {
+func nick(params map[string]interface{}) Response {
 	log.Debug().Msg("Running NICK...")
 
 	_client, ok := params["client"]
@@ -34,7 +34,7 @@ func nick(params map[string]interface{}) *map[string]string {
 	// this special update of their old nickname, and especially send it to other
 	if len(current_client_nick) != 0 && len(client.User()) != 0 {
 		// when modifying old nickname
-		(*res)["msg"] = fmt.Sprintf(":%s!%s@%s NICK :%s \r\n", current_client_nick, client.User(), client.Ip(), nick)
+		res.MsgOverride(fmt.Sprintf(":%s!%s@%s NICK :%s \r\n", current_client_nick, client.User(), client.Ip(), nick))
 		// :oldnickname!username@hostname NICK :newnickname
 
 		// server then broadcasts :Alice!alice@192.0.2.1 NICK :Alicia

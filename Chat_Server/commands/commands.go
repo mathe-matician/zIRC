@@ -7,7 +7,7 @@ import (
 	"github.com/phuslu/log"
 )
 
-type CommandFunc func(map[string]interface{}) *map[string]string
+type CommandFunc func(map[string]interface{}) Response
 
 type Command struct {
 	Fn       CommandFunc
@@ -51,7 +51,7 @@ func (c *Command) DeleteMetadata(cmd, key, value string) {
 // - ensures the command is a valid IRC command
 // - checks whether the client is registered or not and limits commands based on that
 // - checks whether the client is a server or a client and limits more commands based on that
-func CommandValidation(cmd string, client *c.Client) (*Command, *map[string]string) {
+func CommandValidation(cmd string, client *c.Client) (*Command, Response) {
 	_client_password_state := client.GetState("server_password")
 	client_password_state := ""
 	if _client_password_state != nil {
@@ -77,90 +77,109 @@ func CommandValidation(cmd string, client *c.Client) (*Command, *map[string]stri
 
 	log.Debug().Msgf("Valid command: %s", cmd)
 	return_cmd := val
-	return &return_cmd, nil
+	return &return_cmd, EMPTY_RESPONSE()
 }
 
-func authenticate(params map[string]interface{}) *map[string]string {
-	log.Info().Msg("Running AUTHENTICATE...")
-	response := map[string]string{
-		"msg": "Running AUTHENTICATE...",
+func authenticate(params map[string]interface{}) Response {
+	msg := "Running AUTHENTICATE..."
+	log.Info().Msg(msg)
+	res := Reply{
+		code: "333",
+		msg:  msg,
 	}
-	return &response
+	return &res
 }
 
-func cap(params map[string]interface{}) *map[string]string {
+func cap(params map[string]interface{}) Response {
 	msg := "Running CAP..."
 	log.Info().Msg(msg)
-	response := map[string]string{
-		"msg": msg,
+	// response := map[string]string{
+	// 	"msg": msg,
+	// }
+	res := Reply{
+		code: "333",
+		msg:  "hi",
 	}
-	return &response
+	return res
 }
 
 // Although not commonly used, a client can send an ERROR message to notify the server of a fatal error condition.
-func error_cmd(params map[string]interface{}) *map[string]string {
+func error_cmd(params map[string]interface{}) Response {
 	msg := "Running ERROR..."
 	log.Info().Msg(msg)
-	response := map[string]string{
-		"msg": msg,
+	// response := map[string]string{
+	// 	"msg": msg,
+	// }
+	res := Reply{
+		code: "333",
+		msg:  msg,
 	}
-	return &response
+	return &res
 }
 
-func ping(params map[string]interface{}) *map[string]string {
+func ping(params map[string]interface{}) Response {
 	msg := "Running PING..."
 	log.Info().Msg(msg)
-	response := map[string]string{
-		"msg": msg,
+	// response := map[string]string{
+	// 	"msg": msg,
+	// }
+	res := Reply{
+		code: "333",
+		msg:  msg,
 	}
-	return &response
+	return &res
 }
 
-func pong(params map[string]interface{}) *map[string]string {
+func pong(params map[string]interface{}) Response {
 	msg := "Running PONG..."
 	log.Info().Msg(msg)
-	response := map[string]string{
-		"msg": msg,
+	res := Reply{
+		code: "333",
+		msg:  msg,
 	}
-	return &response
+	return &res
 }
 
-func privmsg(params map[string]interface{}) *map[string]string {
+func privmsg(params map[string]interface{}) Response {
 	msg := "Running PRIVMSG..."
 	log.Info().Msg(msg)
-	response := map[string]string{
-		"msg": msg,
+	res := Reply{
+		code: "333",
+		msg:  msg,
 	}
-	return &response
+	return &res
 }
 
 // This command is used in some IRC networks to negotiate specific protocol features.
-func protoctl(params map[string]interface{}) *map[string]string {
+func protoctl(params map[string]interface{}) Response {
 	msg := "Running PROTOCTL..."
 	log.Info().Msg(msg)
-	response := map[string]string{
-		"msg": msg,
+	res := Reply{
+		code: "333",
+		msg:  msg,
 	}
-	return &response
+	return &res
 }
 
-func notify(params map[string]interface{}) *map[string]string {
+func notify(params map[string]interface{}) Response {
 	msg := "Running NOTIFY..."
 	log.Info().Msg(msg)
-	response := map[string]string{
-		"msg": msg,
+	res := Reply{
+		code: "333",
+		msg:  msg,
 	}
-	return &response
+	return &res
 }
 
 // In the case of a server connection, this command can be used for server-to-server communications (typically not used by clients).
-func server(params map[string]interface{}) *map[string]string {
+func server(params map[string]interface{}) Response {
 	msg := "Running SERVER..."
 	log.Info().Msg(msg)
-	response := map[string]string{
-		"msg": msg,
+	res := Reply{
+		code: "333",
+		msg:  msg,
 	}
-	return &response
+	return &res
 }
 
 // Used in some IRC networks to provide the client’s real IP address when connecting through a web proxy.
@@ -170,11 +189,12 @@ func server(params map[string]interface{}) *map[string]string {
 // 	return msg
 // }
 
-func quit(params map[string]interface{}) *map[string]string {
+func quit(params map[string]interface{}) Response {
 	msg := "Running QUIT..."
 	log.Info().Msg(msg)
-	response := map[string]string{
-		"msg": msg,
+	res := Reply{
+		code: "333",
+		msg:  msg,
 	}
-	return &response
+	return &res
 }

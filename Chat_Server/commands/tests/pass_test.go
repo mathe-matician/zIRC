@@ -32,7 +32,7 @@ func TestPASS_Disabled(t *testing.T) {
 	// NOTE - this test should timeout as no response should ever be sent back from the server
 	t.Run("Test 2: when no pw enabled nothing returned when PASS run", func(t *testing.T) {
 		t.Parallel()
-		mc := MockClient{}
+		mc := zt.MockClient{}
 		dont_want := ":localhost 451 * :You have not registered \r\n"
 		got := mc.Send(is.Addr, "PASS \r\n", true)
 
@@ -56,7 +56,7 @@ func TestPASS_Enabled(t *testing.T) {
 
 	t.Run("Test 1: Running any cmd requires registration", func(t *testing.T) {
 		t.Parallel()
-		mc := MockClient{}
+		mc := zt.MockClient{}
 		want := ":localhost 464 * :You need to send your password before registering \r\n"
 		got := mc.Send(is.Addr, "1235 \r\n", false)
 
@@ -67,7 +67,7 @@ func TestPASS_Enabled(t *testing.T) {
 
 	t.Run("Test 2: Successful pw returns nothing", func(t *testing.T) {
 		t.Parallel()
-		mc := MockClient{}
+		mc := zt.MockClient{}
 		want := ""
 		got := mc.Send(is.Addr, "PASS 1235 \r\n", true)
 

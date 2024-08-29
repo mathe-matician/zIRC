@@ -53,7 +53,7 @@ type Worker struct {
 
 type ServerManager struct {
 	Name               string
-	ClientList         *[]*c.Client // only contains registered clients
+	ClientList         *[]*c.Client
 	ServerList         *[]*IrcServer
 	WorkerPool         map[string]*Worker
 	worker_tasks       chan string
@@ -177,6 +177,8 @@ func (sm *ServerManager) Debug() {
 //
 //	job: jobs received from the ServerManager
 //	results: any results that are returned back to the ServerManager can be sent back to the client if needed
+//
+// TODO - this func may only need the ServerManager's ClientList and ServerList
 func (w *Worker) Work(job chan string, results chan string, server_manager *ServerManager) {
 	for {
 		select {

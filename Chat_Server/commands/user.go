@@ -6,7 +6,7 @@ import (
 	"github.com/phuslu/log"
 )
 
-func user(params map[string]interface{}) *map[string]string {
+func user(params map[string]interface{}) Response {
 	log.Info().Msg("Running USER...")
 
 	_client, ok := params["client"]

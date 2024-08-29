@@ -4,7 +4,7 @@ import (
 	"github.com/phuslu/log"
 )
 
-func join(params map[string]interface{}) *map[string]string {
+func join(params map[string]interface{}) Response {
 	msg := "Running JOIN..."
 	log.Info().Msg(msg)
 
@@ -12,8 +12,9 @@ func join(params map[string]interface{}) *map[string]string {
 	task_runner := _task_runner.(chan string)
 	task_runner <- "RUN JOIN TASK!"
 
-	response := map[string]string{
-		"msg": msg,
+	response := Reply{
+		code: "333",
+		msg:  msg,
 	}
-	return &response
+	return response
 }

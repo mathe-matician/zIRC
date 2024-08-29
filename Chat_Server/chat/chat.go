@@ -3,6 +3,7 @@ package chat
 import (
 	"bytes"
 	"errors"
+	"reflect"
 	"regexp"
 	"strings"
 
@@ -86,12 +87,9 @@ func ProcessMessage(recv_buf *[]byte, client *c.Client, task_runner chan string)
 
 	log.Debug().Msgf("Validating command %s", split_msg[0])
 	cmd, _validation_res := commands.CommandValidation(strings.Trim(split_msg[0], " "), client)
-	if _validation_res != nil {
-		validation_res := *_validation_res
-		if err_code, ok := validation_res["err_code"]; ok {
-			log.Error().Msgf("Error during command validation")
-			return formatResponse(server, err_code, target, validation_res["msg"])
-		}
+	if reflect.TypeOf(_validation_res).Name() == "ErrorResponse" {
+		log.Error().Msgf("Error during command validation")
+		return formatResponse(server, _validation_res.Code(), target, _validation_res.Msg())
 	}
 
 	// remove command
@@ -123,26 +121,20 @@ func ProcessMessage(recv_buf *[]byte, client *c.Client, task_runner chan string)
 	cmd_param_slice["client"] = client
 	cmd_param_slice["task_runner"] = task_runner
 
-	res := cmd.Fn(cmd_param_slice)
-	_response := *res
+	_response := cmd.Fn(cmd_param_slice)
 
 	log.Info().Msgf("Command res: %s", _response)
 	log.Debug().Msg("------------MSG END------------")
 
-	msg, ok := _response["msg"]
-	if !ok {
-		// manually create an unknown error
-		msg = ":Unknown error occurred"
-	}
+	msg := _response.Msg()
+	code := _response.Code()
 
 	if len(msg) == 0 {
 		return []byte("")
 	}
 
-	err_code, ok := _response["err_code"]
-	if ok {
-		// if ok, that means err_code exists and we should format the message as such
-		return formatResponse(server, err_code, target, msg)
+	if reflect.TypeOf(_response).Name() == "ErrorResponse" {
+		return formatResponse(server, code, target, msg)
 	}
 
 	// check for _response["target"] as some responses don't format target the same way
