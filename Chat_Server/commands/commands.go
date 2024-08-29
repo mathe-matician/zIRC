@@ -125,15 +125,6 @@ func pong(params map[string]interface{}) *map[string]string {
 	return &response
 }
 
-func join(params map[string]interface{}) *map[string]string {
-	msg := "Running JOIN..."
-	log.Info().Msg(msg)
-	response := map[string]string{
-		"msg": msg,
-	}
-	return &response
-}
-
 func privmsg(params map[string]interface{}) *map[string]string {
 	msg := "Running PRIVMSG..."
 	log.Info().Msg(msg)

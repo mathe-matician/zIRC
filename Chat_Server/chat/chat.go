@@ -9,14 +9,13 @@ import (
 	c "zirc/client"
 	"zirc/commands"
 	"zirc/helpers"
-	sm "zirc/servermanager"
 
 	"github.com/phuslu/log"
 )
 
 var re = regexp.MustCompile(`^\S*`) // captures until first space
 
-func ProcessMessage(recv_buf *[]byte, client *c.Client, server_manager *sm.ServerManager) []byte {
+func ProcessMessage(recv_buf *[]byte, client *c.Client, task_runner chan string) []byte {
 	log.Debug().Msg("------------MSG START------------")
 	trimmed_msg := string(bytes.Trim(bytes.TrimLeft(*recv_buf, " "), "\x00"))
 	log.Info().Msgf("Raw Client msg: %s", trimmed_msg)
@@ -122,6 +121,7 @@ func ProcessMessage(recv_buf *[]byte, client *c.Client, server_manager *sm.Serve
 	}
 
 	cmd_param_slice["client"] = client
+	cmd_param_slice["task_runner"] = task_runner
 
 	res := cmd.Fn(cmd_param_slice)
 	_response := *res

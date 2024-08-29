@@ -10,7 +10,6 @@ COPY main.go ./
 COPY chat/ chat/
 COPY helpers/ helpers/
 COPY server/ server/
-COPY servermanager/ servermanager/
 COPY remote_conn/ remote_conn/
 COPY commands/ commands/
 COPY client/ client/

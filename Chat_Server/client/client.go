@@ -2,6 +2,7 @@ package client
 
 import (
 	"fmt"
+	"net"
 	"strconv"
 
 	"zirc/helpers"
@@ -18,12 +19,15 @@ type Session struct {
 }
 
 type Client struct {
-	nick    string
-	user    string
-	server  string
-	session Session
-	conn    *rc.RemoteConn
-	send    chan string
+	nick          string
+	user          string
+	server        string
+	session       Session
+	conn          *rc.RemoteConn
+	ClientConn    *net.Conn
+	send          chan string
+	Channels      []string
+	PrivateConvos []string // TODO - idk what this structure / process looks like
 }
 
 func stringTimeFromUnixTimestamp(time uuid.Time) string {
@@ -35,7 +39,7 @@ func stringTimeFromUnixTimestamp(time uuid.Time) string {
 // NewClient creats a new client struct
 // This is run on the current server, so IRC_SERVER_DNS_NAME
 // will be set to the server's name
-func NewClient(nick string, user string, conn *rc.RemoteConn) (*Client, *string, error) {
+func NewClient(nick string, user string, conn *rc.RemoteConn, Conn *net.Conn) (*Client, *string, error) {
 	s, err := NewSession()
 	if err != nil {
 		log.Error().Msgf("Error creating new client %s", err.Error())
@@ -46,12 +50,13 @@ func NewClient(nick string, user string, conn *rc.RemoteConn) (*Client, *string,
 	s_chan := make(chan string)
 
 	return &Client{
-		nick:    nick,
-		user:    user,
-		server:  helpers.GetEnv("IRC_SERVER_DNS_NAME", "localhost"),
-		session: *s,
-		conn:    conn,
-		send:    s_chan,
+		nick:       nick,
+		user:       user,
+		server:     helpers.GetEnv("IRC_SERVER_DNS_NAME", "localhost"),
+		session:    *s,
+		ClientConn: Conn,
+		conn:       conn,
+		send:       s_chan,
 	}, &session_timestamp, nil
 }
 
@@ -100,8 +105,24 @@ func (c *Client) FormattedClientDetails() string {
 	return fmt.Sprintf(":%s!%s@%s", c.nick, c.user, c.conn.Ip)
 }
 
+// IsRegistered
+func (c *Client) IsRegistered() bool {
+	if len(c.nick) != 0 && len(c.user) != 0 {
+		return true
+	}
+	return false
+}
+
+func (c *Client) GetConn() *rc.RemoteConn {
+	return c.conn
+}
+
 func (c *Client) Nick() string {
 	return c.nick
+}
+
+func (c *Client) Ip() string {
+	return c.conn.Ip
 }
 
 func (c *Client) SessionId() string {
