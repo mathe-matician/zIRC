@@ -29,6 +29,6 @@ func main() {
 	// 	},
 	// }
 
-	irc_server := server.NewIrcServer("", "", "", nil, nil, nil)
+	irc_server := server.NewIrcServer("", "", "", "", nil, nil, nil)
 	irc_server.Run()
 }

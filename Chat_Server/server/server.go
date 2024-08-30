@@ -5,11 +5,13 @@ import (
 	"net"
 	"strconv"
 	"strings"
+	"time"
 
 	"zirc/chat"
 	c "zirc/client"
 	"zirc/helpers"
 	rc "zirc/remote_conn"
+	t "zirc/task"
 
 	"github.com/google/uuid"
 	"github.com/phuslu/log"
@@ -26,6 +28,8 @@ type ServerConfig interface {
 
 type IrcServer struct {
 	DnsName       string
+	Version       string
+	CreationDate  time.Time
 	Addr          string
 	Role          string
 	Listener      *net.Listener
@@ -36,15 +40,15 @@ type IrcServer struct {
 }
 
 type Task struct {
-	id          uuid.UUID
-	weight      float64
-	task        string
-	client_chan chan<- string
+	id     uuid.UUID
+	Type   string
+	weight float64
+	task   string
 }
 
 type Worker struct {
 	id           uuid.UUID
-	tasks        []*Task
+	tasks        []*t.Task
 	current_load float64
 	quit         chan int
 	frozen       bool
@@ -56,16 +60,12 @@ type ServerManager struct {
 	ClientList         *[]*c.Client
 	ServerList         *[]*IrcServer
 	WorkerPool         map[string]*Worker
-	worker_tasks       chan string
-	Task_runner        chan string
+	worker_tasks       chan []*t.Task
+	Task_runner        chan []*t.Task
 	results            chan string
 	decreasing_workers bool
 	// send        chan string
 }
-
-// task_weight_mapping := map[string]float64 {
-
-// }
 
 // Run starts the ServerManager which manages the Worker pool
 func (sm *ServerManager) Run() {
@@ -74,7 +74,7 @@ func (sm *ServerManager) Run() {
 	for {
 		select {
 		case client_task := <-sm.Task_runner:
-			log.Info().Msgf("client_task: %s", client_task)
+			log.Info().Msgf("client_tasks: %s, len: %d", client_task, len(client_task))
 			sm.worker_tasks <- client_task
 		}
 	}
@@ -165,13 +165,17 @@ func (sm *ServerManager) ScaleWorkerPool(by int, force bool) {
 	}
 }
 
+func (sm *ServerManager) Debug() {
+	log.Info().Msgf("ServerManager Debug!")
+}
+
 func (w *Worker) MarshalObject(e *log.Entry) {
 	e.Str("id", w.id.String()).Float64("current_load", w.current_load)
 }
 
-func (sm *ServerManager) Debug() {
-	log.Info().Msgf("ServerManager Debug!")
-}
+// task_weight_mapping := map[string]float64 {
+
+// }
 
 // Work
 //
@@ -179,12 +183,29 @@ func (sm *ServerManager) Debug() {
 //	results: any results that are returned back to the ServerManager can be sent back to the client if needed
 //
 // TODO - this func may only need the ServerManager's ClientList and ServerList
-func (w *Worker) Work(job chan string, results chan string, server_manager *ServerManager) {
+func (w *Worker) Work(tasks chan []*t.Task, results chan string, server_manager *ServerManager) {
 	for {
 		select {
-		case j := <-job:
-			log.Info().EmbedObject(w).Msgf("Job received: %s", j)
+		case task := <-tasks:
+			log.Info().EmbedObject(w).Msgf("Task received: %s, len: %d", task, len(task))
 			server_manager.Debug()
+
+			if len(task) == 0 {
+				log.Warn().EmbedObject(w).Msgf("No tasks to run!")
+				continue
+			}
+
+			for _, task := range task {
+				if task.Type == t.UNICAST {
+
+				} else if task.Type == t.MULTICAST {
+
+				} else if task.Type == t.BROADCAST {
+
+				} else {
+					log.Warn().Msgf("Unknown task type: %s", task.Type)
+				}
+			}
 
 			if server_manager.ClientList == nil {
 				msg := "servermanager client list is null! idk how we got to this point..."
@@ -200,15 +221,17 @@ func (w *Worker) Work(job chan string, results chan string, server_manager *Serv
 				}
 
 				if c.Registered {
-					log.Debug().EmbedObject(w).Msgf("Staring job: %s", j)
+					log.Debug().EmbedObject(w).Msgf("Staring task: %s", task)
 					if c.ClientConn == nil {
 						log.Error().EmbedObject(w).Msg("Client connection is nil!!")
 						break
 					}
 					conn := *(c.ClientConn)
-					if _, err := conn.Write([]byte(j)); err != nil {
-						log.Error().EmbedObject(c).Msgf("Error writing to client: %s", err.Error())
-						break
+					for _, task := range task {
+						if _, err := conn.Write([]byte(task.Task)); err != nil {
+							log.Error().EmbedObject(c).Msgf("Error writing to client: %s", err.Error())
+							break
+						}
 					}
 				} else {
 					log.Info().EmbedObject(w).Msg("Client not registered")
@@ -235,8 +258,8 @@ func NewServerManager(client_list *[]*c.Client, server_list *[]*IrcServer) *Serv
 
 	sm := &ServerManager{
 		Name:         "",
-		Task_runner:  make(chan string),
-		worker_tasks: make(chan string),
+		Task_runner:  make(chan []*t.Task),
+		worker_tasks: make(chan []*t.Task),
 		results:      make(chan string),
 		ClientList:   client_list, // only contains registered clients
 		ServerList:   server_list,
@@ -252,19 +275,6 @@ func NewServerManager(client_list *[]*c.Client, server_list *[]*IrcServer) *Serv
 	return sm
 }
 
-func NewTask(task string) *Task {
-	uid, err := uuid.NewV7()
-	if err != nil {
-		return nil
-	}
-
-	return &Task{
-		id:     uid,
-		weight: 0.0,
-		task:   task,
-	}
-}
-
 func NewWorker() *Worker {
 	uid, err := uuid.NewV7()
 	if err != nil {
@@ -273,15 +283,19 @@ func NewWorker() *Worker {
 
 	return &Worker{
 		id:           uid,
-		tasks:        make([]*Task, 0),
+		tasks:        make([]*t.Task, 0),
 		current_load: 0.0,
 		quit:         make(chan int, 1),
 	}
 }
 
-func NewIrcServer(dns_name string, addr string, server_role string, server_list *[]*IrcServer, client_list *[]*c.Client, config *map[string]string) *IrcServer {
+func NewIrcServer(dns_name string, version string, addr string, server_role string, server_list *[]*IrcServer, client_list *[]*c.Client, config *map[string]string) *IrcServer {
 	if len(dns_name) == 0 {
 		dns_name = helpers.GetEnv("IRC_SERVER_DNS_NAME", "localhost")
+	}
+
+	if len(version) == 0 {
+		version = helpers.GetEnv("IRC_SERVER_VERSION", "v99.99.99+default")
 	}
 
 	if len(server_role) == 0 {
@@ -311,14 +325,30 @@ func NewIrcServer(dns_name string, addr string, server_role string, server_list 
 		conf := map[string]string{
 			"MAX_BUFFER_SIZE":       helpers.GetEnv("IRC_MAX_BUFFER_SIZE", "8192"),
 			"IRC_MAX_USER_CHANNELS": helpers.GetEnv("IRC_MAX_USER_CHANNELS", "20"),
+			"IRC_USER_MODES":        helpers.GetEnv("IRC_USER_MODES", "oiws"),
+			"IRC_CHANNEL_MODES":     helpers.GetEnv("IRC_CHANNEL_MODES", "opsmt"),
 		}
 		config = &conf
 	}
 
 	// TODO - parse whether it should run w/ TLS or not which will determine the port used
+	now := time.Now()
+
+	creation_date_time := time.Date(
+		now.Year(),
+		now.Month(),
+		now.Day(),
+		now.Hour(),
+		now.Minute(),
+		now.Second(),
+		now.Nanosecond(),
+		now.Location(),
+	)
 
 	is := IrcServer{
 		DnsName:       dns_name,
+		Version:       version,
+		CreationDate:  creation_date_time,
 		Addr:          addr,
 		Role:          server_role,
 		Listener:      nil,
@@ -393,14 +423,18 @@ func (is *IrcServer) handleConnection(conn *net.Conn) {
 		log.Error().EmbedObject(client).Msgf(err.Error())
 		max_buffer_size = 8192
 	}
-	recv_buf := make([]byte, max_buffer_size)
 
 	for {
 		// TODO - clear buffers so no extra data is sent?
 		// TODO - send periodic PING commands
 		//		  if no PONG is received, terminate the connection
 		//		  used to determine dead connections
-		_, err := (*conn).Read(recv_buf)
+
+		// block on read until the buffer has at least 1 byte.
+		// just a hacky way for this to block as Read() doesn't block on its own
+		recv_buf := make([]byte, max_buffer_size)
+		_, err := io.ReadAtLeast((*conn), recv_buf, 1)
+		// _, err := (*conn).Read(recv_buf)
 		if err != nil {
 			if err == io.EOF {
 				end_timestamp, err := client.SetSessionEndTimestamp()
@@ -413,14 +447,25 @@ func (is *IrcServer) handleConnection(conn *net.Conn) {
 			} else {
 				log.Error().EmbedObject(client).Msgf("Error reading data from connection: %s", err.Error())
 			}
+
+			//if err == io.ErrShortBuffer
 			return
 		}
 
-		response := chat.ProcessMessage(&recv_buf, client, is._ServerManger.Task_runner)
+		server_metadata := map[string]string{
+			"name":         is.DnsName,
+			"version":      is.Version,
+			"date":         is.CreationDate.String(),
+			"usermodes":    is.Config["IRC_USER_MODES"],
+			"channelmodes": is.Config["IRC_CHANNEL_MODES"],
+		}
+
+		response := chat.ProcessMessage(&recv_buf, client, is._ServerManger.Task_runner, server_metadata)
 
 		if len(response) == 0 {
 			// e.g. sometimes the server doesn't send anything back to the client
 			// 		as in the case of correct password via PASS
+			// reset the buffer
 			continue
 		}
 

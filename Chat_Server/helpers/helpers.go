@@ -33,3 +33,13 @@ func GetEnv(key, defaultValue string) string {
 	}
 	return value
 }
+
+func FormatResponse(response_args ...string) []byte {
+	response := ":"
+	for _, val := range response_args {
+		response += val
+		response += " "
+	}
+	response += "\r\n"
+	return []byte(response)
+}

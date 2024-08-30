@@ -19,16 +19,19 @@ func pass(params map[string]interface{}) Response {
 		return EMPTY_RESPONSE()
 	}
 
+	log.Info().Msg("before client...")
 	_client, ok := params["client"]
 	if !ok {
 		log.Error().Msg("Client not passed to PASS command!!")
 		return ERR_UNKNOWNERROR("")
 	}
+	log.Info().Msg("before client cast...")
 
 	client := _client.(*c.Client)
 	if client.GetState("server_password") == "accepted" {
 		return ERR_ALREADYREGISTRED("")
 	}
+	log.Info().Msg("before params...")
 
 	password, ok := params["params"]
 	if !ok {
@@ -36,6 +39,7 @@ func pass(params map[string]interface{}) Response {
 		return ERR_NEEDMOREPARAMS("")
 	}
 
+	log.Info().Msg("before password...")
 	err := bcrypt.CompareHashAndPassword([]byte(server_password), []byte(password.(string)))
 	if err != nil {
 		log.Error().Msg(err.Error())

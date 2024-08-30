@@ -10,6 +10,7 @@ import (
 func TestPASS_Disabled(t *testing.T) {
 	is := zs.NewIrcServer(
 		"zirc-test.com",
+		"vtest",
 		"127.0.0.1:6677",
 		"leaf",
 		nil,
@@ -46,6 +47,7 @@ func TestPASS_Enabled(t *testing.T) {
 	t.Setenv("IRC_SERVER_PASSWORD", "$2a$10$RFRaJiN40EzL9.nvfq4uy.w6UHs7WuF3EkBpxj.xUPjNd8tUs7sfi")
 	is := zs.NewIrcServer(
 		"zirc-test.com",
+		"vtest",
 		"0.0.0.0:6677",
 		"leaf",
 		nil,

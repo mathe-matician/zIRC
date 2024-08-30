@@ -13,6 +13,7 @@ COPY server/ server/
 COPY remote_conn/ remote_conn/
 COPY commands/ commands/
 COPY client/ client/
+COPY task/ task/
 
 RUN go build zirc
 

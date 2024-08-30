@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"net"
 	c "zirc/client"
 	"zirc/helpers"
 
@@ -72,12 +73,33 @@ func CommandValidation(cmd string, client *c.Client) (*Command, Response) {
 
 	_, auth_req := command_map[cmd].Metadata["auth_req"]
 	if (len(client.Nick()) == 0 || len(client.User()) == 0) && auth_req {
+		log.Debug().Msgf("CommandValidation: ")
 		return nil, ERR_NOTREGISTERED("")
 	}
 
 	log.Debug().Msgf("Valid command: %s", cmd)
 	return_cmd := val
 	return &return_cmd, EMPTY_RESPONSE()
+}
+
+// func WriteMultipleMessages(responses []string, conn *net.Conn) {
+// 	log.Info().Msg("Writing multiple responses")
+// 	for _, r := range responses {
+// 		if _, err := (*conn).Write([]byte(r)); err != nil {
+// 			// log.Error().EmbedObject(client).Msgf("Error writing to client: %s", err.Error())
+// 			// break
+// 		}
+// 	}
+// }
+
+func WriteMultipleResponses(responses []Response, conn *net.Conn) {
+	log.Info().Msg("Writing multiple responses")
+	for _, r := range responses {
+		if _, err := (*conn).Write([]byte(r.Msg())); err != nil {
+			// log.Error().EmbedObject(client).Msgf("Error writing to client: %s", err.Error())
+			// break
+		}
+	}
 }
 
 func authenticate(params map[string]interface{}) Response {
@@ -96,7 +118,7 @@ func cap(params map[string]interface{}) Response {
 	// response := map[string]string{
 	// 	"msg": msg,
 	// }
-	res := Reply{
+	res := &Reply{
 		code: "333",
 		msg:  "hi",
 	}

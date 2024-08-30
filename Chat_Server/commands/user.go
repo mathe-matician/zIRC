@@ -26,10 +26,16 @@ func user(params map[string]interface{}) Response {
 
 	res := EMPTY_RESPONSE()
 
-	if len(client.Nick()) != 0 && !client.Registered {
-		client.Registered = true
-		res = RPL_WELCOME("")
-	}
+	// if len(client.Nick()) != 0 && !client.Registered {
+	// 	client.Registered = true
+	// 	responses := []Response{
+	// 		RPL_WELCOME(""),
+	// 		RPL_YOURHOST(""),
+	// 		RPL_CREATED(""),
+	// 		RPL_MYINFO(""),
+	// 	}
+	// 	WriteMultipleResponses(responses, client.ClientConn)
+	// }
 
 	return res
 }
