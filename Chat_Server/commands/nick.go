@@ -3,7 +3,6 @@ package commands
 import (
 	"fmt"
 	c "zirc/client"
-	"zirc/helpers"
 	t "zirc/task"
 
 	"github.com/phuslu/log"
@@ -13,7 +12,7 @@ func nick(params map[string]interface{}) Response {
 	log.Debug().Msg("Running NICK...")
 
 	_client, ok := params["client"]
-	if !ok {
+	if _client == nil || !ok {
 		log.Error().Msg("Client not passed to PASS command!!")
 		return ERR_UNKNOWNERROR("")
 	}
@@ -70,25 +69,19 @@ func nick(params map[string]interface{}) Response {
 		server_version := server_metadata["version"]
 		server_usermodes := server_metadata["usermodes"]
 		server_channelmodes := server_metadata["channelmodes"]
+		server_creation_date := server_metadata["date"]
 
-		user_details := fmt.Sprintf("%s@%s!%s", client_nick, client.User(), client.Ip())
-		_001 := string(helpers.FormatResponse(server_name, "001", client_nick, RPL_WELCOME("", client_nick).Msg(), user_details))
-		_002 := string(helpers.FormatResponse(server_name, "002", client_nick, RPL_YOURHOST("", server_name, server_version).Msg()))
-		_003 := string(helpers.FormatResponse(server_name, "003", client_nick, RPL_CREATED("", server_metadata["date"]).Msg()))
-		_rpl_myinfo := RPL_MYINFO("", client_nick, server_name, server_version, server_usermodes, server_channelmodes).Msg()
-		_004 := string(helpers.FormatResponse(server_name, "004", client_nick, _rpl_myinfo))
+		client_details := fmt.Sprintf("%s@%s!%s", client_nick, client.User(), client.Ip())
 
-		rpl_welcome := t.NewTask(t.UNICAST, _001, 0.0)
-		rpl_yourhost := t.NewTask(t.UNICAST, _002, 0.0)
-		rpl_created := t.NewTask(t.UNICAST, _003, 0.0)
-		rpl_myinfo := t.NewTask(t.UNICAST, _004, 0.0)
-
-		responses := []*t.Task{
-			rpl_welcome,
-			rpl_yourhost,
-			rpl_created,
-			rpl_myinfo,
-		}
+		responses := WELCOME_WRAPPER(
+			server_name,
+			server_version,
+			server_creation_date,
+			server_usermodes,
+			server_channelmodes,
+			client_nick,
+			client_details,
+		)
 
 		_task_runner := params["task_runner"]
 		task_runner := _task_runner.(chan []*t.Task)

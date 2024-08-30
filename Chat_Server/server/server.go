@@ -52,7 +52,6 @@ type Worker struct {
 	current_load float64
 	quit         chan int
 	frozen       bool
-	// recv         chan<- *Task
 }
 
 type ServerManager struct {
@@ -64,7 +63,6 @@ type ServerManager struct {
 	Task_runner        chan []*t.Task
 	results            chan string
 	decreasing_workers bool
-	// send        chan string
 }
 
 // Run starts the ServerManager which manages the Worker pool
@@ -177,6 +175,46 @@ func (w *Worker) MarshalObject(e *log.Entry) {
 
 // }
 
+func (w *Worker) unicast(server_manager *ServerManager, task *t.Task) {
+
+}
+
+func (w *Worker) broadcast(server_manager *ServerManager, task *t.Task) {
+
+}
+
+func (w *Worker) multicast(server_manager *ServerManager, task *t.Task) {
+	for _, c := range *server_manager.ClientList {
+		if c == nil {
+			log.Debug().EmbedObject(w).Msgf("Client is null - trying next")
+			continue
+		}
+
+		if c.Registered {
+			log.Debug().EmbedObject(w).Msgf("Staring task: %s", task.Id.String())
+			if c.ClientConn == nil {
+				log.Error().EmbedObject(w).Msg("Client connection is nil!!")
+				break
+			}
+			conn := *(c.ClientConn)
+			if _, err := conn.Write([]byte(task.Task)); err != nil {
+				log.Error().EmbedObject(c).Msgf("Error writing to client: %s", err.Error())
+				break
+			}
+			// iterating through tasks here doesn't make sense anymore
+			// it is done outside of this loop
+			// for _, task := range task {
+			// 	if _, err := conn.Write([]byte(task.Task)); err != nil {
+			// 		log.Error().EmbedObject(c).Msgf("Error writing to client: %s", err.Error())
+			// 		break
+			// 	}
+			// }
+		} else {
+			log.Info().EmbedObject(w).Msg("Client not registered")
+		}
+	}
+}
+
 // Work
 //
 //	job: jobs received from the ServerManager
@@ -187,7 +225,7 @@ func (w *Worker) Work(tasks chan []*t.Task, results chan string, server_manager 
 	for {
 		select {
 		case task := <-tasks:
-			log.Info().EmbedObject(w).Msgf("Task received: %s, len: %d", task, len(task))
+			log.Info().EmbedObject(w).Msgf("Tasks received")
 			server_manager.Debug()
 
 			if len(task) == 0 {
@@ -195,48 +233,43 @@ func (w *Worker) Work(tasks chan []*t.Task, results chan string, server_manager 
 				continue
 			}
 
-			for _, task := range task {
-				if task.Type == t.UNICAST {
-
-				} else if task.Type == t.MULTICAST {
-
-				} else if task.Type == t.BROADCAST {
-
-				} else {
-					log.Warn().Msgf("Unknown task type: %s", task.Type)
-				}
-			}
-
 			if server_manager.ClientList == nil {
 				msg := "servermanager client list is null! idk how we got to this point..."
 				log.Error().EmbedObject(w).Msg(msg)
 				panic(msg)
 			}
-
 			log.Debug().EmbedObject(w).Msgf("Client List Len: %d", len(*server_manager.ClientList))
-			for _, c := range *server_manager.ClientList {
-				if c == nil {
-					log.Debug().EmbedObject(w).Msgf("Client is null - trying next")
+
+			for _, task := range task {
+				if task == nil {
+					log.Warn().Msg("Task is null!")
 					continue
 				}
 
-				if c.Registered {
-					log.Debug().EmbedObject(w).Msgf("Staring task: %s", task)
-					if c.ClientConn == nil {
-						log.Error().EmbedObject(w).Msg("Client connection is nil!!")
-						break
-					}
-					conn := *(c.ClientConn)
-					for _, task := range task {
-						if _, err := conn.Write([]byte(task.Task)); err != nil {
-							log.Error().EmbedObject(c).Msgf("Error writing to client: %s", err.Error())
-							break
-						}
-					}
+				if task.Type == t.UNICAST {
+					log.Debug().Msgf("%s task", t.UNICAST)
+					// TODO - need an efficient way to get the single client's connection info
+					// unicast examples:
+					// 	server to client (as in a response message)
+					//	client to client (privmsg to single person)
+
+					w.unicast(server_manager, task)
+				} else if task.Type == t.MULTICAST {
+					log.Debug().Msgf("%s task", t.MULTICAST)
+					// multicast examples:
+					//	client msg to channel
+
+					w.multicast(server_manager, task)
+				} else if task.Type == t.BROADCAST {
+					log.Debug().Msgf("%s task", t.BROADCAST)
+					// broadcast examples:
+					//	server admin broadcast to all users (e.g. server going down for maintenance)
+					w.broadcast(server_manager, task)
 				} else {
-					log.Info().EmbedObject(w).Msg("Client not registered")
+					log.Warn().Msgf("Unknown task type: %s", task.Type)
 				}
 			}
+
 		case <-w.quit:
 			log.Info().EmbedObject(w).Msg("quitting")
 			return

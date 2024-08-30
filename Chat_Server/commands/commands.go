@@ -1,9 +1,9 @@
 package commands
 
 import (
-	"net"
 	c "zirc/client"
 	"zirc/helpers"
+	t "zirc/task"
 
 	"github.com/phuslu/log"
 )
@@ -82,24 +82,26 @@ func CommandValidation(cmd string, client *c.Client) (*Command, Response) {
 	return &return_cmd, EMPTY_RESPONSE()
 }
 
-// func WriteMultipleMessages(responses []string, conn *net.Conn) {
-// 	log.Info().Msg("Writing multiple responses")
-// 	for _, r := range responses {
-// 		if _, err := (*conn).Write([]byte(r)); err != nil {
-// 			// log.Error().EmbedObject(client).Msgf("Error writing to client: %s", err.Error())
-// 			// break
-// 		}
-// 	}
-// }
+func WELCOME_WRAPPER(server_name, server_version, server_creation_date, server_usermodes, server_channelmodes, client_nick, client_details string) []*t.Task {
+	_001 := string(helpers.FormatResponse(server_name, "001", client_nick, RPL_WELCOME("", client_nick).Msg(), client_details))
+	_002 := string(helpers.FormatResponse(server_name, "002", client_nick, RPL_YOURHOST("", server_name, server_version).Msg()))
+	_003 := string(helpers.FormatResponse(server_name, "003", client_nick, RPL_CREATED("", server_creation_date).Msg()))
+	_rpl_myinfo := RPL_MYINFO("", client_nick, server_name, server_version, server_usermodes, server_channelmodes).Msg()
+	_004 := string(helpers.FormatResponse(server_name, "004", client_nick, _rpl_myinfo))
 
-func WriteMultipleResponses(responses []Response, conn *net.Conn) {
-	log.Info().Msg("Writing multiple responses")
-	for _, r := range responses {
-		if _, err := (*conn).Write([]byte(r.Msg())); err != nil {
-			// log.Error().EmbedObject(client).Msgf("Error writing to client: %s", err.Error())
-			// break
-		}
+	rpl_welcome := t.NewTask(t.UNICAST, _001, 0.0)
+	rpl_yourhost := t.NewTask(t.UNICAST, _002, 0.0)
+	rpl_created := t.NewTask(t.UNICAST, _003, 0.0)
+	rpl_myinfo := t.NewTask(t.UNICAST, _004, 0.0)
+
+	responses := []*t.Task{
+		rpl_welcome,
+		rpl_yourhost,
+		rpl_created,
+		rpl_myinfo,
 	}
+
+	return responses
 }
 
 func authenticate(params map[string]interface{}) Response {

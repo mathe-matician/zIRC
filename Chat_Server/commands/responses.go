@@ -89,7 +89,7 @@ func RPL_MYINFO(msg_override, nick, server_name, server_version, usermodes, chan
 func RPL_TOPIC(msg_override, topic string) Response {
 	return &Reply{
 		code: "332",
-		msg:  ":irc.example.com 332 <nickname> <channel> :%s",
+		msg:  fmt.Sprintf(":irc.example.com 332 <nickname> <channel> :%s", topic),
 		// msg:  ":irc.example.com 332 <nickname> <channel> :<topic>",
 	}
 }
