@@ -39,12 +39,13 @@ type Dest struct {
 func (d *Dest) NewLocation() {}
 
 type Task struct {
-	Id     uuid.UUID
-	Type   string
-	Weight float64
-	Task   string
-	Src    Location
-	Dest   Location
+	Id         uuid.UUID
+	Type       string
+	Weight     float64
+	Task       string
+	ClientConn *net.Conn
+	// Src        Location
+	// Dest       Location
 }
 
 func (t *Task) MarshalObject(e *log.Entry) {
@@ -71,18 +72,17 @@ func NewDest(conn *net.Conn) *Dest {
 }
 
 // func NewTask(_type, task string, src Location, dest Location, weight float64) *Task {
-func NewTask(_type, task string, weight float64) *Task {
+func NewTask(_type, task string, weight float64, client_conn *net.Conn) *Task {
 	uid, err := uuid.NewV7()
 	if err != nil {
 		return nil
 	}
 
 	return &Task{
-		Id:     uid,
-		Type:   _type,
-		Weight: weight, // TODO - determine weight of task somehow, may be useful
-		Task:   task,
-		// Src:    src,
-		// Dest:   dest,
+		Id:         uid,
+		Type:       _type,
+		Weight:     weight, // TODO - determine weight of task somehow, may be useful
+		Task:       task,
+		ClientConn: client_conn,
 	}
 }

@@ -11,7 +11,6 @@ COPY chat/ chat/
 COPY helpers/ helpers/
 COPY server/ server/
 COPY remote_conn/ remote_conn/
-COPY client/ client/
 
 RUN go build zirc
 

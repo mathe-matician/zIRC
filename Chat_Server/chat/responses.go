@@ -55,7 +55,6 @@ func EMPTY_RESPONSE() Response {
 	return &Reply{}
 }
 
-// hard coding CRLF since these messages aren't sent outside of registration confirmation
 func RPL_WELCOME(msg_override, nick string) Response {
 	return &Reply{
 		code: "001",
@@ -88,7 +87,7 @@ func RPL_MYINFO(msg_override, nick, server_name, server_version, usermodes, chan
 
 func RPL_TOPIC(msg_override, topic string) Response {
 	if len(topic) == 0 {
-		topic = ":No topic is set"
+		topic = "No topic is set"
 	}
 	return &Reply{
 		code: "332",

@@ -1,7 +1,6 @@
 package chat
 
 import (
-	c "zirc/client"
 	"zirc/helpers"
 
 	"github.com/phuslu/log"
@@ -27,7 +26,7 @@ func pass(params map[string]interface{}) Response {
 	}
 	log.Info().Msg("before client cast...")
 
-	client := _client.(*c.Client)
+	client := _client.(*Client)
 	if client.GetState("server_password") == "accepted" {
 		return ERR_ALREADYREGISTRED("")
 	}

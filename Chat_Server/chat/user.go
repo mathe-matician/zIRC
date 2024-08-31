@@ -2,7 +2,6 @@ package chat
 
 import (
 	"fmt"
-	c "zirc/client"
 
 	"github.com/phuslu/log"
 )
@@ -22,7 +21,7 @@ func user(params map[string]interface{}) Response {
 		return ERR_NEEDMOREPARAMS("")
 	}
 
-	client := _client.(*c.Client)
+	client := _client.(*Client)
 	client.SetUser(user.(string))
 
 	res := EMPTY_RESPONSE()
@@ -43,6 +42,7 @@ func user(params map[string]interface{}) Response {
 		client_details := fmt.Sprintf("%s@%s!%s", client_nick, client.User(), client.Ip())
 
 		responses := WELCOME_WRAPPER(
+			client.ClientConn,
 			server_name,
 			server_version,
 			server_creation_date,

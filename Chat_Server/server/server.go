@@ -175,8 +175,10 @@ func (w *Worker) MarshalObject(e *log.Entry) {
 // }
 
 func (w *Worker) unicast(server_manager *ServerManager, task *chat.Task) {
-	// for _, c := range *server_manager.ClientList {
-	// }
+	c := (*task.ClientConn)
+	if _, err := c.Write([]byte(task.Task)); err != nil {
+		log.Error().Msgf("Error writing to client: %s", err.Error())
+	}
 }
 
 func (w *Worker) broadcast(server_manager *ServerManager, task *chat.Task) {
@@ -312,6 +314,8 @@ func NewServerManager(client_list *[]*chat.Client, server_list *[]*IrcServer) *S
 		panic("servermanager: client_list or server_list is null! This cannot be!")
 	}
 
+	channel_list := make([]*chat.Channel, 0)
+
 	sm := &ServerManager{
 		Name:         "",
 		Task_runner:  make(chan []*chat.Task),
@@ -319,6 +323,7 @@ func NewServerManager(client_list *[]*chat.Client, server_list *[]*IrcServer) *S
 		results:      make(chan string),
 		ClientList:   client_list,
 		ServerList:   server_list,
+		ChannelList:  &channel_list,
 		WorkerPool:   make(map[string]*Worker), // TODO - do we even need to keep track of workers in the pool? !only if we want to scale them down by name - otherwise sending 'quit' to any arbitrary worker will kill it
 	}
 

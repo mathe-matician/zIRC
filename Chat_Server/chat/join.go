@@ -2,8 +2,7 @@ package chat
 
 import (
 	"fmt"
-
-	c "zirc/client"
+	"zirc/helpers"
 
 	"github.com/phuslu/log"
 )
@@ -27,7 +26,7 @@ func join(params map[string]interface{}) Response {
 		log.Error().Msg("Client not passed to JOIN command!!")
 		return ERR_UNKNOWNERROR("")
 	}
-	client := _client.(*c.Client)
+	client := _client.(*Client)
 
 	if len(cmd_params) != 0 {
 
@@ -72,20 +71,29 @@ func join(params map[string]interface{}) Response {
 		// should there just be a single source of truth?
 		// when do we need to have both lists kept up to date?
 		// is it just a burden to update both?
+		// AND updating the client's list itself?
 		(*channel_list) = append((*channel_list), channel)
 
 		// TODO - update current user as the channel operator
 
 		// server_task := NewTask(t.SERVER, fmt.Sprintf("create chan %s", cmd_params), 0.0)
 
-		_rpl_topic := RPL_TOPIC("", "")
-		_rpl_namreply := RPL_NAMREPLY("")
-		_rpl_endofnames := RPL_ENDOFNAMES("")
+		_server_metadata := params["server_metadata"]
+		server_metadata := _server_metadata.(map[string]string)
 
-		join_msg := NewTask(MULTICAST, msg, 0.0)
-		rpl_topic := NewTask(UNICAST, _rpl_topic.Msg(), 0.0)
-		rpl_namreply := NewTask(UNICAST, _rpl_namreply.Msg(), 0.0)
-		rpl_endofnames := NewTask(UNICAST, _rpl_endofnames.Msg(), 0.0)
+		server_name := server_metadata["name"]
+
+		_rpl_topic := RPL_TOPIC("", "")
+		_rpl_topic_msg := helpers.FormatResponse(server_name, _rpl_topic.Code(), _rpl_topic.Msg())
+		_rpl_namreply := RPL_NAMREPLY("")
+		_rpl_namreply_msg := helpers.FormatResponse(server_name, _rpl_namreply.Code(), _rpl_namreply.Msg())
+		_rpl_endofnames := RPL_ENDOFNAMES("")
+		_rpl_endofnames_msg := helpers.FormatResponse(server_name, _rpl_endofnames.Code(), _rpl_endofnames.Msg())
+
+		join_msg := NewTask(MULTICAST, msg, 0.0, nil)
+		rpl_topic := NewTask(UNICAST, string(_rpl_topic_msg), 0.0, client.ClientConn)
+		rpl_namreply := NewTask(UNICAST, string(_rpl_namreply_msg), 0.0, client.ClientConn)
+		rpl_endofnames := NewTask(UNICAST, string(_rpl_endofnames_msg), 0.0, client.ClientConn)
 
 		task_runner <- []*Task{
 			join_msg,

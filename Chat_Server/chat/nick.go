@@ -2,7 +2,6 @@ package chat
 
 import (
 	"fmt"
-	c "zirc/client"
 
 	"github.com/phuslu/log"
 )
@@ -15,7 +14,7 @@ func nick(params map[string]interface{}) Response {
 		log.Error().Msg("Client not passed to PASS command!!")
 		return ERR_UNKNOWNERROR("")
 	}
-	client := _client.(*c.Client)
+	client := _client.(*Client)
 
 	nick, ok := params["params"]
 	if nick == nil || !ok || len(nick.(string)) == 0 {
@@ -73,6 +72,7 @@ func nick(params map[string]interface{}) Response {
 		client_details := fmt.Sprintf("%s@%s!%s", client_nick, client.User(), client.Ip())
 
 		responses := WELCOME_WRAPPER(
+			client.ClientConn,
 			server_name,
 			server_version,
 			server_creation_date,

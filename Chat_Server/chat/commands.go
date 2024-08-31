@@ -1,6 +1,8 @@
 package chat
 
 import (
+	"net"
+
 	"zirc/helpers"
 
 	"github.com/phuslu/log"
@@ -75,17 +77,17 @@ func commandValidation(cmd, client_password_state string, client_registered bool
 	return &return_cmd, EMPTY_RESPONSE()
 }
 
-func WELCOME_WRAPPER(server_name, server_version, server_creation_date, server_usermodes, server_channelmodes, client_nick, client_details string) []*Task {
+func WELCOME_WRAPPER(client_conn *net.Conn, server_name, server_version, server_creation_date, server_usermodes, server_channelmodes, client_nick, client_details string) []*Task {
 	_001 := string(helpers.FormatResponse(server_name, "001", client_nick, RPL_WELCOME("", client_nick).Msg(), client_details))
 	_002 := string(helpers.FormatResponse(server_name, "002", client_nick, RPL_YOURHOST("", server_name, server_version).Msg()))
 	_003 := string(helpers.FormatResponse(server_name, "003", client_nick, RPL_CREATED("", server_creation_date).Msg()))
 	_rpl_myinfo := RPL_MYINFO("", client_nick, server_name, server_version, server_usermodes, server_channelmodes).Msg()
 	_004 := string(helpers.FormatResponse(server_name, "004", client_nick, _rpl_myinfo))
 
-	rpl_welcome := NewTask(UNICAST, _001, 0.0)
-	rpl_yourhost := NewTask(UNICAST, _002, 0.0)
-	rpl_created := NewTask(UNICAST, _003, 0.0)
-	rpl_myinfo := NewTask(UNICAST, _004, 0.0)
+	rpl_welcome := NewTask(UNICAST, _001, 0.0, client_conn)
+	rpl_yourhost := NewTask(UNICAST, _002, 0.0, client_conn)
+	rpl_created := NewTask(UNICAST, _003, 0.0, client_conn)
+	rpl_myinfo := NewTask(UNICAST, _004, 0.0, client_conn)
 
 	responses := []*Task{
 		rpl_welcome,
