@@ -34,7 +34,7 @@ func join(params map[string]interface{}) Response {
 
 		client_details := fmt.Sprintf("%s@%s!%s", client.Nick(), client.User(), client.Ip())
 
-		msg := fmt.Sprintf(":%s JOIN :%s", client_details, cmd_params)
+		msg := fmt.Sprintf(":%s JOIN :%s \r\n", client_details, cmd_params)
 
 		_task_runner := params["task_runner"]
 		task_runner := _task_runner.(chan []*Task)
