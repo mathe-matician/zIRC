@@ -31,6 +31,8 @@ docker compose up --build -d
 
 ## Using the cli test client
 
+Note the test cli is just that, a testing tool. It doesn't accept high level user commands like `/msg` for `PRIVMSG` - it only accepts protocol commands directly.
+
 1. Navigate to the test client dir
 
 ```bash
@@ -44,37 +46,13 @@ node test_client.js
 ```
 
 3. Enter `connect` to connect to the chat server running in docker
-4. Enter any valid commands for the chat server. For example:
+4. Enter any valid commands for the chat server.
+
+For example:
 
 ```bash
-HELP USERCMDS
+NICK test-user
+USER test-user
 ```
 
-will output:
-
-> :Z.IRC 704 * :** Help System **
->
->:Z.IRC 705 * :<br/>
->:Z.IRC 705 * :Try HELP <commmand> for specific help<br/>
->:Z.IRC 705 * :HELP USERCMDS to list available commands,<br/>
->:Z.IRC 706 * :or join the #help channel
->
->HELP USERCMDS<br/>
->:Z.IRC 704 * :** Help User Commands **
->
->:Z.IRC 705 * :<br/>
->:Z.IRC 705 * :CAP<br/>
->:Z.IRC 705 * :JOIN
->
->:Z.IRC 705 * :NICK
->
->:Z.IRC 705 * :SEND<br/>
->:Z.IRC 705 * :PASS<br/>
->:Z.IRC 705 * :AUTHENTICATE<br/>
->:Z.IRC 705 * :USER<br/>
->:Z.IRC 705 * :LIST<br/>
->:Z.IRC 705 * :PRIVMSG<br/>
->:Z.IRC 705 * :HELP<br/>
->:Z.IRC 706 * :REGISTER<br/>
-
-You can then type in `HELP <cmd>` to output the help description for that particular command.
+The server response should tell you that you are now registered.
