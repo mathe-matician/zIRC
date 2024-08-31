@@ -8,10 +8,8 @@ import (
 	"time"
 
 	"zirc/chat"
-	c "zirc/client"
 	"zirc/helpers"
 	rc "zirc/remote_conn"
-	t "zirc/task"
 
 	"github.com/google/uuid"
 	"github.com/phuslu/log"
@@ -35,7 +33,7 @@ type IrcServer struct {
 	Listener      *net.Listener
 	_ServerManger *ServerManager
 	Servers       []*IrcServer
-	Clients       []*c.Client
+	Clients       []*chat.Client
 	Config        map[string]string
 }
 
@@ -48,7 +46,7 @@ type Task struct {
 
 type Worker struct {
 	id           uuid.UUID
-	tasks        []*t.Task
+	tasks        []*chat.Task
 	current_load float64
 	quit         chan int
 	frozen       bool
@@ -56,11 +54,12 @@ type Worker struct {
 
 type ServerManager struct {
 	Name               string
-	ClientList         *[]*c.Client
+	ClientList         *[]*chat.Client
+	ChannelList        *[]*chat.Channel
 	ServerList         *[]*IrcServer
 	WorkerPool         map[string]*Worker
-	worker_tasks       chan []*t.Task
-	Task_runner        chan []*t.Task
+	worker_tasks       chan []*chat.Task
+	Task_runner        chan []*chat.Task
 	results            chan string
 	decreasing_workers bool
 }
@@ -175,15 +174,16 @@ func (w *Worker) MarshalObject(e *log.Entry) {
 
 // }
 
-func (w *Worker) unicast(server_manager *ServerManager, task *t.Task) {
+func (w *Worker) unicast(server_manager *ServerManager, task *chat.Task) {
+	// for _, c := range *server_manager.ClientList {
+	// }
+}
+
+func (w *Worker) broadcast(server_manager *ServerManager, task *chat.Task) {
 
 }
 
-func (w *Worker) broadcast(server_manager *ServerManager, task *t.Task) {
-
-}
-
-func (w *Worker) multicast(server_manager *ServerManager, task *t.Task) {
+func (w *Worker) multicast(server_manager *ServerManager, task *chat.Task) {
 	for _, c := range *server_manager.ClientList {
 		if c == nil {
 			log.Debug().EmbedObject(w).Msgf("Client is null - trying next")
@@ -215,13 +215,26 @@ func (w *Worker) multicast(server_manager *ServerManager, task *t.Task) {
 	}
 }
 
+var workerActionMap = map[string]map[string]bool{
+	"create": map[string]bool{
+		"chan": true,
+		"user": true,
+	},
+	"delete": map[string]bool{
+		"chan": true,
+	},
+	"update": map[string]bool{
+		"chan": true,
+	},
+}
+
 // Work
 //
 //	job: jobs received from the ServerManager
 //	results: any results that are returned back to the ServerManager can be sent back to the client if needed
 //
 // TODO - this func may only need the ServerManager's ClientList and ServerList
-func (w *Worker) Work(tasks chan []*t.Task, results chan string, server_manager *ServerManager) {
+func (w *Worker) Work(tasks chan []*chat.Task, results chan string, server_manager *ServerManager) {
 	for {
 		select {
 		case task := <-tasks:
@@ -246,27 +259,37 @@ func (w *Worker) Work(tasks chan []*t.Task, results chan string, server_manager 
 					continue
 				}
 
-				if task.Type == t.UNICAST {
-					log.Debug().Msgf("%s task", t.UNICAST)
+				if task.Type == chat.UNICAST {
+					log.Debug().Msgf("%s task", chat.UNICAST)
 					// TODO - need an efficient way to get the single client's connection info
 					// unicast examples:
 					// 	server to client (as in a response message)
 					//	client to client (privmsg to single person)
 
 					w.unicast(server_manager, task)
-				} else if task.Type == t.MULTICAST {
-					log.Debug().Msgf("%s task", t.MULTICAST)
-					// multicast examples:
-					//	client msg to channel
+				} else if task.Type == chat.MULTICAST {
+					log.Debug().Msgf("%s task", chat.MULTICAST)
+					// multicast only purpose is to send client msgs to a specific channel
 
 					w.multicast(server_manager, task)
-				} else if task.Type == t.BROADCAST {
-					log.Debug().Msgf("%s task", t.BROADCAST)
+				} else if task.Type == chat.BROADCAST {
+					log.Debug().Msgf("%s task", chat.BROADCAST)
 					// broadcast examples:
 					//	server admin broadcast to all users (e.g. server going down for maintenance)
 					w.broadcast(server_manager, task)
+				} else if task.Type == chat.SERVER {
+					log.Debug().Msgf("%s task", chat.SERVER)
+					split_task := strings.Split(task.Task, " ")
+
+					_, ok := workerActionMap[split_task[0]][split_task[1]]
+					if !ok {
+						log.Debug().Msgf("Not a valid worker action")
+						continue
+					}
+
 				} else {
 					log.Warn().Msgf("Unknown task type: %s", task.Type)
+
 				}
 			}
 
@@ -277,7 +300,7 @@ func (w *Worker) Work(tasks chan []*t.Task, results chan string, server_manager 
 	}
 }
 
-func NewServerManager(client_list *[]*c.Client, server_list *[]*IrcServer) *ServerManager {
+func NewServerManager(client_list *[]*chat.Client, server_list *[]*IrcServer) *ServerManager {
 	init_worker_count, err := strconv.Atoi(helpers.GetEnv("IRC_SERVER_INIT_WORKER_COUNT", "3"))
 	if err != nil {
 		panic("can't init workers...")
@@ -291,12 +314,12 @@ func NewServerManager(client_list *[]*c.Client, server_list *[]*IrcServer) *Serv
 
 	sm := &ServerManager{
 		Name:         "",
-		Task_runner:  make(chan []*t.Task),
-		worker_tasks: make(chan []*t.Task),
+		Task_runner:  make(chan []*chat.Task),
+		worker_tasks: make(chan []*chat.Task),
 		results:      make(chan string),
-		ClientList:   client_list, // only contains registered clients
+		ClientList:   client_list,
 		ServerList:   server_list,
-		WorkerPool:   make(map[string]*Worker), // TODO - do we even need to keep track of workers in the pool?
+		WorkerPool:   make(map[string]*Worker), // TODO - do we even need to keep track of workers in the pool? !only if we want to scale them down by name - otherwise sending 'quit' to any arbitrary worker will kill it
 	}
 
 	for range init_worker_count {
@@ -316,13 +339,13 @@ func NewWorker() *Worker {
 
 	return &Worker{
 		id:           uid,
-		tasks:        make([]*t.Task, 0),
+		tasks:        make([]*chat.Task, 0),
 		current_load: 0.0,
 		quit:         make(chan int, 1),
 	}
 }
 
-func NewIrcServer(dns_name string, version string, addr string, server_role string, server_list *[]*IrcServer, client_list *[]*c.Client, config *map[string]string) *IrcServer {
+func NewIrcServer(dns_name string, version string, addr string, server_role string, server_list *[]*IrcServer, client_list *[]*chat.Client, config *map[string]string) *IrcServer {
 	if len(dns_name) == 0 {
 		dns_name = helpers.GetEnv("IRC_SERVER_DNS_NAME", "localhost")
 	}
@@ -346,7 +369,7 @@ func NewIrcServer(dns_name string, version string, addr string, server_role stri
 	}
 
 	if client_list == nil {
-		cl := make([]*c.Client, 0)
+		cl := make([]*chat.Client, 0)
 		client_list = &cl
 	}
 
@@ -439,7 +462,7 @@ func (is *IrcServer) handleConnection(conn *net.Conn) {
 	// TODO - resolve DNS name here for additional checks / verification
 	// e.g. w/ servers and compare to server list
 	remote_conn := rc.NewRemoteConn("", remote_ip, remote_port)
-	client, session_timestamp, err := c.NewClient("", "", remote_conn, conn)
+	client, session_timestamp, err := chat.NewClient("", "", remote_conn, conn)
 	if err != nil {
 		log.Error().EmbedObject(client).Msgf(err.Error())
 		return
@@ -493,7 +516,7 @@ func (is *IrcServer) handleConnection(conn *net.Conn) {
 			"channelmodes": is.Config["IRC_CHANNEL_MODES"],
 		}
 
-		response := chat.ProcessMessage(&recv_buf, client, is._ServerManger.Task_runner, server_metadata)
+		response := chat.ProcessMessage(&recv_buf, client, is._ServerManger.Task_runner, server_metadata, is._ServerManger.ChannelList)
 
 		if len(response) == 0 {
 			// e.g. sometimes the server doesn't send anything back to the client

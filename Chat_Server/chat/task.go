@@ -1,4 +1,4 @@
-package task
+package chat
 
 import (
 	"net"
@@ -8,6 +8,7 @@ import (
 )
 
 const (
+	SERVER    = "server"
 	UNICAST   = "unicast"
 	MULTICAST = "multicast"
 	BROADCAST = "broadcast"
@@ -18,10 +19,10 @@ type Location interface {
 	NewLocation()
 }
 
-type Channel struct {
-	Prefix string
-	Name   string
-}
+// type Channel struct {
+// 	Prefix string
+// 	Name   string
+// }
 
 func (c *Channel) NewLocation() {}
 
@@ -50,12 +51,12 @@ func (t *Task) MarshalObject(e *log.Entry) {
 	e.Str("id", t.Id.String()).Str("type", t.Type).Float64("weight", t.Weight).Str("task", t.Task)
 }
 
-func NewChannel(prefix, name string) *Channel {
-	return &Channel{
-		Prefix: prefix,
-		Name:   name,
-	}
-}
+// func NewChannel(prefix, name string) *Channel {
+// 	return &Channel{
+// 		Prefix: prefix,
+// 		Name:   name,
+// 	}
+// }
 
 func NewSrc(conn *net.Conn) *Src {
 	return &Src{

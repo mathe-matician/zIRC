@@ -1,9 +1,7 @@
-package commands
+package chat
 
 import (
-	c "zirc/client"
 	"zirc/helpers"
-	t "zirc/task"
 
 	"github.com/phuslu/log"
 )
@@ -26,6 +24,7 @@ var command_map = map[string]Command{
 	"JOIN":         *NewCommand(join, map[string]string{"auth_req": "true"}),
 	"PROTOCTL":     *NewCommand(protoctl, make(map[string]string)),
 	"PRIVMSG":      *NewCommand(privmsg, map[string]string{"auth_req": "true"}),
+	"MODE":         *NewCommand(mode, map[string]string{"auth_req": "true"}),
 	"NOTIFY":       *NewCommand(notify, map[string]string{"auth_req": "true"}),
 	"SERVER":       *NewCommand(server, make(map[string]string)),
 	"USER":         *NewCommand(user, make(map[string]string)),
@@ -52,13 +51,7 @@ func (c *Command) DeleteMetadata(cmd, key, value string) {
 // - ensures the command is a valid IRC command
 // - checks whether the client is registered or not and limits commands based on that
 // - checks whether the client is a server or a client and limits more commands based on that
-func CommandValidation(cmd string, client *c.Client) (*Command, Response) {
-	_client_password_state := client.GetState("server_password")
-	client_password_state := ""
-	if _client_password_state != nil {
-		client_password_state = _client_password_state.(string)
-	}
-
+func commandValidation(cmd, client_password_state string, client_registered bool) (*Command, Response) {
 	server_password := helpers.GetEnv("IRC_SERVER_PASSWORD", "")
 	if len(server_password) != 0 && cmd != "PASS" && client_password_state != "accepted" {
 		return nil, ERR_PASSWDMISMATCH(":You need to send your password before registering")
@@ -72,7 +65,7 @@ func CommandValidation(cmd string, client *c.Client) (*Command, Response) {
 	// TODO - need to check if this connection is from a server here
 
 	_, auth_req := command_map[cmd].Metadata["auth_req"]
-	if (len(client.Nick()) == 0 || len(client.User()) == 0) && auth_req {
+	if !client_registered && auth_req {
 		log.Debug().Msgf("CommandValidation: ")
 		return nil, ERR_NOTREGISTERED("")
 	}
@@ -82,19 +75,19 @@ func CommandValidation(cmd string, client *c.Client) (*Command, Response) {
 	return &return_cmd, EMPTY_RESPONSE()
 }
 
-func WELCOME_WRAPPER(server_name, server_version, server_creation_date, server_usermodes, server_channelmodes, client_nick, client_details string) []*t.Task {
+func WELCOME_WRAPPER(server_name, server_version, server_creation_date, server_usermodes, server_channelmodes, client_nick, client_details string) []*Task {
 	_001 := string(helpers.FormatResponse(server_name, "001", client_nick, RPL_WELCOME("", client_nick).Msg(), client_details))
 	_002 := string(helpers.FormatResponse(server_name, "002", client_nick, RPL_YOURHOST("", server_name, server_version).Msg()))
 	_003 := string(helpers.FormatResponse(server_name, "003", client_nick, RPL_CREATED("", server_creation_date).Msg()))
 	_rpl_myinfo := RPL_MYINFO("", client_nick, server_name, server_version, server_usermodes, server_channelmodes).Msg()
 	_004 := string(helpers.FormatResponse(server_name, "004", client_nick, _rpl_myinfo))
 
-	rpl_welcome := t.NewTask(t.UNICAST, _001, 0.0)
-	rpl_yourhost := t.NewTask(t.UNICAST, _002, 0.0)
-	rpl_created := t.NewTask(t.UNICAST, _003, 0.0)
-	rpl_myinfo := t.NewTask(t.UNICAST, _004, 0.0)
+	rpl_welcome := NewTask(UNICAST, _001, 0.0)
+	rpl_yourhost := NewTask(UNICAST, _002, 0.0)
+	rpl_created := NewTask(UNICAST, _003, 0.0)
+	rpl_myinfo := NewTask(UNICAST, _004, 0.0)
 
-	responses := []*t.Task{
+	responses := []*Task{
 		rpl_welcome,
 		rpl_yourhost,
 		rpl_created,

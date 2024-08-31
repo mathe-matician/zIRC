@@ -7,17 +7,14 @@ import (
 	"regexp"
 	"strings"
 
-	c "zirc/client"
-	"zirc/commands"
 	"zirc/helpers"
-	t "zirc/task"
 
 	"github.com/phuslu/log"
 )
 
 var re = regexp.MustCompile(`^\S*`) // captures until first space
 
-func ProcessMessage(recv_buf *[]byte, client *c.Client, task_runner chan []*t.Task, server_metadata map[string]string) []byte {
+func ProcessMessage(recv_buf *[]byte, client *Client, task_runner chan []*Task, server_metadata map[string]string, channel_list *[]*Channel) []byte {
 	log.Debug().Msg("------------MSG START------------")
 	trimmed_msg := string(bytes.Trim(bytes.TrimLeft(*recv_buf, " "), "\x00"))
 	log.Info().Msgf("Raw Client msg: %s", trimmed_msg)
@@ -87,7 +84,7 @@ func ProcessMessage(recv_buf *[]byte, client *c.Client, task_runner chan []*t.Ta
 	//		  S2S communication uses cmds like PING/PONG, SYNCHRONIZE
 
 	log.Debug().Msgf("Validating command %s", split_msg[0])
-	cmd, _validation_res := commands.CommandValidation(strings.Trim(split_msg[0], " "), client)
+	cmd, _validation_res := commandValidation(strings.Trim(split_msg[0], " "), client.session.state["server_password"], client.Registered)
 	if reflect.TypeOf(_validation_res).Name() == "ErrorResponse" || cmd == nil {
 		log.Error().Msgf("Error during command validation")
 		return helpers.FormatResponse(server, _validation_res.Code(), target, _validation_res.Msg())
@@ -122,6 +119,7 @@ func ProcessMessage(recv_buf *[]byte, client *c.Client, task_runner chan []*t.Ta
 	cmd_param_slice["client"] = client
 	cmd_param_slice["task_runner"] = task_runner
 	cmd_param_slice["server_metadata"] = server_metadata
+	cmd_param_slice["channel_list"] = channel_list
 
 	log.Info().Msgf("Before running func")
 	_response := cmd.Fn(cmd_param_slice)

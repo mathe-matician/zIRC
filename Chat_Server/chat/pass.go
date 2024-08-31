@@ -1,4 +1,4 @@
-package commands
+package chat
 
 import (
 	c "zirc/client"

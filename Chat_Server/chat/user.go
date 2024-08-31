@@ -1,9 +1,8 @@
-package commands
+package chat
 
 import (
 	"fmt"
 	c "zirc/client"
-	t "zirc/task"
 
 	"github.com/phuslu/log"
 )
@@ -54,7 +53,7 @@ func user(params map[string]interface{}) Response {
 		)
 
 		_task_runner := params["task_runner"]
-		task_runner := _task_runner.(chan []*t.Task)
+		task_runner := _task_runner.(chan []*Task)
 		task_runner <- responses
 	}
 

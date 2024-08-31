@@ -1,4 +1,4 @@
-package commands
+package chat
 
 import "fmt"
 
@@ -87,9 +87,12 @@ func RPL_MYINFO(msg_override, nick, server_name, server_version, usermodes, chan
 }
 
 func RPL_TOPIC(msg_override, topic string) Response {
+	if len(topic) == 0 {
+		topic = ":No topic is set"
+	}
 	return &Reply{
 		code: "332",
-		msg:  fmt.Sprintf(":irc.example.com 332 <nickname> <channel> :%s", topic),
+		msg:  fmt.Sprintf(":%s", topic),
 		// msg:  ":irc.example.com 332 <nickname> <channel> :<topic>",
 	}
 }
@@ -166,6 +169,16 @@ func ERR_PASSWDMISMATCH(msg_override string) Response {
 	er := &ErrorResponse{
 		code: "464",
 		msg:  ":Password incorrect",
+	}
+	er.MsgOverride(msg_override)
+	return er
+}
+
+// 476 <nickname> <channel> :Bad Channel Mask
+func ERR_BADCHANMASK(msg_override string) Response {
+	er := &ErrorResponse{
+		code: "476",
+		msg:  ":Bad Channel Mask",
 	}
 	er.MsgOverride(msg_override)
 	return er
