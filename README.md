@@ -31,6 +31,8 @@ docker compose up --build -d
 
 ## Using the cli test client
 
+Note the test cli is just that, a testing tool. It doesn't accept high level user commands like `/msg` for `PRIVMSG` - it only accepts protocol commands directly.
+
 1. Navigate to the test client dir
 
 ```bash
