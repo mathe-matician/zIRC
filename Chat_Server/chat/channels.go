@@ -3,13 +3,14 @@ package chat
 import "time"
 
 const (
-	PERMANENT_CHAN_PREFIX = "#"
-	TEMP_CHAN_PREFIX      = "&"
-	PRIVATE_CHAN_PREFIX   = "+"
+	GENERAL_CHAN_PREFIX  = "#"
+	LOCAL_CHAN_PREFIX    = "&"
+	MODELESS_CHAN_PREFIX = "+"
 )
 
 type Channel struct {
 	Name            string
+	Prefix          string
 	Topic           string
 	TopicDetails    string
 	ChannelModes    []string
@@ -40,6 +41,7 @@ type Channel struct {
 // Bans and Exemptions:
 // +b (Ban List): Bans specific users or masks from the channel.
 // +e (Ban Exemption): Exempts specific users from being affected by a ban.
+// +P persistent: to persist the channel after all users leave
 
 // USER MODES
 // +o (Operator): Grants the user operator status, allowing them to manage the channel.
@@ -63,6 +65,7 @@ func NewChannel(name, topic, topic_details, channel_password, status, duration s
 
 	return &Channel{
 		Name:            name,
+		Prefix:          string(name[0]),
 		Topic:           topic,
 		TopicDetails:    topic_details,
 		ChannelModes:    make([]string, 0),

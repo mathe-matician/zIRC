@@ -46,14 +46,7 @@ func join(params map[string]interface{}) Response {
 		}
 
 		chan_prefix := string(cmd_params[0])
-		var duration string
-		if chan_prefix == "#" {
-			duration = "persistent"
-		} else if chan_prefix == "&" || chan_prefix == "+" {
-			// temporary channels and modeless channels are transient in nature
-			// when the last client leaves they are deleted
-			duration = "temporary"
-		} else {
+		if chan_prefix != GENERAL_CHAN_PREFIX && chan_prefix != LOCAL_CHAN_PREFIX && chan_prefix != MODELESS_CHAN_PREFIX {
 			return ERR_BADCHANMASK("")
 		}
 
@@ -63,7 +56,7 @@ func join(params map[string]interface{}) Response {
 			"",
 			"",
 			"active",
-			duration,
+			"temporary", // all channels are temporary upon creation until marked with +P mode
 		)
 
 		// Add channel to channel list
