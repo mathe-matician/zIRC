@@ -120,7 +120,7 @@ func mode(params map[string]interface{}) Response {
 	// only chan operators can apply or remove modes
 	client_nick := client.Nick()
 	if _, channel_operator := channel.Operators[client_nick]; !channel_operator {
-		log.Error().Msg("Client isn't channel operator")
+		log.Error().Msg("Client isnt channel operator")
 		return ERR_NOTONCHANNEL("", channel.Name)
 	}
 

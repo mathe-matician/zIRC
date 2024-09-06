@@ -289,7 +289,9 @@ func ERR_YOUREBANNEDCREEP(msg_override string) Response {
 		code: "463",
 		msg:  ":You are banned from this server",
 	}
-	er.MsgOverride(msg_override)
+	if len(msg_override) != 0 {
+		er.MsgOverride(msg_override)
+	}
 	return er
 }
 
@@ -298,7 +300,9 @@ func ERR_PASSWDMISMATCH(msg_override string) Response {
 		code: "464",
 		msg:  ":Password incorrect",
 	}
-	er.MsgOverride(msg_override)
+	if len(msg_override) != 0 {
+		er.MsgOverride(msg_override)
+	}
 	return er
 }
 
@@ -309,7 +313,9 @@ func ERR_UNKNOWNMODE(msg_override, char string) Response {
 		code: "472",
 		msg:  fmt.Sprintf("%s :is unknown mode char to me", char),
 	}
-	er.MsgOverride(msg_override)
+	if len(msg_override) != 0 {
+		er.MsgOverride(msg_override)
+	}
 	return er
 }
 
@@ -321,7 +327,9 @@ func ERR_BADCHANMASK(msg_override string) Response {
 		code: "476",
 		msg:  ":Bad Channel Mask",
 	}
-	er.MsgOverride(msg_override)
+	if len(msg_override) != 0 {
+		er.MsgOverride(msg_override)
+	}
 	return er
 }
 
@@ -332,6 +340,8 @@ func ERR_NOTONCHANNEL(msg_override, channel string) Response {
 		code: "489",
 		msg:  fmt.Sprintf("%s :You're not channel operator", channel),
 	}
-	er.MsgOverride(msg_override)
+	if len(msg_override) != 0 {
+		er.MsgOverride(msg_override)
+	}
 	return er
 }
