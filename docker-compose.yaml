@@ -1,4 +1,3 @@
-version: '3'
 services:
   zirc_chat_server:
     container_name: zirc_chat_server

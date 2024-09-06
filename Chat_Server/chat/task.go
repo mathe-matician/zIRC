@@ -44,6 +44,7 @@ type Task struct {
 	Weight     float64
 	Task       string
 	ClientConn *net.Conn
+	Channel    *Channel
 	// Src        Location
 	// Dest       Location
 }
@@ -72,7 +73,7 @@ func NewDest(conn *net.Conn) *Dest {
 }
 
 // func NewTask(_type, task string, src Location, dest Location, weight float64) *Task {
-func NewTask(_type, task string, weight float64, client_conn *net.Conn) *Task {
+func NewTask(_type, task string, weight float64, client_conn *net.Conn, channel *Channel) *Task {
 	uid, err := uuid.NewV7()
 	if err != nil {
 		return nil
@@ -84,5 +85,6 @@ func NewTask(_type, task string, weight float64, client_conn *net.Conn) *Task {
 		Weight:     weight, // TODO - determine weight of task somehow, may be useful
 		Task:       task,
 		ClientConn: client_conn,
+		Channel:    channel,
 	}
 }

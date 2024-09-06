@@ -55,7 +55,7 @@ type Worker struct {
 type ServerManager struct {
 	Name               string
 	ClientList         *[]*chat.Client
-	ChannelList        *[]*chat.Channel
+	ChannelMap         *map[string]*chat.Channel
 	ServerList         *[]*IrcServer
 	WorkerPool         map[string]*Worker
 	worker_tasks       chan []*chat.Task
@@ -186,32 +186,32 @@ func (w *Worker) broadcast(server_manager *ServerManager, task *chat.Task) {
 }
 
 func (w *Worker) multicast(server_manager *ServerManager, task *chat.Task) {
-	for _, c := range *server_manager.ClientList {
+	if task == nil {
+		log.Debug().EmbedObject(w).Msgf("Multicast task is nil!")
+		return
+	}
+	the_channel := (*task).Channel
+	channel_user_map := (*the_channel).UserList
+	for _, c := range channel_user_map {
 		if c == nil {
 			log.Debug().EmbedObject(w).Msgf("Client is null - trying next")
 			continue
 		}
 
+		// TODO some modes allow you to send messages to unregistered clients
 		if c.Registered {
 			log.Debug().EmbedObject(w).Msgf("Staring task: %s", task.Id.String())
 			if c.ClientConn == nil {
 				log.Error().EmbedObject(w).Msg("Client connection is nil!!")
-				break
+				continue
 			}
 			conn := *(c.ClientConn)
 			if _, err := conn.Write([]byte(task.Task)); err != nil {
 				log.Error().EmbedObject(c).Msgf("Error writing to client: %s", err.Error())
-				break
+				continue
 			}
-			// iterating through tasks here doesn't make sense anymore
-			// it is done outside of this loop
-			// for _, task := range task {
-			// 	if _, err := conn.Write([]byte(task.Task)); err != nil {
-			// 		log.Error().EmbedObject(c).Msgf("Error writing to client: %s", err.Error())
-			// 		break
-			// 	}
-			// }
 		} else {
+			// TODO some modes allow you to send messages to unregistered clients
 			log.Info().EmbedObject(w).Msg("Client not registered")
 		}
 	}
@@ -272,7 +272,6 @@ func (w *Worker) Work(tasks chan []*chat.Task, results chan string, server_manag
 				} else if task.Type == chat.MULTICAST {
 					log.Debug().Msgf("%s task", chat.MULTICAST)
 					// multicast only purpose is to send client msgs to a specific channel
-
 					w.multicast(server_manager, task)
 				} else if task.Type == chat.BROADCAST {
 					log.Debug().Msgf("%s task", chat.BROADCAST)
@@ -314,7 +313,7 @@ func NewServerManager(client_list *[]*chat.Client, server_list *[]*IrcServer) *S
 		panic("servermanager: client_list or server_list is null! This cannot be!")
 	}
 
-	channel_list := make([]*chat.Channel, 0)
+	channel_list := make(map[string]*chat.Channel)
 
 	sm := &ServerManager{
 		Name:         "",
@@ -323,7 +322,7 @@ func NewServerManager(client_list *[]*chat.Client, server_list *[]*IrcServer) *S
 		results:      make(chan string),
 		ClientList:   client_list,
 		ServerList:   server_list,
-		ChannelList:  &channel_list,
+		ChannelMap:   &channel_list,
 		WorkerPool:   make(map[string]*Worker), // TODO - do we even need to keep track of workers in the pool? !only if we want to scale them down by name - otherwise sending 'quit' to any arbitrary worker will kill it
 	}
 
@@ -422,6 +421,22 @@ func NewIrcServer(dns_name string, version string, addr string, server_role stri
 	s_manager := NewServerManager(&is.Clients, &is.Servers)
 	s_manager.Name = dns_name
 	is._ServerManger = s_manager
+
+	// TODO - how do you connect to become brock_rockjaw? probably need the NickServ for this
+	superadmin, session_timestamp, err := chat.NewClient(
+		"brock_rockjaw",
+		"brock_rockjaw",
+		nil,
+		nil,
+	)
+
+	if err != nil {
+		panic("cant create defaut admin user")
+	}
+
+	*is._ServerManger.ClientList = append(*is._ServerManger.ClientList, superadmin)
+	log.Info().Msgf("Default superadmin brock_rockjaw created at %s", *session_timestamp)
+
 	return &is
 }
 
@@ -505,6 +520,8 @@ func (is *IrcServer) handleConnection(conn *net.Conn) {
 				log.Info().EmbedObject(client).Msgf("Client disconnected: %s", *end_timestamp)
 				// TODO - remove client state from ServerManager!!!
 				// TODO - write session duration as a metric / possible analysis
+
+				// TODO - remove client from all channels they are on
 			} else {
 				log.Error().EmbedObject(client).Msgf("Error reading data from connection: %s", err.Error())
 			}
@@ -521,7 +538,7 @@ func (is *IrcServer) handleConnection(conn *net.Conn) {
 			"channelmodes": is.Config["IRC_CHANNEL_MODES"],
 		}
 
-		response := chat.ProcessMessage(&recv_buf, client, is._ServerManger.Task_runner, server_metadata, is._ServerManger.ChannelList)
+		response := chat.ProcessMessage(&recv_buf, client, is._ServerManger.Task_runner, server_metadata, is._ServerManger.ChannelMap)
 
 		if len(response) == 0 {
 			// e.g. sometimes the server doesn't send anything back to the client

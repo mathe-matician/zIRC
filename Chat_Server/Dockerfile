@@ -1,4 +1,4 @@
-FROM golang:1.22.5-bookworm as builder
+FROM golang:1.22.5-bookworm AS builder
 
 WORKDIR /chat_server
 

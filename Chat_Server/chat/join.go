@@ -38,9 +38,9 @@ func join(params map[string]interface{}) Response {
 
 		_task_runner := params["task_runner"]
 		task_runner := _task_runner.(chan []*Task)
-		_channel_list := params["channel_list"]
-		channel_list := _channel_list.(*[]*Channel)
-		if channel_list == nil {
+		_channel_map := params["channel_map"]
+		channel_map := _channel_map.(*map[string]*Channel)
+		if channel_map == nil {
 			log.Error().Msg("Channel list is null!!")
 			return ERR_UNKNOWNERROR("")
 		}
@@ -50,22 +50,37 @@ func join(params map[string]interface{}) Response {
 			return ERR_BADCHANMASK("")
 		}
 
-		channel := NewChannel(
-			cmd_params,
-			"",
-			"",
-			"",
-			"active",
-			"temporary", // all channels are temporary upon creation until marked with +P mode
-		)
+		// TODO - what if the channel already exists??
 
-		// Add channel to channel list
-		// Add channel to client?
-		// should there just be a single source of truth?
-		// when do we need to have both lists kept up to date?
-		// is it just a burden to update both?
-		// AND updating the client's list itself?
-		(*channel_list) = append((*channel_list), channel)
+		channel := (*channel_map)[cmd_params]
+
+		if channel == nil {
+			// if channel doesn't exist, this user is the channel creator and default operator
+			channel = NewChannel(
+				cmd_params,
+				"",
+				"",
+				"",
+				"active",
+				"temporary", // all channels are temporary upon creation until marked with +P mode
+			)
+
+			channel.Operators[client.Nick()] = client
+
+			// Add channel to channel list
+			// Add channel to client?
+			// should there just be a single source of truth?
+			// when do we need to have both lists kept up to date?
+			// is it just a burden to update both?
+			// AND updating the client's list itself?
+			(*channel_map)[channel.Name] = channel
+		}
+		// else {
+		// 	channel.
+		// }
+
+		// add the client to the channel's user list (whether they are a new member or they created the channel)
+		channel.UserList[client.Nick()] = client
 
 		// TODO - update current user as the channel operator
 
@@ -83,10 +98,10 @@ func join(params map[string]interface{}) Response {
 		_rpl_endofnames := RPL_ENDOFNAMES("")
 		_rpl_endofnames_msg := helpers.FormatResponse(server_name, _rpl_endofnames.Code(), _rpl_endofnames.Msg())
 
-		join_msg := NewTask(MULTICAST, msg, 0.0, nil)
-		rpl_topic := NewTask(UNICAST, string(_rpl_topic_msg), 0.0, client.ClientConn)
-		rpl_namreply := NewTask(UNICAST, string(_rpl_namreply_msg), 0.0, client.ClientConn)
-		rpl_endofnames := NewTask(UNICAST, string(_rpl_endofnames_msg), 0.0, client.ClientConn)
+		join_msg := NewTask(MULTICAST, msg, 0.0, nil, channel)
+		rpl_topic := NewTask(UNICAST, string(_rpl_topic_msg), 0.0, client.ClientConn, channel)
+		rpl_namreply := NewTask(UNICAST, string(_rpl_namreply_msg), 0.0, client.ClientConn, channel)
+		rpl_endofnames := NewTask(UNICAST, string(_rpl_endofnames_msg), 0.0, client.ClientConn, channel)
 
 		task_runner <- []*Task{
 			join_msg,

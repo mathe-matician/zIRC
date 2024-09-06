@@ -6,6 +6,11 @@ import (
 	"github.com/phuslu/log"
 )
 
+// USER <username> <mode> <unused> <realname>
+// <username>: Required
+// <mode>: Required (though usually set to 0)
+// <unused>: Required (often set to *)
+// <realname>: Required
 func user(params map[string]interface{}) Response {
 	log.Info().Msg("Running USER...")
 
@@ -15,14 +20,32 @@ func user(params map[string]interface{}) Response {
 		return ERR_UNKNOWNERROR("")
 	}
 
-	user, ok := params["params"]
+	_params, ok := params["params"]
 	if !ok {
 		log.Error().Msg("Params not in map!")
 		return ERR_NEEDMOREPARAMS("")
 	}
 
+	p := _params.(string)
+	// TODO - USER command takes more params sent automatically by the client
+	//		  not just "USER myuser"
+	// TODO - can't split as realname param can contain spaces
+	// if it contains spaces, it must be prefixed with `:`
+	// p_split := re.FindAllStringSubmatch(p, -1)
+
+	if len(p) == 0 {
+		// if len(p) < 0 || p_split == nil {
+		log.Error().Msg("not enough params")
+		return ERR_NEEDMOREPARAMS("")
+	}
+	user := p
+	// user := p_split[0]
+	// mode := p_split[1]
+	// unused := p_split[2]
+	// realname := p_split[3]
+
 	client := _client.(*Client)
-	client.SetUser(user.(string))
+	client.SetUser(user)
 
 	res := EMPTY_RESPONSE()
 

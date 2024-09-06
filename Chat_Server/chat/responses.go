@@ -85,6 +85,41 @@ func RPL_MYINFO(msg_override, nick, server_name, server_version, usermodes, chan
 	}
 }
 
+// response code, often used to list various server capabilities, including the channel modes that the server supports. The CHANMODES=b,k,l,imnpst part indicates the types of modes supported:
+// :irc.example.com 005 <nickname> CHANMODES=b,k,l,imnpst CASEMAPPING=rfc1459 :are supported by this server
+func RPL_ISUPPORT(msg_override, server_creation_date string) Response {
+	return &Reply{
+		code: "005",
+		msg:  fmt.Sprintf(":This server was created %s", server_creation_date),
+	}
+}
+
+// response code, listing the user modes currently set for the user (+iow might indicate invisible, operator, and wallops receipt modes).
+// :irc.example.com 221 <nickname> :+iow
+func RPL_UMODEIS(msg_override, channel, modes string) Response {
+	return &Reply{
+		code: "221",
+		msg:  fmt.Sprintf("%s %s", channel, modes),
+	}
+}
+
+func RPL_CHANNELMODEIS(msg_override, channel, modes string) Response {
+	return &Reply{
+		code: "324",
+		msg:  fmt.Sprintf("%s +%s", channel, modes),
+	}
+}
+
+// is used to inform a user about the creation time of a specific channel. It is typically sent as part of the response to a /mode or /join command, alongside other information about the channel's modes.
+// :irc.example.com 329 <nickname> #channel <timestamp>
+// :irc.example.com 329 Alice #mychannel 1694018882
+func RPL_CREATIONTIME(msg_override, channel, timestamp string) Response {
+	return &Reply{
+		code: "329",
+		msg:  fmt.Sprintf("%s %s", channel, timestamp),
+	}
+}
+
 func RPL_TOPIC(msg_override, topic string) Response {
 	if len(topic) == 0 {
 		topic = "No topic is set"
@@ -115,7 +150,35 @@ func ERR_UNKNOWNERROR(msg_override string) Response {
 		code: "400",
 		msg:  ":Unknown error occurred",
 	}
-	er.MsgOverride(msg_override)
+	if len(msg_override) != 0 {
+		er.MsgOverride(msg_override)
+	}
+	return er
+}
+
+// :irc.example.com 401 <nickname> #nonexistent :No such nick/channel
+func ERR_NOSUCHNICK(msg_override string) Response {
+	er := &ErrorResponse{
+		code: "401",
+		msg:  ":No such nick",
+	}
+	if len(msg_override) != 0 {
+		er.MsgOverride(msg_override)
+	}
+	return er
+}
+
+// used with:
+// MODE
+// :irc.example.com 403 <nickname> #nonexistent :No such channel
+func ERR_NOSUCHCHANNEL(msg_override, channel string) Response {
+	er := &ErrorResponse{
+		code: "403",
+		msg:  fmt.Sprintf("%s :No such channel", channel),
+	}
+	if len(msg_override) != 0 {
+		er.MsgOverride(msg_override)
+	}
 	return er
 }
 
@@ -124,7 +187,67 @@ func ERR_UNKNOWNCOMMAND(msg_override string) Response {
 		code: "421",
 		msg:  ":Unknown command",
 	}
-	er.MsgOverride(msg_override)
+	if len(msg_override) != 0 {
+		er.MsgOverride(msg_override)
+	}
+	return er
+}
+
+func ERR_ERRONEUSNICKNAME(msg_override string) Response {
+	er := &ErrorResponse{
+		code: "432",
+		msg:  ":Erroneous nickname",
+	}
+	if len(msg_override) != 0 {
+		er.MsgOverride(msg_override)
+	}
+	return er
+}
+
+func ERR_NICKNAMEINUSE(msg_override string) Response {
+	er := &ErrorResponse{
+		code: "433",
+		msg:  ":Nickname is already in use",
+	}
+	if len(msg_override) != 0 {
+		er.MsgOverride(msg_override)
+	}
+	return er
+}
+
+// This error indicates a nickname collision, which can occur in scenarios where a user is trying to register a nickname that another user is also attempting to register simultaneously.
+func ERR_NICKCOLLISION(msg_override string) Response {
+	er := &ErrorResponse{
+		code: "436",
+		msg:  ":Nickname is already in use",
+	}
+	if len(msg_override) != 0 {
+		er.MsgOverride(msg_override)
+	}
+	return er
+}
+
+// This error can occur if a user is changing their nickname too frequently. It prevents rapid nickname changes to avoid abuse.
+func ERR_NICKTOOFAST(msg_override string) Response {
+	er := &ErrorResponse{
+		code: "437",
+		msg:  ":Nick change too fast",
+	}
+	if len(msg_override) != 0 {
+		er.MsgOverride(msg_override)
+	}
+	return er
+}
+
+// used with: MODE
+func ERR_USERNOTINCHANNEL(msg_override string) Response {
+	er := &ErrorResponse{
+		code: "441",
+		msg:  ":They aren't on that channel",
+	}
+	if len(msg_override) != 0 {
+		er.MsgOverride(msg_override)
+	}
 	return er
 }
 
@@ -133,7 +256,9 @@ func ERR_NOTREGISTERED(msg_override string) Response {
 		code: "451",
 		msg:  ":You have not registered",
 	}
-	er.MsgOverride(msg_override)
+	if len(msg_override) != 0 {
+		er.MsgOverride(msg_override)
+	}
 	return er
 }
 
@@ -142,7 +267,9 @@ func ERR_NEEDMOREPARAMS(msg_override string) Response {
 		code: "461",
 		msg:  ":Need more params",
 	}
-	er.MsgOverride(msg_override)
+	if len(msg_override) != 0 {
+		er.MsgOverride(msg_override)
+	}
 	return er
 }
 
@@ -151,7 +278,9 @@ func ERR_ALREADYREGISTRED(msg_override string) Response {
 		code: "462",
 		msg:  ":You may not reregister",
 	}
-	er.MsgOverride(msg_override)
+	if len(msg_override) != 0 {
+		er.MsgOverride(msg_override)
+	}
 	return er
 }
 
@@ -173,11 +302,35 @@ func ERR_PASSWDMISMATCH(msg_override string) Response {
 	return er
 }
 
+// used with:
+// MODE
+func ERR_UNKNOWNMODE(msg_override, char string) Response {
+	er := &ErrorResponse{
+		code: "472",
+		msg:  fmt.Sprintf("%s :is unknown mode char to me", char),
+	}
+	er.MsgOverride(msg_override)
+	return er
+}
+
+// used with:
+// MODE
 // 476 <nickname> <channel> :Bad Channel Mask
 func ERR_BADCHANMASK(msg_override string) Response {
 	er := &ErrorResponse{
 		code: "476",
 		msg:  ":Bad Channel Mask",
+	}
+	er.MsgOverride(msg_override)
+	return er
+}
+
+// used with:
+// MODE
+func ERR_NOTONCHANNEL(msg_override, channel string) Response {
+	er := &ErrorResponse{
+		code: "489",
+		msg:  fmt.Sprintf("%s :You're not channel operator", channel),
 	}
 	er.MsgOverride(msg_override)
 	return er

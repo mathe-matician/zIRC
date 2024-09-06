@@ -8,13 +8,16 @@ const (
 	MODELESS_CHAN_PREFIX = "+"
 )
 
+var modes = "psimntlkbeP"
+
 type Channel struct {
 	Name            string
 	Prefix          string
 	Topic           string
 	TopicDetails    string
-	ChannelModes    []string
+	ChannelModes    string
 	UserModes       []string
+	Operators       map[string]*Client
 	UserList        map[string]*Client
 	CreateTime      time.Time
 	ChannelPassword string
@@ -25,23 +28,6 @@ type Channel struct {
 // TOPIC
 // Description: A short description or subject of the channel, set by channel operators.
 // Mode: Set using the +t mode to restrict who can change the topic (only operators can change it if +t is set).
-
-// Channel Modes
-//Visibility and Access:
-// +p (Private): The channel is not visible in the channel list.
-// +s (Secret): The channel is hidden from public view and channel lists.
-// +i (Invite-Only): Users must be invited to join the channel.
-// Moderation:
-// +m (Moderated): Only users with voice (+v) or operator status can speak.
-// +n (No External Messages): Prevents users outside the channel from sending messages to it.
-// +t (Topic Protection): Only operators can change the topic.
-// User Limits and Restrictions:
-// +l (Limit): Sets a maximum number of users allowed in the channel.
-// +k (Keyed): Requires a password (key) to join the channel.
-// Bans and Exemptions:
-// +b (Ban List): Bans specific users or masks from the channel.
-// +e (Ban Exemption): Exempts specific users from being affected by a ban.
-// +P persistent: to persist the channel after all users leave
 
 // USER MODES
 // +o (Operator): Grants the user operator status, allowing them to manage the channel.
@@ -68,12 +54,21 @@ func NewChannel(name, topic, topic_details, channel_password, status, duration s
 		Prefix:          string(name[0]),
 		Topic:           topic,
 		TopicDetails:    topic_details,
-		ChannelModes:    make([]string, 0),
+		ChannelModes:    "nt", // by default only allow operators to modify topic && prevent external messages to channel (users must join it first)
 		UserModes:       make([]string, 0),
+		Operators:       make(map[string]*Client),
 		UserList:        make(map[string]*Client),
 		CreateTime:      creation_date_time,
 		ChannelPassword: channel_password,
 		Status:          status,
 		Duration:        duration,
 	}
+}
+
+func (c *Channel) SetMode(mode string) {
+
+}
+
+func (c *Channel) DeleteMode(mode string) {
+
 }

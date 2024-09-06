@@ -14,7 +14,7 @@ import (
 
 var re = regexp.MustCompile(`^\S*`) // captures until first space
 
-func ProcessMessage(recv_buf *[]byte, client *Client, task_runner chan []*Task, server_metadata map[string]string, channel_list *[]*Channel) []byte {
+func ProcessMessage(recv_buf *[]byte, client *Client, task_runner chan []*Task, server_metadata map[string]string, channel_map *map[string]*Channel) []byte {
 	log.Debug().Msg("------------MSG START------------")
 	trimmed_msg := string(bytes.Trim(bytes.TrimLeft(*recv_buf, " "), "\x00"))
 	log.Info().Msgf("Raw Client msg: %s", trimmed_msg)
@@ -119,7 +119,7 @@ func ProcessMessage(recv_buf *[]byte, client *Client, task_runner chan []*Task, 
 	cmd_param_slice["client"] = client
 	cmd_param_slice["task_runner"] = task_runner
 	cmd_param_slice["server_metadata"] = server_metadata
-	cmd_param_slice["channel_list"] = channel_list
+	cmd_param_slice["channel_map"] = channel_map
 
 	log.Info().Msgf("Before running func")
 	_response := cmd.Fn(cmd_param_slice)

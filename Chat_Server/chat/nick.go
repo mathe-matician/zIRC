@@ -6,6 +6,14 @@ import (
 	"github.com/phuslu/log"
 )
 
+// TODO:
+// Limit characters in NICK
+// Alphanumeric Characters: Letters (A-Z, a-z) and digits (0-9) are generally allowed.
+// Certain Special Characters: Commonly allowed special characters include - (hyphen), _ (underscore), and . (dot).
+// Disallow: Leading/Trailing Characters: Characters like - and . might be restricted from being at the beginning or end of a nickname.
+// Length restriction: Most servers have a maximum length for nicknames, commonly between 9 and 30 characters.
+// Nicks are case sensitive
+
 func nick(params map[string]interface{}) Response {
 	log.Debug().Msg("Running NICK...")
 
