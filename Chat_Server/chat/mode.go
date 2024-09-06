@@ -75,16 +75,8 @@ func mode(params map[string]interface{}) Response {
 		return ERR_NEEDMOREPARAMS("")
 	}
 
-	// split_mode := re.FindAllStringSubmatch(cmd_params, -1)
-	// if split_mode == nil {
-	// 	log.Debug().Msgf("no params passed to MODE")
-	// 	return ERR_NEEDMOREPARAMS("")
-	// }
-
-	// param_channel := split_mode[0]
 	param_channel := split_p[0]
 	log.Debug().Msgf("param_channel: %s", param_channel)
-	// channel, valid_channel := (*channel_map)[param_channel[0]]
 	channel, valid_channel := (*channel_map)[param_channel]
 	if !valid_channel {
 		log.Debug().Msgf("So such chan!")
@@ -94,20 +86,13 @@ func mode(params map[string]interface{}) Response {
 	// pair off channel
 	split_p = split_p[1:]
 
-	// log.Debug().Msgf("split_mode before len(split_mode) == 1: %s", split_mode)
 	log.Debug().Msgf("split_p before len(split_p) == 1: %s", split_p)
 
-	// if len(split_mode) == 1 {
 	if len(split_p) == 0 {
 		// e.g. regular users can run MODE #chan w/o being an operator
 		// only when they pass modes are they denied
 		return RPL_CHANNELMODEIS("", channel.Name, channel.ChannelModes)
 	}
-
-	// get params after channel
-	// sm := split_mode[1]
-	// log.Debug().Msgf("sm: %s", sm)
-	// at this point split_params should have <modes> [params]
 
 	_client, ok := params["client"]
 	if _client == nil || !ok {
@@ -129,25 +114,6 @@ func mode(params map[string]interface{}) Response {
 	_task_runner := params["task_runner"]
 	task_runner := _task_runner.(chan []*Task)
 
-	// KEEP THIS
-	// PARSE modes / params
-	// res := parseModes(split_mode[1], server_metadata["channelmodes"], task_runner)
-	// log.Info().Msgf("split_mode[0]: %s, split_mode[1]: %s", split_mode[0], split_mode[1])
-
-	// _mode := split_p[0]
-	// if
-
-	// DESIGN:
-	// get all modes presented, could be anything - store in variable
-	// pair off modes from other params. now at the front of params will be the actual params
-	// iterate through paired off modes and have an if block
-	// the if block has a toggle that checks to see if we are in adding mode or removing mode
-	// have two funcs that add or remove modes, but allow you to pass in params to them
-	// during the loop, check to see if valid mode, check to see if + or -, if + or minus encountered
-	//		then change the `if` toggle.
-	// TODO - what about +vk+ke+jd - is this valid w/ multiple +?
-
-	// var mode_re = regexp.MustCompile(`^\S*`) // captures until first space
 	supported_channel_modes := server_metadata["channelmodes"]
 	mode_task := []*Task{}
 	for _, m := range split_p {
@@ -161,19 +127,18 @@ func mode(params map[string]interface{}) Response {
 
 		for _, mode := range m {
 			str_mode := string(mode)
-			if !strings.Contains(supported_channel_modes, str_mode) {
-				unknown_mode_task := NewTask(UNICAST, ERR_UNKNOWNMODE("", str_mode).Msg(), 0.0, client.ClientConn, nil)
-				mode_task = append(mode_task, unknown_mode_task)
-				continue
-			}
-
 			if str_mode == "+" || str_mode == "-" {
 				action = str_mode
 				continue
 			}
 
+			if !strings.Contains(supported_channel_modes, str_mode) {
+				unknown_mode_task := NewTask(UNICAST, ERR_UNKNOWNMODE("", str_mode).Msg()+" \r\n", 0.0, client.ClientConn, nil)
+				mode_task = append(mode_task, unknown_mode_task)
+				continue
+			}
+
 			if action == "+" {
-				// TODO addMode to user if applicable?
 				addMode(str_mode, &channel.ChannelModes)
 			} else if action == "-" {
 				removeMode(str_mode, &channel.ChannelModes)
@@ -186,7 +151,7 @@ func mode(params map[string]interface{}) Response {
 			// e.g.
 			// :Bob!bob@host MODE #example +i
 			client_details := fmt.Sprintf("%s@%s!%s", client_nick, client.User(), client.Ip())
-			msg := fmt.Sprintf(":%s MODE %s %s%s", client_details, channel.Name, action, str_mode)
+			msg := fmt.Sprintf(":%s MODE %s %s%s \r\n", client_details, channel.Name, action, str_mode)
 			valid_mode_task := NewTask(MULTICAST, msg, 0.0, client.ClientConn, channel)
 			mode_task = append(mode_task, valid_mode_task)
 		}
@@ -200,12 +165,18 @@ func mode(params map[string]interface{}) Response {
 // adds the mode to the channel
 // and to the user?
 func addMode(mode string, channel_modes *string) {
+	if strings.Contains(*channel_modes, mode) {
+		return
+	}
 	*channel_modes += mode
 }
 
 // removes the mode from the channel
 // and from the user?
 func removeMode(mode string, channel_modes *string) {
+	if !strings.Contains(*channel_modes, mode) {
+		return
+	}
 	*channel_modes = strings.Replace(*channel_modes, mode, "", 1)
 }
 
@@ -213,29 +184,29 @@ func removeMode(mode string, channel_modes *string) {
 
 // this then makes two sources of truth for modes - the ServerManager or IrcServer and this one
 // annoying to update both (also not like modes change frequently, though)
-// var mode_fns = map[string]func(params *map[string]interface{}){
-// 	"p": p,
-// 	"s": s,
-// 	"i": i,
-// 	"m": m,
-// 	"n": n,
-// 	"t": t,
-// 	"l": l,
-// 	"k": k,
-// 	"b": b,
-// 	"e": e,
-// 	"P": P,
-// 	"v": v,
-// 	"I": I,
-// 	"r": r,
-// 	"R": R,
-// 	"z": z,
-// 	"M": M,
-// 	"c": c,
-// 	"C": C,
-// 	"a": a,
-// 	"q": q,
-// }
+var mode_fns = map[string]func(params *map[string]interface{}){
+	"p": p,
+	"s": s,
+	"i": i,
+	"m": m,
+	"n": n,
+	"t": t,
+	"l": l,
+	"k": k,
+	"b": b,
+	"e": e,
+	"P": P,
+	"v": v,
+	"I": I,
+	"r": r,
+	"R": R,
+	"z": z,
+	"M": M,
+	"c": c,
+	"C": C,
+	"a": a,
+	"q": q,
+}
 
 // +p (Private): The channel is not visible in the channel list.
 func p(params *map[string]interface{}) {
