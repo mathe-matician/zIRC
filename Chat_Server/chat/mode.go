@@ -120,10 +120,13 @@ func mode(params map[string]interface{}) Response {
 	current_offset := 1
 	seen := map[int]bool{}
 
+	// log.Debug().Msgf("Before inner MODE loop. Split: %s, index1: %s, index2: %s", split_p, split_p[0], split_p[1])
 	for mode_param_offset, m := range split_p {
+		log.Debug().Msgf("Starting inner MODE loop. mode_param_offset: %d, m: %s", mode_param_offset, m)
 		if seen[mode_param_offset] {
 			// TODO
 			// out of bounds issue here possibly
+			log.Debug().Msgf("Already seen index: %d, value: %s", mode_param_offset, m)
 			current_offset = mode_param_offset + 1
 			continue
 		}
@@ -133,17 +136,21 @@ func mode(params map[string]interface{}) Response {
 		if len(action) == 0 || (action != "+" && action != "-") || len(m) == 1 {
 			log.Debug().Msgf("action empty, action != + or -, m len == 1")
 			// if no action is specified, we don't know whether to add or remove the modes
-			return ERR_NEEDMOREPARAMS("")
+			need_more_params := NewTask(UNICAST, ERR_NEEDMOREPARAMS("").Msg()+" \r\n", 0.0, client.ClientConn, nil)
+			mode_task = append(mode_task, need_more_params)
 		}
 
 		for _, mode := range m {
 			str_mode := string(mode)
+			log.Debug().Msgf("Starting inner inner for loop. Mode: %s", str_mode)
 			if str_mode == "+" || str_mode == "-" {
+				log.Debug().Msgf("str_mode is action: %s. Continuing loop", str_mode)
 				action = str_mode
 				continue
 			}
 
 			if !strings.Contains(supported_channel_modes, str_mode) {
+				log.Debug().Msgf("Not a supported mode: %s. Continuing", str_mode)
 				unknown_mode_task := NewTask(UNICAST, ERR_UNKNOWNMODE("", str_mode).Msg()+" \r\n", 0.0, client.ClientConn, nil)
 				mode_task = append(mode_task, unknown_mode_task)
 				continue
@@ -157,7 +164,7 @@ func mode(params map[string]interface{}) Response {
 
 			// if command requires params
 			// these are the only modes that do
-			if str_mode == "b" || str_mode == "k" || str_mode == "v" || str_mode == "l" || str_mode == "e" || str_mode == "I" || str_mode == "o" || str_mode == "q" {
+			if mode_requires_params(str_mode) {
 				// check the offset index to see if there is a corresponding param for it.
 				// For example:
 				//					                       co
@@ -175,14 +182,16 @@ func mode(params map[string]interface{}) Response {
 				} else {
 					if len(split_p) < current_offset {
 						log.Debug().Msgf("NEED MORE PARAMS")
-						return ERR_NEEDMOREPARAMS("")
+						need_more_params := NewTask(UNICAST, ERR_NEEDMOREPARAMS("").Msg()+" \r\n", 0.0, client.ClientConn, nil)
+						mode_task = append(mode_task, need_more_params)
 					}
 
 					current_mode_params = split_p[n]
 					log.Debug().Msgf("Params for func %s: %s", str_mode, current_mode_params)
 					if len(current_mode_params) == 0 {
 						log.Error().Msgf("Somehow the modes params are empty")
-						return ERR_NEEDMOREPARAMS("")
+						need_more_params := NewTask(UNICAST, ERR_NEEDMOREPARAMS("").Msg()+" \r\n", 0.0, client.ClientConn, nil)
+						mode_task = append(mode_task, need_more_params)
 					}
 				}
 				seen[n] = true
@@ -228,13 +237,19 @@ func mode(params map[string]interface{}) Response {
 
 			// e.g.
 			// :Bob!bob@host MODE #example +i
+			res_params := ""
+			if len(current_mode_params) != 0 {
+				res_params += " " + current_mode_params
+			}
+
 			client_details := fmt.Sprintf("%s@%s!%s", client_nick, client.User(), client.Ip())
-			msg := fmt.Sprintf(":%s MODE %s %s%s \r\n", client_details, channel.Name, action, str_mode)
+			msg := fmt.Sprintf(":%s MODE %s %s%s%s \r\n", client_details, channel.Name, action, str_mode, res_params)
 			valid_mode_task := NewTask(MULTICAST, msg, 0.0, client.ClientConn, channel)
 			mode_task = append(mode_task, valid_mode_task)
 		}
 	}
-
+	current_offset = 1
+	log.Debug().Msgf("Before sending mode_task slice off: %v", mode_task)
 	task_runner <- mode_task
 
 	return EMPTY_RESPONSE()
@@ -416,4 +431,11 @@ func q(params *map[string]interface{}) *Response {
 	l_params := (*params)["params"].(string)
 	log.Debug().Msgf("Running mode q, params: %s", l_params)
 	return nil
+}
+
+func mode_requires_params(mode string) bool {
+	if mode == "b" || mode == "k" || mode == "v" || mode == "l" || mode == "e" || mode == "I" || mode == "o" || mode == "q" {
+		return true
+	}
+	return false
 }

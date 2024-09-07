@@ -100,11 +100,21 @@ func NewMode(mode string, params string) *Mode {
 }
 
 func (c *Channel) AddMode(mode Mode) {
-	// if strings.Contains(c.ChannelModes, mode) {
-	// 	return
-	// }
-	// c.ChannelModes += mode
+	char := mode.ModeChar
+	if (char == "k" && c.HasMode(char)) || (!mode_requires_params(char) && c.HasMode(char)) {
+		// even though k takes params, only have 1 k in list (i.e. having multiple passwords doesn't make sense)
+		return
+	}
 	c.ChannelModes = append(c.ChannelModes, mode)
+}
+
+func (c *Channel) HasMode(mode string) bool {
+	for _, m := range c.ChannelModes {
+		if m.ModeChar == mode {
+			return true
+		}
+	}
+	return false
 }
 
 func (c *Channel) RemoveMode(_mode string, param string) {
