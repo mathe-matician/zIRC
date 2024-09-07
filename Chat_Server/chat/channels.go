@@ -1,6 +1,12 @@
 package chat
 
-import "time"
+import (
+	"slices"
+	"strings"
+	"time"
+
+	"github.com/phuslu/log"
+)
 
 const (
 	GENERAL_CHAN_PREFIX  = "#"
@@ -10,12 +16,17 @@ const (
 
 var modes = "psimntlkbeP"
 
+type Mode struct {
+	ModeChar string
+	Params   string
+}
+
 type Channel struct {
 	Name            string
 	Prefix          string
 	Topic           string
 	TopicDetails    string
-	ChannelModes    string
+	ChannelModes    []Mode
 	UserModes       []string
 	Operators       map[string]*Client
 	UserList        map[string]*Client
@@ -49,12 +60,18 @@ func NewChannel(name, topic, topic_details, channel_password, status, duration s
 		now.Location(),
 	)
 
+	default_channel_modes := []Mode{
+		{ModeChar: "n", Params: ""},
+		{ModeChar: "t", Params: ""},
+	}
+
 	return &Channel{
-		Name:            name,
-		Prefix:          string(name[0]),
-		Topic:           topic,
-		TopicDetails:    topic_details,
-		ChannelModes:    "nt", // by default only allow operators to modify topic && prevent external messages to channel (users must join it first)
+		Name:         name,
+		Prefix:       string(name[0]),
+		Topic:        topic,
+		TopicDetails: topic_details,
+		// by default only allow operators to modify topic && prevent external messages to channel (users must join it first)
+		ChannelModes:    default_channel_modes,
 		UserModes:       make([]string, 0),
 		Operators:       make(map[string]*Client),
 		UserList:        make(map[string]*Client),
@@ -65,10 +82,50 @@ func NewChannel(name, topic, topic_details, channel_password, status, duration s
 	}
 }
 
-func (c *Channel) SetMode(mode string) {
-
+func (c *Channel) FmtModes() string {
+	modes := ""
+	params := ""
+	for _, m := range c.ChannelModes {
+		modes += m.ModeChar
+		params += " " + m.Params
+	}
+	return modes + " " + strings.TrimLeft(params, " ")
 }
 
-func (c *Channel) DeleteMode(mode string) {
+func NewMode(mode string, params string) *Mode {
+	return &Mode{
+		ModeChar: mode,
+		Params:   params,
+	}
+}
 
+func (c *Channel) AddMode(mode Mode) {
+	// if strings.Contains(c.ChannelModes, mode) {
+	// 	return
+	// }
+	// c.ChannelModes += mode
+	c.ChannelModes = append(c.ChannelModes, mode)
+}
+
+func (c *Channel) RemoveMode(_mode string, param string) {
+	// if !strings.Contains(c.ChannelModes, mode) {
+	// 	return
+	// }
+	// c.ChannelModes = strings.Replace(c.ChannelModes, mode, "", 1)
+	m := NewMode(_mode, param)
+	mode := *m
+	for i, m := range c.ChannelModes {
+		// l and k modes don't need params to remove them
+		// so don't worry about those params if we are removing them as they will be empty
+		if ((m.ModeChar == "l" || m.ModeChar == "k") && m.ModeChar == mode.ModeChar) || (m.ModeChar == mode.ModeChar && m.Params == mode.Params) {
+			if i+1 > len(c.ChannelModes) {
+				log.Error().Msgf("Error when removing mode %v from channelmodes: %v", mode, c.ChannelModes)
+				break
+			}
+			c.ChannelModes = slices.Delete(c.ChannelModes, i, i+1)
+			return
+		}
+	}
+
+	log.Debug().Msgf("Mode %v wasn't found in channelmodes: %v", mode, c.ChannelModes)
 }
