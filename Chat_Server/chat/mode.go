@@ -127,17 +127,27 @@ func mode(params map[string]interface{}) Response {
 			// TODO
 			// out of bounds issue here possibly
 			log.Debug().Msgf("Already seen index: %d, value: %s", mode_param_offset, m)
-			current_offset = mode_param_offset + 1
+			current_offset = mode_param_offset
 			continue
 		}
 
 		action := string(m[0])
 		log.Debug().Msgf("_mode: %s, action: %s", m, action)
+		pre_modes := string(m[1:])
+		_, valid_mode := mode_fns[pre_modes]
+		if len(pre_modes) == 1 && !valid_mode {
+			log.Debug().Msgf("Not a valid mode. pre_modes: %s", pre_modes)
+			unknown_mode_task := NewTask(UNICAST, ERR_UNKNOWNMODE("", pre_modes).Msg()+" \r\n", 0.0, client.ClientConn, nil)
+			mode_task = append(mode_task, unknown_mode_task)
+			continue
+		}
+
 		if len(action) == 0 || (action != "+" && action != "-") || len(m) == 1 {
-			log.Debug().Msgf("action empty, action != + or -, m len == 1")
+			log.Debug().Msgf("action empty, action(%s) != + or -, m[1:](%s) len == 1", action, m[1:])
 			// if no action is specified, we don't know whether to add or remove the modes
 			need_more_params := NewTask(UNICAST, ERR_NEEDMOREPARAMS("").Msg()+" \r\n", 0.0, client.ClientConn, nil)
 			mode_task = append(mode_task, need_more_params)
+			continue
 		}
 
 		for _, mode := range m {
@@ -153,8 +163,25 @@ func mode(params map[string]interface{}) Response {
 				log.Debug().Msgf("Not a supported mode: %s. Continuing", str_mode)
 				unknown_mode_task := NewTask(UNICAST, ERR_UNKNOWNMODE("", str_mode).Msg()+" \r\n", 0.0, client.ClientConn, nil)
 				mode_task = append(mode_task, unknown_mode_task)
+				// TODO
+				// if a client sends an unsupported mode that has params
+				// cases when it actually has params vs when it doesn't
+
+				// TODO
+				// how do you stop looping through args that don't matter?
 				continue
 			}
+
+			// TODO
+			// successful responses should include ALL modes issued in the command
+			// not just a single one at a time.
+			// only errors are issued in additional responses
+			// e.g.
+
+			// :YourNick!username@host MODE #channel +oXt John will give response:
+			//
+			// :YourNick!username@host MODE #channel +ot John
+			//:irc.example.com 472 YourNick X :is unknown mode char to me
 
 			fn_params := map[string]interface{}{
 				"params": "",
@@ -176,18 +203,26 @@ func mode(params map[string]interface{}) Response {
 				// e.g. we are on
 				log.Debug().Msg("Mode func expects params!")
 				n := mode_param_offset + current_offset
+				log.Debug().Msgf("Starting n at offset: %d", n)
 
 				if action == "-" && (str_mode == "l" || str_mode == "k") {
 					log.Debug().Msgf("Removing mode %s, no need to parse params", str_mode)
 				} else {
+					log.Debug().Msgf("Params for func %s: %s", str_mode, split_p)
+
 					if len(split_p) < current_offset {
 						log.Debug().Msgf("NEED MORE PARAMS")
 						need_more_params := NewTask(UNICAST, ERR_NEEDMOREPARAMS("").Msg()+" \r\n", 0.0, client.ClientConn, nil)
 						mode_task = append(mode_task, need_more_params)
 					}
 
+					if n > len(split_p) {
+						log.Error().Msgf("The index %d is greater than the length of the slice %s!!", n, split_p)
+						need_more_params := NewTask(UNICAST, ERR_NEEDMOREPARAMS("").Msg()+" \r\n", 0.0, client.ClientConn, nil)
+						mode_task = append(mode_task, need_more_params)
+					}
+					log.Debug().Msgf("Before split_p[n]. n: %d. split_p: %s", n, split_p)
 					current_mode_params = split_p[n]
-					log.Debug().Msgf("Params for func %s: %s", str_mode, current_mode_params)
 					if len(current_mode_params) == 0 {
 						log.Error().Msgf("Somehow the modes params are empty")
 						need_more_params := NewTask(UNICAST, ERR_NEEDMOREPARAMS("").Msg()+" \r\n", 0.0, client.ClientConn, nil)
@@ -242,10 +277,18 @@ func mode(params map[string]interface{}) Response {
 				res_params += " " + current_mode_params
 			}
 
+			log.Debug().Msgf("About to add MULTICAST msg with values. action: %s, str_mode: %s, res_params: %s", action, str_mode, res_params)
+
 			client_details := fmt.Sprintf("%s@%s!%s", client_nick, client.User(), client.Ip())
-			msg := fmt.Sprintf(":%s MODE %s %s%s%s \r\n", client_details, channel.Name, action, str_mode, res_params)
-			valid_mode_task := NewTask(MULTICAST, msg, 0.0, client.ClientConn, channel)
-			mode_task = append(mode_task, valid_mode_task)
+			_, valid_mode := mode_fns[str_mode]
+			if (action == "+" || action == "-") && valid_mode {
+				msg := fmt.Sprintf(":%s MODE %s %s%s%s \r\n", client_details, channel.Name, action, str_mode, res_params)
+				valid_mode_task := NewTask(MULTICAST, msg, 0.0, client.ClientConn, channel)
+				mode_task = append(mode_task, valid_mode_task)
+			}
+			// msg := fmt.Sprintf(":%s MODE %s %s%s%s \r\n", client_details, channel.Name, action, str_mode, res_params)
+			// valid_mode_task := NewTask(MULTICAST, msg, 0.0, client.ClientConn, channel)
+			// mode_task = append(mode_task, valid_mode_task)
 		}
 	}
 	current_offset = 1
