@@ -120,6 +120,11 @@ func mode(params map[string]interface{}) Response {
 	current_offset := 1
 	seen := map[int]bool{}
 
+	res_modes := ""
+	res_final_params := ""
+	res_action := ""
+	prev_action := ""
+
 	// log.Debug().Msgf("Before inner MODE loop. Split: %s, index1: %s, index2: %s", split_p, split_p[0], split_p[1])
 	for mode_param_offset, m := range split_p {
 		log.Debug().Msgf("Starting inner MODE loop. mode_param_offset: %d, m: %s", mode_param_offset, m)
@@ -145,9 +150,10 @@ func mode(params map[string]interface{}) Response {
 		if len(action) == 0 || (action != "+" && action != "-") || len(m) == 1 {
 			log.Debug().Msgf("action empty, action(%s) != + or -, m[1:](%s) len == 1", action, m[1:])
 			// if no action is specified, we don't know whether to add or remove the modes
-			need_more_params := NewTask(UNICAST, ERR_NEEDMOREPARAMS("").Msg()+" \r\n", 0.0, client.ClientConn, nil)
-			mode_task = append(mode_task, need_more_params)
-			continue
+			// need_more_params := NewTask(UNICAST, ERR_NEEDMOREPARAMS("").Msg()+" \r\n", 0.0, client.ClientConn, nil)
+			// mode_task = append(mode_task, need_more_params)
+			// continue
+			return ERR_NEEDMOREPARAMS("")
 		}
 
 		for _, mode := range m {
@@ -163,12 +169,6 @@ func mode(params map[string]interface{}) Response {
 				log.Debug().Msgf("Not a supported mode: %s. Continuing", str_mode)
 				unknown_mode_task := NewTask(UNICAST, ERR_UNKNOWNMODE("", str_mode).Msg()+" \r\n", 0.0, client.ClientConn, nil)
 				mode_task = append(mode_task, unknown_mode_task)
-				// TODO
-				// if a client sends an unsupported mode that has params
-				// cases when it actually has params vs when it doesn't
-
-				// TODO
-				// how do you stop looping through args that don't matter?
 				continue
 			}
 
@@ -212,22 +212,19 @@ func mode(params map[string]interface{}) Response {
 
 					if len(split_p) < current_offset {
 						log.Debug().Msgf("NEED MORE PARAMS")
-						need_more_params := NewTask(UNICAST, ERR_NEEDMOREPARAMS("").Msg()+" \r\n", 0.0, client.ClientConn, nil)
-						mode_task = append(mode_task, need_more_params)
+						return ERR_NEEDMOREPARAMS("")
 					}
 
 					if n > len(split_p) {
 						log.Error().Msgf("The index %d is greater than the length of the slice %s!!", n, split_p)
-						need_more_params := NewTask(UNICAST, ERR_NEEDMOREPARAMS("").Msg()+" \r\n", 0.0, client.ClientConn, nil)
-						mode_task = append(mode_task, need_more_params)
+						return ERR_NEEDMOREPARAMS("")
 					}
-					log.Debug().Msgf("Before split_p[n]. n: %d. split_p: %s", n, split_p)
-					current_mode_params = split_p[n]
-					if len(current_mode_params) == 0 {
+					log.Debug().Msgf("Before split_p[n]. n: %d. split_p: %s, len(split_p): %d", n, split_p, len(split_p))
+					if n >= len(split_p) {
 						log.Error().Msgf("Somehow the modes params are empty")
-						need_more_params := NewTask(UNICAST, ERR_NEEDMOREPARAMS("").Msg()+" \r\n", 0.0, client.ClientConn, nil)
-						mode_task = append(mode_task, need_more_params)
+						return ERR_NEEDMOREPARAMS("")
 					}
+					current_mode_params = split_p[n]
 				}
 				seen[n] = true
 				current_offset++
@@ -244,12 +241,6 @@ func mode(params map[string]interface{}) Response {
 			if response != nil {
 				return *response
 			}
-
-			// TODO
-			// need to run the command each time because:
-			// -o Alice will remove Alice as an operator
-			// -k will remove password entierly?
-			// yes not all modes that require params will require them when using `-`
 
 			if action == "+" {
 				curr_mode := NewMode(str_mode, current_mode_params)
@@ -279,18 +270,31 @@ func mode(params map[string]interface{}) Response {
 
 			log.Debug().Msgf("About to add MULTICAST msg with values. action: %s, str_mode: %s, res_params: %s", action, str_mode, res_params)
 
-			client_details := fmt.Sprintf("%s@%s!%s", client_nick, client.User(), client.Ip())
+			// client_details := fmt.Sprintf("%s@%s!%s", client_nick, client.User(), client.Ip())
 			_, valid_mode := mode_fns[str_mode]
 			if (action == "+" || action == "-") && valid_mode {
-				msg := fmt.Sprintf(":%s MODE %s %s%s%s \r\n", client_details, channel.Name, action, str_mode, res_params)
-				valid_mode_task := NewTask(MULTICAST, msg, 0.0, client.ClientConn, channel)
-				mode_task = append(mode_task, valid_mode_task)
+				if prev_action == action {
+					res_action = ""
+				} else {
+					res_action = action
+				}
+
+				prev_action = action
+
+				res_modes += res_action + str_mode
+				res_final_params += res_params
+
+				// msg := fmt.Sprintf(":%s MODE %s %s%s%s \r\n", client_details, channel.Name, action, str_mode, res_params)
+				// valid_mode_task := NewTask(MULTICAST, msg, 0.0, client.ClientConn, channel)
+				// mode_task = append(mode_task, valid_mode_task)
 			}
-			// msg := fmt.Sprintf(":%s MODE %s %s%s%s \r\n", client_details, channel.Name, action, str_mode, res_params)
-			// valid_mode_task := NewTask(MULTICAST, msg, 0.0, client.ClientConn, channel)
-			// mode_task = append(mode_task, valid_mode_task)
 		}
 	}
+	client_details := fmt.Sprintf("%s@%s!%s", client_nick, client.User(), client.Ip())
+	msg := fmt.Sprintf(":%s MODE %s %s%s \r\n", client_details, channel.Name, res_modes, res_final_params)
+	valid_mode_task := NewTask(MULTICAST, msg, 0.0, client.ClientConn, channel)
+	mode_task = append(mode_task, valid_mode_task)
+
 	current_offset = 1
 	log.Debug().Msgf("Before sending mode_task slice off: %v", mode_task)
 	task_runner <- mode_task
