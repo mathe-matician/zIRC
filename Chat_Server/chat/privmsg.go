@@ -1,6 +1,9 @@
 package chat
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/phuslu/log"
 )
 
@@ -45,20 +48,29 @@ func privmsg(params map[string]interface{}) Response {
 
 	// remove match that contains the entire string
 	split_msg = split_msg[1:]
-	log.Debug().Msgf("PRIVMSG: trimmed split_msg: %s", split_msg)
+	log.Debug().Msgf("PRIVMSG: trimmed split_msg: %s, len: %d", split_msg, len(split_msg))
 
 	// what SHOULD be left is the channel and the msg
 
-	if len(split_msg) < 2 {
+	if len(split_msg) < 2 || split_msg[0] == "" || split_msg[1] == "" {
 		log.Debug().Msgf("PRIVMSG: not enough params")
 		return ERR_NEEDMOREPARAMS("")
 	}
 
+	// TODO
+	// could be channel OR user
 	param_channel := split_msg[0]
 	msg := split_msg[1]
+	msg = strings.TrimLeft(msg, " ") // rm space between channel/nick and message if it exists
+	if len(msg) != 0 && string(msg[0]) != ":" {
+		log.Debug().Msgf("PRIVMSG: len(msg) != 0 or msg doesn't have : prefix")
+		return ERR_NEEDMOREPARAMS("")
+	}
+	// trim off single space between channel and msg as well as ':' prefix
+	msg = msg[1:]
+
 	log.Debug().Msgf("PRIVMSG: channel: %s, msg: %s", param_channel, msg)
 
-	// param_channel := split_p[0]
 	log.Debug().Msgf("param_channel: %s", param_channel)
 	channel, valid_channel := (*channel_map)[param_channel]
 
@@ -69,20 +81,9 @@ func privmsg(params map[string]interface{}) Response {
 
 	// TODO
 	// check if they have JOINed channel already
+	// TODO
+	// rate limit messages
 
-	// pair off channel
-	// split_p = split_p[1:]
-
-	// log.Debug().Msgf("PRIVMSG: split_p after pairing off chan: %s", split_p)
-
-	// keep this?
-	// if len(msg) == 0 {
-	// 	log.Debug().Msgf("PRIVMSG, msg empty!")
-	// 	return ERR_NEEDMOREPARAMS("")
-	// }
-
-	// _server_metadata := params["server_metadata"]
-	// server_metadata := _server_metadata.(map[string]string)
 	_task_runner := params["task_runner"]
 	task_runner := _task_runner.(chan []*Task)
 	_client, ok := params["client"]
@@ -92,7 +93,12 @@ func privmsg(params map[string]interface{}) Response {
 	}
 	client := _client.(*Client)
 
-	_task := NewTask(MULTICAST, msg[1:], 0.0, client.ClientConn, channel)
+	client_details := fmt.Sprintf("%s@%s!%s", client.Nick(), client.User(), client.Ip())
+	// TODO
+	// channel.Name could be a user name too
+	msg = fmt.Sprintf(":%s PRIVMSG %s :%s \r\n", client_details, channel.Name, msg)
+
+	_task := NewTask(MULTICAST, msg, 0.0, client.ClientConn, channel)
 	privmsg_task := []*Task{}
 	privmsg_task = append(privmsg_task, _task)
 
