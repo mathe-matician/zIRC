@@ -2,6 +2,7 @@ package chat
 
 import (
 	"net"
+	"sync"
 
 	"zirc/helpers"
 
@@ -13,31 +14,48 @@ type CommandFunc func(map[string]interface{}) Response
 type Command struct {
 	Fn       CommandFunc
 	Metadata map[string]string
+	MustLock bool
+	mu       sync.Mutex
 }
 
 var command_map = map[string]Command{
-	"AUTHENTICATE": *NewCommand(authenticate, map[string]string{"auth_req": "true"}),
-	"CAP":          *NewCommand(cap, make(map[string]string)),
-	"ERROR":        *NewCommand(error_cmd, make(map[string]string)),
-	"NICK":         *NewCommand(nick, make(map[string]string)),
-	"PASS":         *NewCommand(pass, make(map[string]string)),
-	"PING":         *NewCommand(ping, make(map[string]string)),
-	"PONG":         *NewCommand(pong, make(map[string]string)),
-	"JOIN":         *NewCommand(join, map[string]string{"auth_req": "true"}),
-	"PROTOCTL":     *NewCommand(protoctl, make(map[string]string)),
-	"PRIVMSG":      *NewCommand(privmsg, map[string]string{"auth_req": "true"}),
-	"MODE":         *NewCommand(mode, map[string]string{"auth_req": "true"}),
-	"NOTIFY":       *NewCommand(notify, map[string]string{"auth_req": "true"}),
-	"SERVER":       *NewCommand(server, make(map[string]string)),
-	"USER":         *NewCommand(user, make(map[string]string)),
-	// "WEBIRC":       *NewCommand(webirc, make(map[string]string)),
-	"QUIT": *NewCommand(quit, make(map[string]string)),
+	"AUTHENTICATE": *NewCommand(authenticate, map[string]string{"auth_req": "true"}, true),
+	"CAP":          *NewCommand(cap, make(map[string]string), false),
+	"ERROR":        *NewCommand(error_cmd, make(map[string]string), false),
+	"NICK":         *NewCommand(nick, make(map[string]string), true),
+	"PASS":         *NewCommand(pass, make(map[string]string), false),
+	"PING":         *NewCommand(ping, make(map[string]string), false),
+	"PONG":         *NewCommand(pong, make(map[string]string), false),
+	"JOIN":         *NewCommand(join, map[string]string{"auth_req": "true"}, true),
+	"PROTOCTL":     *NewCommand(protoctl, make(map[string]string), false),
+	"PRIVMSG":      *NewCommand(privmsg, map[string]string{"auth_req": "true"}, false),
+	"MODE":         *NewCommand(mode, map[string]string{"auth_req": "true"}, true),
+	"NOTIFY":       *NewCommand(notify, map[string]string{"auth_req": "true"}, false),
+	"SERVER":       *NewCommand(server, make(map[string]string), false),
+	"USER":         *NewCommand(user, make(map[string]string), true),
+	// "WEBIRC":       *NewCommand(webirc, make(map[string]string), false),
+	"QUIT": *NewCommand(quit, make(map[string]string), false),
 }
 
-func NewCommand(fn CommandFunc, metadata map[string]string) *Command {
+// TODO
+// for certain commands to use the mutex,
+// we need to lock the mutex within the function
+// otherwise ALL commands will lock and unlock mutex which isn't needed
+// e.g. sending chat messages via PRIVMSG doesn't need to lock the mutex and shouldn't!
+// actually it might...
+func (c *Command) Run(params map[string]interface{}) Response {
+	if c.MustLock {
+		c.mu.Lock()
+		defer c.mu.Unlock()
+	}
+	return c.Fn(params)
+}
+
+func NewCommand(fn CommandFunc, metadata map[string]string, must_lock bool) *Command {
 	return &Command{
 		Fn:       fn,
 		Metadata: metadata,
+		MustLock: must_lock,
 	}
 }
 
@@ -151,16 +169,6 @@ func ping(params map[string]interface{}) Response {
 
 func pong(params map[string]interface{}) Response {
 	msg := "Running PONG..."
-	log.Info().Msg(msg)
-	res := Reply{
-		code: "333",
-		msg:  msg,
-	}
-	return &res
-}
-
-func privmsg(params map[string]interface{}) Response {
-	msg := "Running PRIVMSG..."
 	log.Info().Msg(msg)
 	res := Reply{
 		code: "333",

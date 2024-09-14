@@ -216,12 +216,12 @@ func mode(params map[string]interface{}) Response {
 					}
 
 					if n > len(split_p) {
-						log.Error().Msgf("The index %d is greater than the length of the slice %s!!", n, split_p)
+						log.Debug().Msgf("The index %d is greater than the length of the slice %s!!", n, split_p)
 						return ERR_NEEDMOREPARAMS("")
 					}
 					log.Debug().Msgf("Before split_p[n]. n: %d. split_p: %s, len(split_p): %d", n, split_p, len(split_p))
 					if n >= len(split_p) {
-						log.Error().Msgf("Somehow the modes params are empty")
+						log.Debug().Msgf("Somehow the mode's params are empty")
 						return ERR_NEEDMOREPARAMS("")
 					}
 					current_mode_params = split_p[n]
@@ -232,7 +232,7 @@ func mode(params map[string]interface{}) Response {
 
 			fn := mode_fns[str_mode]
 			if fn == nil {
-				log.Error().Msgf("Unknown mode %s - no mapping in mode map", str_mode)
+				log.Debug().Msgf("Unknown mode %s - no mapping in mode map", str_mode)
 				return ERR_UNKNOWNMODE("", str_mode)
 			}
 			fn_params["params"] = current_mode_params
@@ -283,10 +283,6 @@ func mode(params map[string]interface{}) Response {
 
 				res_modes += res_action + str_mode
 				res_final_params += res_params
-
-				// msg := fmt.Sprintf(":%s MODE %s %s%s%s \r\n", client_details, channel.Name, action, str_mode, res_params)
-				// valid_mode_task := NewTask(MULTICAST, msg, 0.0, client.ClientConn, channel)
-				// mode_task = append(mode_task, valid_mode_task)
 			}
 		}
 	}
@@ -331,10 +327,22 @@ var mode_fns = map[string]func(params *map[string]interface{}) *Response{
 	"q": q,
 }
 
+// use `return nil` as a good thing below
+// if you need to exit early, return an error
+
 // +o (operator): add user as an operator to the channel
 func o(params *map[string]interface{}) *Response {
 	l_params := (*params)["params"].(string)
 	log.Debug().Msgf("Running mode o, params: %s", l_params)
+
+	if len(l_params) == 0 {
+		res := ERR_NEEDMOREPARAMS("")
+		return &res
+	}
+
+	// todo
+	// add to Channel.Operators client map
+
 	return nil
 }
 

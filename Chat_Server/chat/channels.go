@@ -3,6 +3,7 @@ package chat
 import (
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/phuslu/log"
@@ -34,6 +35,7 @@ type Channel struct {
 	ChannelPassword string
 	Status          string
 	Duration        string // whether the channel is persistent or temporary
+	mu              sync.Mutex
 }
 
 // TOPIC
@@ -100,15 +102,32 @@ func NewMode(mode string, params string) *Mode {
 }
 
 func (c *Channel) AddMode(mode Mode) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	char := mode.ModeChar
 	if (char == "k" && c.HasMode(char)) || (!mode_requires_params(char) && c.HasMode(char)) {
 		// even though k takes params, only have 1 k in list (i.e. having multiple passwords doesn't make sense)
 		return
 	}
+
 	c.ChannelModes = append(c.ChannelModes, mode)
 }
 
+func (c *Channel) HasModeAndValue(mode, params string) bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	for _, m := range c.ChannelModes {
+		if m.ModeChar == mode && m.Params == params {
+			return true
+		}
+	}
+
+	return false
+}
+
 func (c *Channel) HasMode(mode string) bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	for _, m := range c.ChannelModes {
 		if m.ModeChar == mode {
 			return true
@@ -118,6 +137,8 @@ func (c *Channel) HasMode(mode string) bool {
 }
 
 func (c *Channel) RemoveMode(_mode string, param string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	// if !strings.Contains(c.ChannelModes, mode) {
 	// 	return
 	// }

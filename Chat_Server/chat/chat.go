@@ -12,7 +12,13 @@ import (
 	"github.com/phuslu/log"
 )
 
-var re = regexp.MustCompile(`^\S*`) // captures until first space
+// captures until first space
+var re = regexp.MustCompile(`^\S*`)
+
+// captures until first space and has two capture groups, what comes before the space and what comes after
+// e.g. `#general hello world` would contain two capture groups: ((#general), (hello world))
+// meant to be used with FindStringSubmatch(str)
+var cmd_re = regexp.MustCompile(`^(\S+)(.*)`)
 
 func ProcessMessage(recv_buf *[]byte, client *Client, task_runner chan []*Task, server_metadata map[string]string, channel_map *map[string]*Channel) []byte {
 	log.Debug().Msg("------------MSG START------------")

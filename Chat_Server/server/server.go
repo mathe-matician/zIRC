@@ -5,6 +5,7 @@ import (
 	"net"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"zirc/chat"
@@ -50,6 +51,7 @@ type Worker struct {
 	current_load float64
 	quit         chan int
 	frozen       bool
+	mu           sync.Mutex
 }
 
 type ServerManager struct {
@@ -191,10 +193,14 @@ func (w *Worker) multicast(server_manager *ServerManager, task *chat.Task) {
 		return
 	}
 	the_channel := (*task).Channel
+	if the_channel == nil {
+		log.Debug().EmbedObject(w).Msgf("Multicast channel is nil!")
+		return
+	}
 	channel_user_map := (*the_channel).UserList
 	for _, c := range channel_user_map {
 		if c == nil {
-			log.Debug().EmbedObject(w).Msgf("Client is null - trying next")
+			log.Debug().EmbedObject(w).Msgf("Client is nil - trying next")
 			continue
 		}
 
