@@ -3,12 +3,12 @@ package commands_tests
 import (
 	"testing"
 
-	zs "zirc/server"
+	zc "zirc/chat"
 	zt "zirc/tests"
 )
 
 func TestPASS_Disabled(t *testing.T) {
-	is := zs.NewIrcServer(
+	is := zc.NewIrcServer(
 		"zirc-test.com",
 		"vtest",
 		"127.0.0.1:6677",
@@ -45,7 +45,7 @@ func TestPASS_Disabled(t *testing.T) {
 
 func TestPASS_Enabled(t *testing.T) {
 	t.Setenv("IRC_SERVER_PASSWORD", "$2a$10$RFRaJiN40EzL9.nvfq4uy.w6UHs7WuF3EkBpxj.xUPjNd8tUs7sfi")
-	is := zs.NewIrcServer(
+	is := zc.NewIrcServer(
 		"zirc-test.com",
 		"vtest",
 		"0.0.0.0:6677",

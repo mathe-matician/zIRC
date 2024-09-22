@@ -1,4 +1,4 @@
-package server
+package chat
 
 import (
 	"io"
@@ -9,13 +9,14 @@ import (
 	"sync"
 	"time"
 
-	"zirc/chat"
 	"zirc/helpers"
 	rc "zirc/remote_conn"
 
 	"github.com/google/uuid"
 	"github.com/phuslu/log"
 )
+
+var g_Server *IrcServer
 
 type Server interface {
 	Run()
@@ -35,20 +36,20 @@ type IrcServer struct {
 	Listener      *net.Listener
 	_ServerManger *ServerManager
 	Servers       []*IrcServer
-	Clients       []*chat.Client
+	Clients       []*Client
 	Config        map[string]string
 }
 
-type Task struct {
-	id     uuid.UUID
-	Type   string
-	weight float64
-	task   string
-}
+// type Task struct {
+// 	id     uuid.UUID
+// 	Type   string
+// 	weight float64
+// 	task   string
+// }
 
 type Worker struct {
 	id           uuid.UUID
-	tasks        []*chat.Task
+	tasks        []*Task
 	current_load float64
 	quit         chan int
 	frozen       bool
@@ -57,13 +58,13 @@ type Worker struct {
 
 type ServerManager struct {
 	Name               string
-	ClientList         *[]*chat.Client
-	ClientMap          *map[string]*chat.Client
-	ChannelMap         *map[string]*chat.Channel
+	ClientList         *[]*Client
+	ClientMap          *map[string]*Client
+	ChannelMap         *map[string]*Channel
 	ServerList         *[]*IrcServer
 	WorkerPool         map[string]*Worker
-	worker_tasks       chan []*chat.Task
-	Task_runner        chan []*chat.Task
+	worker_tasks       chan []*Task
+	Task_runner        chan []*Task
 	results            chan string
 	decreasing_workers bool
 }
@@ -166,6 +167,17 @@ func (sm *ServerManager) ScaleWorkerPool(by int, force bool) {
 	}
 }
 
+func (sm *ServerManager) GetClientByNick(nick string) *Client {
+	log.Debug().Msgf("GetClientByNick: %s", nick)
+	client_map := sm.ClientMap
+	client, ok := (*client_map)[nick]
+	if !ok {
+		return nil
+	}
+
+	return client
+}
+
 func (sm *ServerManager) Debug() {
 	log.Info().Msgf("ServerManager Debug!")
 }
@@ -178,34 +190,33 @@ func (w *Worker) MarshalObject(e *log.Entry) {
 
 // }
 
-func (w *Worker) unicast(server_manager *ServerManager, task *chat.Task) {
-	target := (*task.Target)
-	if target != nil || task.FindTarget != "" {
-		// If we reach here, a client sending a DM to one other client
-		// but something else needs to be sent to another client which is stored in Task.Target
+func (w *Worker) unicast(server_manager *ServerManager, task *Task) {
+	// target := (*task.Target)
+	// if target != nil {
+	// 	// If we reach here, we are sending a message to both some other 1 client + the source client
+	// 	// but something else needs to be sent to another client which is stored in Task.Target
 
-		// we only expect this to be for Client Targets...
-		// we should never get a Channel target here
+	// 	// we only expect this to be for Client Targets...
+	// 	// we should never get a Channel target here
 
-		if task.FindTarget != "" {
-			client_list := (*server_manager).ClientList
-			for _, c := range *client_list {
+	// 	// if task.FindTarget != "" {
+	// 	// 	client_list := (*server_manager).ClientList
+	// 	// 	for _, c := range *client_list {
 
-			}
-		}
+	// 	// 	}
+	// 	// }
 
-		client := (target).(*chat.Client)
-		conn := *(client.ClientConn)
-		if conn == nil {
-			log.Error().EmbedObject(client).Msgf("Conn is nil!!")
-			return
-		}
-		if _, err := conn.Write([]byte(task.Task)); err != nil {
-			log.Error().EmbedObject(client).Msgf("Error writing to client: %s", err.Error())
-			return
-		}
-		return
-	}
+	// 	client := (target).(*Client)
+	// 	conn := *(client.ClientConn)
+	// 	if conn == nil {
+	// 		log.Error().EmbedObject(client).Msgf("Conn is nil!!")
+	// 		return
+	// 	}
+	// 	if _, err := conn.Write([]byte(task.Task)); err != nil {
+	// 		log.Error().EmbedObject(client).Msgf("Error writing to client: %s", err.Error())
+	// 		return
+	// 	}
+	// }
 
 	// send a response to the client performing the action
 	c := (*task.ClientConn)
@@ -214,11 +225,11 @@ func (w *Worker) unicast(server_manager *ServerManager, task *chat.Task) {
 	}
 }
 
-func (w *Worker) broadcast(server_manager *ServerManager, task *chat.Task) {
+func (w *Worker) broadcast(server_manager *ServerManager, task *Task) {
 
 }
 
-func (w *Worker) multicast(server_manager *ServerManager, task *chat.Task) {
+func (w *Worker) multicast(server_manager *ServerManager, task *Task) {
 	if task == nil {
 		log.Debug().EmbedObject(w).Msgf("Multicast task is nil!")
 		return
@@ -232,11 +243,11 @@ func (w *Worker) multicast(server_manager *ServerManager, task *chat.Task) {
 	// TODO
 	// cast Target to Channel or Client
 	target_type := reflect.TypeOf(the_target).Name()
-	var channel *chat.Channel
-	var client *chat.Client
+	var channel *Channel
+	var client *Client
 	if target_type == "Channel" {
 		log.Debug().Msgf("Target type is Channel")
-		channel = (*the_target).(*chat.Channel)
+		channel = (*the_target).(*Channel)
 		channel_user_map := (*channel).UserList
 		for _, c := range channel_user_map {
 			if c == nil {
@@ -268,7 +279,7 @@ func (w *Worker) multicast(server_manager *ServerManager, task *chat.Task) {
 		// need to figure out
 		// i.e. why wouldn't we just send a UNICAST?
 		log.Debug().Msgf("Target type is Client")
-		client = (*the_target).(*chat.Client)
+		client = (*the_target).(*Client)
 		conn := *(client.ClientConn)
 		if _, err := conn.Write([]byte(task.Task)); err != nil {
 			log.Error().EmbedObject(client).Msgf("Error writing to client: %s", err.Error())
@@ -299,7 +310,7 @@ var workerActionMap = map[string]map[string]bool{
 //	results: any results that are returned back to the ServerManager can be sent back to the client if needed
 //
 // TODO - this func may only need the ServerManager's ClientList and ServerList
-func (w *Worker) Work(tasks chan []*chat.Task, results chan string, server_manager *ServerManager) {
+func (w *Worker) Work(tasks chan []*Task, results chan string, server_manager *ServerManager) {
 	for {
 		select {
 		case task := <-tasks:
@@ -324,32 +335,32 @@ func (w *Worker) Work(tasks chan []*chat.Task, results chan string, server_manag
 					continue
 				}
 
-				if task.Type == chat.UNICAST {
-					log.Debug().Msgf("%s task", chat.UNICAST)
+				if task.Type == UNICAST {
+					log.Debug().Msgf("%s task", UNICAST)
 					// TODO - need an efficient way to get the single client's connection info
 					// unicast examples:
 					// 	server to client (as in a response message)
 					//	client to client (privmsg to single person)
 
 					w.unicast(server_manager, task)
-				} else if task.Type == chat.MULTICAST {
-					log.Debug().Msgf("%s task", chat.MULTICAST)
+				} else if task.Type == MULTICAST {
+					log.Debug().Msgf("%s task", MULTICAST)
 					// multicast only purpose is to send client msgs to a specific channel
 					w.multicast(server_manager, task)
-				} else if task.Type == chat.BROADCAST {
-					log.Debug().Msgf("%s task", chat.BROADCAST)
+				} else if task.Type == BROADCAST {
+					log.Debug().Msgf("%s task", BROADCAST)
 					// broadcast examples:
 					//	server admin broadcast to all users (e.g. server going down for maintenance)
 					w.broadcast(server_manager, task)
-				} else if task.Type == chat.SERVER {
-					log.Debug().Msgf("%s task", chat.SERVER)
-					split_task := strings.Split(task.Task, " ")
+				} else if task.Type == SERVER {
+					log.Debug().Msgf("%s task", SERVER)
+					// split_task := strings.Split(task.Task, " ")
 
-					_, ok := workerActionMap[split_task[0]][split_task[1]]
-					if !ok {
-						log.Debug().Msgf("Not a valid worker action")
-						continue
-					}
+					// _, ok := workerActionMap[split_task[0]][split_task[1]]
+					// if !ok {
+					// 	log.Debug().Msgf("Not a valid worker action")
+					// 	continue
+					// }
 
 				} else {
 					log.Warn().Msgf("Unknown task type: %s", task.Type)
@@ -364,7 +375,7 @@ func (w *Worker) Work(tasks chan []*chat.Task, results chan string, server_manag
 	}
 }
 
-func NewServerManager(client_list *[]*chat.Client, server_list *[]*IrcServer) *ServerManager {
+func NewServerManager(client_list *[]*Client, server_list *[]*IrcServer) *ServerManager {
 	init_worker_count, err := strconv.Atoi(helpers.GetEnv("IRC_SERVER_INIT_WORKER_COUNT", "3"))
 	if err != nil {
 		panic("can't init workers...")
@@ -376,14 +387,16 @@ func NewServerManager(client_list *[]*chat.Client, server_list *[]*IrcServer) *S
 		panic("servermanager: client_list or server_list is null! This cannot be!")
 	}
 
-	channel_list := make(map[string]*chat.Channel)
+	channel_list := make(map[string]*Channel)
+	client_map := make(map[string]*Client)
 
 	sm := &ServerManager{
 		Name:         "",
-		Task_runner:  make(chan []*chat.Task),
-		worker_tasks: make(chan []*chat.Task),
+		Task_runner:  make(chan []*Task),
+		worker_tasks: make(chan []*Task),
 		results:      make(chan string),
 		ClientList:   client_list,
+		ClientMap:    &client_map,
 		ServerList:   server_list,
 		ChannelMap:   &channel_list,
 		WorkerPool:   make(map[string]*Worker), // TODO - do we even need to keep track of workers in the pool? !only if we want to scale them down by name - otherwise sending 'quit' to any arbitrary worker will kill it
@@ -406,13 +419,13 @@ func NewWorker() *Worker {
 
 	return &Worker{
 		id:           uid,
-		tasks:        make([]*chat.Task, 0),
+		tasks:        make([]*Task, 0),
 		current_load: 0.0,
 		quit:         make(chan int, 1),
 	}
 }
 
-func NewIrcServer(dns_name string, version string, addr string, server_role string, server_list *[]*IrcServer, client_list *[]*chat.Client, config *map[string]string) *IrcServer {
+func NewIrcServer(dns_name string, version string, addr string, server_role string, server_list *[]*IrcServer, client_list *[]*Client, config *map[string]string) *IrcServer {
 	if len(dns_name) == 0 {
 		dns_name = helpers.GetEnv("IRC_SERVER_DNS_NAME", "localhost")
 	}
@@ -436,7 +449,7 @@ func NewIrcServer(dns_name string, version string, addr string, server_role stri
 	}
 
 	if client_list == nil {
-		cl := make([]*chat.Client, 0)
+		cl := make([]*Client, 0)
 		client_list = &cl
 	}
 
@@ -468,7 +481,7 @@ func NewIrcServer(dns_name string, version string, addr string, server_role stri
 		now.Location(),
 	)
 
-	is := IrcServer{
+	g_Server = &IrcServer{
 		DnsName:       dns_name,
 		Version:       version,
 		CreationDate:  creation_date_time,
@@ -481,12 +494,12 @@ func NewIrcServer(dns_name string, version string, addr string, server_role stri
 		Config:        *config,
 	}
 
-	s_manager := NewServerManager(&is.Clients, &is.Servers)
+	s_manager := NewServerManager(&g_Server.Clients, &g_Server.Servers)
 	s_manager.Name = dns_name
-	is._ServerManger = s_manager
+	g_Server._ServerManger = s_manager
 
 	// TODO - how do you connect to become brock_rockjaw? probably need the NickServ for this
-	superadmin, session_timestamp, err := chat.NewClient(
+	superadmin, session_timestamp, err := NewClient(
 		"brock_rockjaw",
 		"brock_rockjaw",
 		nil,
@@ -497,10 +510,10 @@ func NewIrcServer(dns_name string, version string, addr string, server_role stri
 		panic("cant create defaut admin user")
 	}
 
-	*is._ServerManger.ClientList = append(*is._ServerManger.ClientList, superadmin)
+	*g_Server._ServerManger.ClientList = append(*g_Server._ServerManger.ClientList, superadmin)
 	log.Info().Msgf("Default superadmin brock_rockjaw created at %s", *session_timestamp)
 
-	return &is
+	return g_Server
 }
 
 func (is *IrcServer) Run() {
@@ -545,7 +558,7 @@ func (is *IrcServer) handleConnection(conn *net.Conn) {
 	// TODO - resolve DNS name here for additional checks / verification
 	// e.g. w/ servers and compare to server list
 	remote_conn := rc.NewRemoteConn("", remote_ip, remote_port)
-	client, session_timestamp, err := chat.NewClient("", "", remote_conn, conn)
+	client, session_timestamp, err := NewClient("", "", remote_conn, conn)
 	if err != nil {
 		log.Error().EmbedObject(client).Msgf(err.Error())
 		return
@@ -601,7 +614,7 @@ func (is *IrcServer) handleConnection(conn *net.Conn) {
 			"channelmodes": is.Config["IRC_CHANNEL_MODES"],
 		}
 
-		response := chat.ProcessMessage(&recv_buf, client, is._ServerManger.Task_runner, server_metadata, is._ServerManger.ChannelMap)
+		response := ProcessMessage(&recv_buf, client, is._ServerManger.Task_runner, server_metadata, is._ServerManger.ChannelMap)
 
 		if len(response) == 0 {
 			// e.g. sometimes the server doesn't send anything back to the client

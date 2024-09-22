@@ -63,11 +63,6 @@ func mode(params map[string]interface{}) Response {
 		return ERR_UNKNOWNERROR("")
 	}
 
-	chan_prefix := string(cmd_params[0])
-	if chan_prefix != GENERAL_CHAN_PREFIX && chan_prefix != LOCAL_CHAN_PREFIX && chan_prefix != MODELESS_CHAN_PREFIX {
-		return ERR_BADCHANMASK("")
-	}
-
 	split_p := strings.Split(cmd_params, " ")
 
 	if len(split_p) == 0 {
@@ -75,12 +70,49 @@ func mode(params map[string]interface{}) Response {
 		return ERR_NEEDMOREPARAMS("")
 	}
 
-	param_channel := split_p[0]
-	log.Debug().Msgf("param_channel: %s", param_channel)
-	channel, valid_channel := (*channel_map)[param_channel]
-	if !valid_channel {
-		log.Debug().Msgf("So such chan!")
-		return ERR_NOSUCHCHANNEL("", cmd_params)
+	// TODO
+	// check to see if channel
+	// if not channel must be user, so check user
+	target := split_p[0]
+	log.Debug().Msgf("target: %s", target)
+	if len(target) == 0 {
+		log.Debug().Msgf("no target")
+		return ERR_NEEDMOREPARAMS("")
+	}
+
+	first_char := string(target[0])
+	is_chan := false
+	var channel *Channel
+	var valid_channel bool
+	var target_client *Client
+	var valid_target_client bool
+
+	if first_char == GENERAL_CHAN_PREFIX || first_char == LOCAL_CHAN_PREFIX || first_char == MODELESS_CHAN_PREFIX {
+		// then this is a channel
+		is_chan = true
+		if !IsValidChanName(target) {
+			log.Debug().Msgf("Invalid chan name")
+			return ERR_BADCHANMASK("")
+		}
+		// channel_map := (*g_Server)._ServerManger.ChannelMap
+		channel, valid_channel = (*channel_map)[target]
+		if !valid_channel {
+			log.Debug().Msgf("So such chan!")
+			return ERR_NOSUCHCHANNEL("", cmd_params)
+		}
+	} else {
+		// else this is a user
+		if !IsValidNickName(target) {
+			log.Debug().Msgf("Invalid nick!")
+			return ERR_NOSUCHNICK("")
+		}
+
+		client_map := (*g_Server)._ServerManger.ClientMap
+		target_client, valid_target_client = (*client_map)[target]
+		if !valid_target_client {
+			log.Debug().Msgf("So such nick!")
+			return ERR_NOSUCHNICK("")
+		}
 	}
 
 	// pair off channel
@@ -88,10 +120,14 @@ func mode(params map[string]interface{}) Response {
 
 	log.Debug().Msgf("split_p before len(split_p) == 1: %s", split_p)
 
-	if len(split_p) == 0 {
+	if len(split_p) == 0 || (len(split_p) == 1 && len(split_p[0]) == 0) {
 		// e.g. regular users can run MODE #chan w/o being an operator
 		// only when they pass modes are they denied
-		return RPL_CHANNELMODEIS("", channel.Name, channel.FmtModes())
+		if is_chan {
+			return RPL_CHANNELMODEIS("", target, channel.FmtModes())
+		} else {
+			return RPL_UMODEIS("", target, target_client.FmtModes())
+		}
 	}
 
 	_client, ok := params["client"]
@@ -139,7 +175,12 @@ func mode(params map[string]interface{}) Response {
 		action := string(m[0])
 		log.Debug().Msgf("_mode: %s, action: %s", m, action)
 		pre_modes := string(m[1:])
-		_, valid_mode := mode_fns[pre_modes]
+		var valid_mode bool
+		if is_chan {
+			_, valid_mode = channel_modes[pre_modes]
+		} else {
+			_, valid_mode = user_modes[pre_modes]
+		}
 		if len(pre_modes) == 1 && !valid_mode {
 			log.Debug().Msgf("Not a valid mode. pre_modes: %s", pre_modes)
 			unknown_mode_task := NewTask(UNICAST, ERR_UNKNOWNMODE("", pre_modes).Msg()+" \r\n", 0.0, client.ClientConn, nil)
@@ -191,7 +232,10 @@ func mode(params map[string]interface{}) Response {
 
 			// if command requires params
 			// these are the only modes that do
-			if mode_requires_params(str_mode) {
+			// because there is overlap between user and channel modes but they are different
+			// if it is a user mode, then we don't care because they don't need params
+			// if it is a channel mode, then check if it requires params
+			if is_chan && mode_requires_params(str_mode) {
 				// check the offset index to see if there is a corresponding param for it.
 				// For example:
 				//					                       co
@@ -230,7 +274,13 @@ func mode(params map[string]interface{}) Response {
 				current_offset++
 			}
 
-			fn := mode_fns[str_mode]
+			var fn func(params *map[string]interface{}) *Response
+			if is_chan {
+				fn = channel_modes[str_mode]
+			} else {
+				fn = user_modes[str_mode]
+			}
+
 			if fn == nil {
 				log.Debug().Msgf("Unknown mode %s - no mapping in mode map", str_mode)
 				return ERR_UNKNOWNMODE("", str_mode)
@@ -244,9 +294,17 @@ func mode(params map[string]interface{}) Response {
 
 			if action == "+" {
 				curr_mode := NewMode(str_mode, current_mode_params)
-				channel.AddMode(*curr_mode)
+				if is_chan {
+					channel.AddMode(*curr_mode)
+				} else {
+					target_client.AddMode(*curr_mode)
+				}
 			} else if action == "-" {
-				channel.RemoveMode(str_mode, current_mode_params)
+				if is_chan {
+					channel.RemoveMode(str_mode, current_mode_params)
+				} else {
+					target_client.RemoveMode(str_mode)
+				}
 			}
 
 			// TODO
@@ -271,8 +329,14 @@ func mode(params map[string]interface{}) Response {
 			log.Debug().Msgf("About to add MULTICAST msg with values. action: %s, str_mode: %s, res_params: %s", action, str_mode, res_params)
 
 			// client_details := fmt.Sprintf("%s@%s!%s", client_nick, client.User(), client.Ip())
-			_, valid_mode := mode_fns[str_mode]
-			if (action == "+" || action == "-") && valid_mode {
+			var final_valid_mode bool
+			if is_chan {
+				_, final_valid_mode = channel_modes[str_mode]
+			} else {
+				_, final_valid_mode = user_modes[str_mode]
+			}
+
+			if (action == "+" || action == "-") && final_valid_mode {
 				if prev_action == action {
 					res_action = ""
 				} else {
@@ -287,7 +351,9 @@ func mode(params map[string]interface{}) Response {
 		}
 	}
 	client_details := fmt.Sprintf("%s@%s!%s", client_nick, client.User(), client.Ip())
-	msg := fmt.Sprintf(":%s MODE %s %s%s \r\n", client_details, channel.Name, res_modes, res_final_params)
+	// TODO
+	// try sending target
+	msg := fmt.Sprintf(":%s MODE %s %s%s \r\n", client_details, target, res_modes, res_final_params)
 	valid_mode_task := NewTask(MULTICAST, msg, 0.0, client.ClientConn, channel)
 	mode_task = append(mode_task, valid_mode_task)
 
@@ -302,11 +368,11 @@ func mode(params map[string]interface{}) Response {
 
 // this then makes two sources of truth for modes - the ServerManager or IrcServer and this one
 // annoying to update both (also not like modes change frequently, though)
-var mode_fns = map[string]func(params *map[string]interface{}) *Response{
+var channel_modes = map[string]func(params *map[string]interface{}) *Response{
 	"p": p,
-	"o": o,
-	"s": s,
-	"i": i,
+	"o": o_chan,
+	"s": s_chan,
+	"i": i_chan,
 	"m": m,
 	"n": n,
 	"t": t,
@@ -317,23 +383,60 @@ var mode_fns = map[string]func(params *map[string]interface{}) *Response{
 	"P": P,
 	"v": v,
 	"I": I,
-	"r": r,
+	"r": r_chan,
 	"R": R,
 	"z": z,
 	"M": M,
 	"c": c,
 	"C": C,
-	"a": a,
+	"a": a_chan,
 	"q": q,
+}
+
+var user_modes = map[string]func(params *map[string]interface{}) *Response{
+	"i": i_user,
+	"o": o_user,
+	"w": w,
+	"x": x,
+	"s": s_user,
+	"a": a_user,
+	"r": r_user,
+	"D": D,
+	"C": C,
+	"g": g,
+	"G": g,
+	"O": O,
+	"S": S,
+	"B": B,
+	"W": W,
+	"H": H,
 }
 
 // use `return nil` as a good thing below
 // if you need to exit early, return an error
 
 // +o (operator): add user as an operator to the channel
-func o(params *map[string]interface{}) *Response {
+func o_chan(params *map[string]interface{}) *Response {
 	l_params := (*params)["params"].(string)
-	log.Debug().Msgf("Running mode o, params: %s", l_params)
+	log.Debug().Msgf("Running mode o chan, params: %s", l_params)
+
+	if len(l_params) == 0 {
+		res := ERR_NEEDMOREPARAMS("")
+		return &res
+	}
+
+	// todo
+	// add to Channel.Operators client map
+
+	return nil
+}
+
+// or if done on a user
+// (operator): This grants the user IRC operator status, giving them elevated privileges such as kicking or banning users, shutting down servers, etc.
+// /MODE Bob +o   # Bob becomes an IRC operator
+func o_user(params *map[string]interface{}) *Response {
+	l_params := (*params)["params"].(string)
+	log.Debug().Msgf("Running mode o user, params: %s", l_params)
 
 	if len(l_params) == 0 {
 		res := ERR_NEEDMOREPARAMS("")
@@ -352,15 +455,33 @@ func p(params *map[string]interface{}) *Response {
 	return nil
 }
 
-// +s (Secret): The channel is hidden from public view and channel lists.
-func s(params *map[string]interface{}) *Response {
+// +s
+// Channel: (Secret): The channel is hidden from public view and channel lists.
+// User: (receive server notices): This mode allows the user to receive special messages from the server.
+func s_chan(params *map[string]interface{}) *Response {
 	log.Debug().Msg("Running mode s")
 	return nil
 }
 
-// +i (Invite-Only): Users must be invited to join the channel.
-func i(params *map[string]interface{}) *Response {
-	log.Debug().Msg("Running mode i")
+// Allows the user to receive server notices (like warnings or alerts from IRC servers).
+// /MODE David +s   # David will receive server notices
+func s_user(params *map[string]interface{}) *Response {
+	log.Debug().Msg("Running mode s")
+	return nil
+}
+
+// +i
+// Channel: (Invite-Only):Users must be invited to join the channel.
+// Channel version DOES NOT require params
+func i_chan(params *map[string]interface{}) *Response {
+	log.Debug().Msg("Running mode i chan")
+	return nil
+}
+
+// User: (invisible): This hides the user from other users who are not in the same channel as them. The user’s presence is not listed in /WHO or /NAMES commands unless the querying user shares a channel with them.
+// User version DOES require params
+func i_user(params *map[string]interface{}) *Response {
+	log.Debug().Msg("Running mode i user")
 	return nil
 }
 
@@ -440,7 +561,16 @@ func I(params *map[string]interface{}) *Response {
 }
 
 // +r Registered Channel (with ChanServ) Indicates that the channel is registered, typically with services like ChanServ. Some servers use this mode to show that a channel has been formally registered.
-func r(params *map[string]interface{}) *Response {
+// OR if done on user
+// (registered): This flag is often used to indicate that a user is registered with the network (e.g., via NickServ).
+func r_chan(params *map[string]interface{}) *Response {
+	log.Debug().Msg("Running mode r")
+	return nil
+}
+
+// Indicates the user is registered with services like NickServ (sometimes required to join specific channels).
+// /MODE Frank +r   # Frank is marked as registered
+func r_user(params *map[string]interface{}) *Response {
 	log.Debug().Msg("Running mode r")
 	return nil
 }
@@ -464,6 +594,10 @@ func M(params *map[string]interface{}) *Response {
 }
 
 // +C (No CTCP) Blocks CTCP (Client-To-Client Protocol) messages, which are often used for things like requesting information from another client or performing actions like /me.
+//
+//	Prevents the user from receiving CTCP (Client-To-Client Protocol) requests like /PING, /VERSION, etc.
+//
+// /MODE Isla +C   # Isla won't receive CTCP requests
 func C(params *map[string]interface{}) *Response {
 	log.Debug().Msg("Running mode C")
 	return nil
@@ -476,7 +610,16 @@ func c(params *map[string]interface{}) *Response {
 }
 
 // +a (Admin) Grants admin status to a user, typically a level between operator (+o) and owner (+q). Admins have significant control but might not have all the powers of the channel owner.
-func a(params *map[string]interface{}) *Response {
+func a_chan(params *map[string]interface{}) *Response {
+	log.Debug().Msg("Running mode a")
+	return nil
+}
+
+// +a
+// Marks the user as away, meaning they won't respond to direct messages or queries (depends on the IRC client and server).
+// /AWAY I'm away now!
+// /MODE Eve +a    # Eve is marked as away
+func a_user(params *map[string]interface{}) *Response {
 	log.Debug().Msg("Running mode a")
 	return nil
 }
@@ -488,9 +631,84 @@ func q(params *map[string]interface{}) *Response {
 	return nil
 }
 
+// User mode
+// (wallops): Enables the user to receive special broadcast messages called "wallops" that are typically sent by IRC operators or administrators.
+func w(params *map[string]interface{}) *Response {
+	l_params := (*params)["params"].(string)
+	log.Debug().Msgf("Running mode w, params: %s", l_params)
+	return nil
+}
+
+// User mode
+// (cloaked): Some networks allow users to cloak their real IP address to protect their privacy, making their hostname hidden.
+// /MODE Grace +x   # Grace's IP and hostname are hidden
+func x(params *map[string]interface{}) *Response {
+	l_params := (*params)["params"].(string)
+	log.Debug().Msgf("Running mode x, params: %s", l_params)
+	return nil
+}
+
+// Makes the user deaf to all channel messages except for private messages (usually network-specific).
+// /MODE Henry +D   # Henry won't see channel messages
+func D(params *map[string]interface{}) *Response {
+	l_params := (*params)["params"].(string)
+	log.Debug().Msgf("Running mode D, params: %s", l_params)
+	return nil
+}
+
+// The user can receive notices from server administrators or messages broadcast globally or locally.
+// /MODE John +g   # John receives global notices
+func g(params *map[string]interface{}) *Response {
+	l_params := (*params)["params"].(string)
+	log.Debug().Msgf("Running mode g, params: %s", l_params)
+	return nil
+}
+
+// Opts the user out of receiving messages sent to IRC operators.
+// /MODE Karen -O  # Karen will not receive operator messages
+func O(params *map[string]interface{}) *Response {
+	l_params := (*params)["params"].(string)
+	log.Debug().Msgf("Running mode O, params: %s", l_params)
+	return nil
+}
+
+// Indicates that the user is protected by a network service, like ChanServ or NickServ. This mode is often set by the services automatically.
+// /MODE Luke +S   # Luke is services protected
+func S(params *map[string]interface{}) *Response {
+	l_params := (*params)["params"].(string)
+	log.Debug().Msgf("Running mode S, params: %s", l_params)
+	return nil
+}
+
+// Marks the user as a bot. Some networks use this to identify automated IRC clients.
+// /MODE BotUser +B  # Marks BotUser as a bot
+func B(params *map[string]interface{}) *Response {
+	l_params := (*params)["params"].(string)
+	log.Debug().Msgf("Running mode B, params: %s", l_params)
+	return nil
+}
+
+// Allows the user to send messages to other IRC operators.
+// /MODE Mark +W  # Mark can send messages to IRC operators
+func W(params *map[string]interface{}) *Response {
+	l_params := (*params)["params"].(string)
+	log.Debug().Msgf("Running mode W, params: %s", l_params)
+	return nil
+}
+
+// Prevents users from seeing whether you are marked as away in /WHO results.
+// /MODE Nora +H  # Nora's away status is hidden
+func H(params *map[string]interface{}) *Response {
+	l_params := (*params)["params"].(string)
+	log.Debug().Msgf("Running mode W, params: %s", l_params)
+	return nil
+}
+
+// only channel modes take params
 func mode_requires_params(mode string) bool {
 	if mode == "b" || mode == "k" || mode == "v" || mode == "l" || mode == "e" || mode == "I" || mode == "o" || mode == "q" {
 		return true
 	}
+
 	return false
 }

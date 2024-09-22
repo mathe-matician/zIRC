@@ -1,6 +1,7 @@
 package chat
 
 import (
+	"regexp"
 	"slices"
 	"strings"
 	"sync"
@@ -13,6 +14,7 @@ const (
 	GENERAL_CHAN_PREFIX  = "#"
 	LOCAL_CHAN_PREFIX    = "&"
 	MODELESS_CHAN_PREFIX = "+"
+	MAX_CHAN_LEN         = 100
 )
 
 var modes = "psimntlkbeP"
@@ -83,6 +85,8 @@ func NewChannel(name, topic, topic_details, channel_password, status, duration s
 		Duration:        duration,
 	}
 }
+
+func (c *Channel) IsTarget() {}
 
 func (c *Channel) FmtModes() string {
 	modes := ""
@@ -159,4 +163,15 @@ func (c *Channel) RemoveMode(_mode string, param string) {
 	}
 
 	log.Debug().Msgf("Mode %v wasn't found in channelmodes: %v", mode, c.ChannelModes)
+}
+
+// chans can't have ' ', escape characters, prefix characters,
+// chans must be A-Z, a-z, 0-9, and can have any of these: - _ . /
+var chan_re = regexp.MustCompile(`^[#&+][A-Za-z0-9_\-\.\/]*$`)
+
+func IsValidChanName(channel string) bool {
+	if len(chan_re.FindAllStringSubmatch(channel, -1)) == 0 || len(channel) > MAX_CHAN_LEN {
+		return false
+	}
+	return true
 }

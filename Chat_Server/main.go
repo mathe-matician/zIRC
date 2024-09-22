@@ -1,7 +1,7 @@
 package main
 
 import (
-	"zirc/server"
+	"zirc/chat"
 )
 
 func main() {
@@ -29,6 +29,6 @@ func main() {
 	// 	},
 	// }
 
-	irc_server := server.NewIrcServer("", "", "", "", nil, nil, nil)
+	irc_server := chat.NewIrcServer("", "", "", "", nil, nil, nil)
 	irc_server.Run()
 }

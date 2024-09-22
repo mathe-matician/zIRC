@@ -77,7 +77,7 @@ func commandValidation(cmd, client_password_state string, client_registered bool
 		return nil, ERR_PASSWDMISMATCH(":You need to send your password before registering")
 	}
 
-	val, ok := command_map[cmd]
+	return_cmd, ok := command_map[cmd]
 	if !ok {
 		return nil, ERR_UNKNOWNCOMMAND("")
 	}
@@ -91,7 +91,6 @@ func commandValidation(cmd, client_password_state string, client_registered bool
 	}
 
 	log.Debug().Msgf("Valid command: %s", cmd)
-	return_cmd := val
 	return &return_cmd, EMPTY_RESPONSE()
 }
 

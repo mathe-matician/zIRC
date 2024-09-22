@@ -3,7 +3,10 @@ package chat
 import (
 	"fmt"
 	"net"
+	"regexp"
+	"slices"
 	"strconv"
+	"strings"
 
 	"zirc/helpers"
 	rc "zirc/remote_conn"
@@ -11,6 +14,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/phuslu/log"
 )
+
+const MAX_NICK_LEN = 32
 
 type Session struct {
 	id            uuid.UUID
@@ -27,6 +32,7 @@ type Client struct {
 	conn          *rc.RemoteConn
 	ClientConn    *net.Conn
 	send          chan string
+	UserModes     []Mode
 	Channels      []string
 	PrivateConvos []string // TODO - idk what this structure / process looks like
 }
@@ -49,6 +55,14 @@ func NewClient(nick string, user string, conn *rc.RemoteConn, Conn *net.Conn) (*
 	session_timestamp := stringTimeFromUnixTimestamp(s.id.Time())
 
 	s_chan := make(chan string)
+	// by default add these user modes to all new clients
+	// C: don't allow CTCP
+	// i: invisible? hide them from all other users UNLESS they are on the same channel?
+	// x: cloaked mode, cloak the ip address
+	user_modes := []Mode{
+		Mode{ModeChar: "C", Params: ""},
+		Mode{ModeChar: "x", Params: ""},
+	}
 
 	return &Client{
 		nick:       nick,
@@ -59,6 +73,7 @@ func NewClient(nick string, user string, conn *rc.RemoteConn, Conn *net.Conn) (*
 		ClientConn: Conn,
 		conn:       conn,
 		send:       s_chan,
+		UserModes:  user_modes,
 	}, &session_timestamp, nil
 }
 
@@ -75,6 +90,8 @@ func NewSession() (*Session, error) {
 		state:         make(map[string]string),
 	}, nil
 }
+
+func (c *Client) IsTarget() {}
 
 func (c *Client) MarshalObject(e *log.Entry) {
 	e.Str("nick", c.nick).Str("user", c.user).Str("session_id", c.session.id.String()).Str("host", c.conn.Host).Str("ip", c.conn.Ip).Str("port", c.conn.Port)
@@ -104,7 +121,40 @@ func (c *Client) UpdateState(key, value string) {
 
 // target format :nickname!username@hostname
 func (c *Client) FormattedClientDetails() string {
-	return fmt.Sprintf(":%s!%s@%s", c.nick, c.user, c.conn.Ip)
+	ip := c.conn.Ip
+	if c.HasUserMode("x") {
+		ip = "cloak.z.irc"
+	}
+	return fmt.Sprintf(":%s!%s@%s", c.nick, c.user, ip)
+}
+
+func (c *Client) AddMode(mode Mode) {
+	// c.mu.Lock()
+	// defer c.mu.Unlock()
+	char := mode.ModeChar
+	if c.HasUserMode(char) {
+		// if the user already has this mode don't add it again just do nothing
+		return
+	}
+
+	c.UserModes = append(c.UserModes, mode)
+}
+
+func (c *Client) RemoveMode(mode string) {
+	for i, m := range c.UserModes {
+		if m.ModeChar == mode {
+			c.UserModes = slices.Delete(c.UserModes, i, i+1)
+		}
+	}
+}
+
+func (c *Client) HasUserMode(mode string) bool {
+	for _, m := range c.UserModes {
+		if m.ModeChar == mode {
+			return true
+		}
+	}
+	return false
 }
 
 func (c *Client) GetConn() *rc.RemoteConn {
@@ -133,4 +183,26 @@ func (c *Client) SetNick(nick string) {
 
 func (c *Client) SetUser(user string) {
 	c.user = user
+}
+
+func (c *Client) FmtModes() string {
+	modes := ""
+	params := ""
+	for _, m := range c.UserModes {
+		modes += m.ModeChar
+		params += " " + m.Params
+	}
+	return modes + " " + strings.TrimLeft(params, " ")
+}
+
+// ! @ # $ % & * + ( ) = / ? : ; , . < >
+// Are invalid characters for nicks
+// valid special {}[]-_^\
+var nick_re = regexp.MustCompile(`^[A-Za-z_\-\[\]\\^\{\}][A-Za-z0-9_\-\[\]\\^\{\}]*$`)
+
+func IsValidNickName(nick string) bool {
+	if len(nick_re.FindAllStringSubmatch(nick, -1)) == 0 || len(nick) > MAX_NICK_LEN {
+		return false
+	}
+	return true
 }

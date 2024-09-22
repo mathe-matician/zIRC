@@ -8,10 +8,11 @@ import (
 )
 
 const (
-	SERVER    = "server"
-	UNICAST   = "unicast"
-	MULTICAST = "multicast"
-	BROADCAST = "broadcast"
+	SERVER        = "server"
+	UNICAST       = "unicast"
+	MULTICAST     = "multicast"
+	BROADCAST     = "broadcast"
+	SERVER_ACTION = "server_action"
 )
 
 // Locations can be Source, Destination, Channels, etc
@@ -44,7 +45,7 @@ type Task struct {
 	Weight     float64
 	Task       string
 	ClientConn *net.Conn
-	Channel    *Channel
+	Target     *Target
 	// Src        Location
 	// Dest       Location
 }
@@ -73,7 +74,7 @@ func NewDest(conn *net.Conn) *Dest {
 }
 
 // func NewTask(_type, task string, src Location, dest Location, weight float64) *Task {
-func NewTask(_type, task string, weight float64, client_conn *net.Conn, channel *Channel) *Task {
+func NewTask(_type, task string, weight float64, client_conn *net.Conn, target Target) *Task {
 	uid, err := uuid.NewV7()
 	if err != nil {
 		return nil
@@ -85,6 +86,6 @@ func NewTask(_type, task string, weight float64, client_conn *net.Conn, channel 
 		Weight:     weight, // TODO - determine weight of task somehow, may be useful
 		Task:       task,
 		ClientConn: client_conn,
-		Channel:    channel,
+		Target:     &target,
 	}
 }

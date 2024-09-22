@@ -96,10 +96,10 @@ func RPL_ISUPPORT(msg_override, server_creation_date string) Response {
 
 // response code, listing the user modes currently set for the user (+iow might indicate invisible, operator, and wallops receipt modes).
 // :irc.example.com 221 <nickname> :+iow
-func RPL_UMODEIS(msg_override, channel, modes string) Response {
+func RPL_UMODEIS(msg_override, nick, modes string) Response {
 	return &Reply{
 		code: "221",
-		msg:  fmt.Sprintf("%s %s", channel, modes),
+		msg:  fmt.Sprintf("%s +%s", nick, modes),
 	}
 }
 
@@ -156,6 +156,8 @@ func ERR_UNKNOWNERROR(msg_override string) Response {
 	return er
 }
 
+// Used with:
+// PRIVMSG
 // :irc.example.com 401 <nickname> #nonexistent :No such nick/channel
 func ERR_NOSUCHNICK(msg_override string) Response {
 	er := &ErrorResponse{
@@ -175,6 +177,64 @@ func ERR_NOSUCHCHANNEL(msg_override, channel string) Response {
 	er := &ErrorResponse{
 		code: "403",
 		msg:  fmt.Sprintf("%s :No such channel", channel),
+	}
+	if len(msg_override) != 0 {
+		er.MsgOverride(msg_override)
+	}
+	return er
+}
+
+// Used with:
+// PRIVMSG
+// If an attempt is made to send the message to multiple users or channels in one command (which is not allowed), this error would be returned.
+// No response for success: No response is given by the server for a successfully sent PRIVMSG.
+// Errors: The server only sends a response if there is an issue, such as a non-existent user, lack of permissions, or other problems with the target.
+func ERR_TOOMANYTARGETS(msg_override string) Response {
+	er := &ErrorResponse{
+		code: "407",
+		msg:  fmt.Sprintf(":Too many recipients."),
+	}
+	if len(msg_override) != 0 {
+		er.MsgOverride(msg_override)
+	}
+	return er
+}
+
+// Used with:
+// PRIVMSG
+// This error is sent if the PRIVMSG command is missing the message text (i.e., no message content is provided after the :).
+func ERR_NOTEXTTOSEND(msg_override, target string) Response {
+	er := &ErrorResponse{
+		code: "412",
+		msg:  fmt.Sprintf("%s :No text to send", target),
+	}
+	if len(msg_override) != 0 {
+		er.MsgOverride(msg_override)
+	}
+	return er
+}
+
+// Used with:
+// PRIVMSG
+// This is returned if the message is addressed to an invalid hostname or domain.
+func ERR_NOTOPLEVEL(msg_override string) Response {
+	er := &ErrorResponse{
+		code: "413",
+		msg:  fmt.Sprintf(":Invalid hostname or domain"),
+	}
+	if len(msg_override) != 0 {
+		er.MsgOverride(msg_override)
+	}
+	return er
+}
+
+// Used with:
+// PRIVMSG
+// This error occurs if the target of the message contains a wildcard in an invalid position, like trying to message *.com.
+func ERR_WILDTOPLEVEL(msg_override string) Response {
+	er := &ErrorResponse{
+		code: "414",
+		msg:  fmt.Sprintf(":Invalid hostname or domain"),
 	}
 	if len(msg_override) != 0 {
 		er.MsgOverride(msg_override)

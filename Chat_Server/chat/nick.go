@@ -79,6 +79,11 @@ func nick(params map[string]interface{}) Response {
 
 		client_details := fmt.Sprintf("%s@%s!%s", client_nick, client.User(), client.Ip())
 
+		// add the now registered client to the Server's client map
+		svr_mang := g_Server._ServerManger
+		clint_map := svr_mang.ClientMap
+		(*clint_map)[client_nick] = client
+
 		responses := WELCOME_WRAPPER(
 			client.ClientConn,
 			server_name,
