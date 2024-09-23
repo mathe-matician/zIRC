@@ -124,8 +124,10 @@ func mode(params map[string]interface{}) Response {
 		// e.g. regular users can run MODE #chan w/o being an operator
 		// only when they pass modes are they denied
 		if is_chan {
+			log.Debug().Msgf("Sending RPL_CHANNELMODEIS")
 			return RPL_CHANNELMODEIS("", target, channel.FmtModes())
 		} else {
+			log.Debug().Msgf("Sending RPL_UMODEIS")
 			return RPL_UMODEIS("", target, target_client.FmtModes())
 		}
 	}
@@ -140,9 +142,11 @@ func mode(params map[string]interface{}) Response {
 	// check if they are channel operator
 	// only chan operators can apply or remove modes
 	client_nick := client.Nick()
-	if _, channel_operator := channel.Operators[client_nick]; !channel_operator {
-		log.Error().Msg("Client isnt channel operator")
-		return ERR_NOTONCHANNEL("", channel.Name)
+	if is_chan {
+		if _, channel_operator := channel.Operators[client_nick]; !channel_operator {
+			log.Error().Msg("Client isnt channel operator")
+			return ERR_NOTONCHANNEL("", channel.Name)
+		}
 	}
 
 	_server_metadata := params["server_metadata"]
@@ -161,7 +165,7 @@ func mode(params map[string]interface{}) Response {
 	res_action := ""
 	prev_action := ""
 
-	// log.Debug().Msgf("Before inner MODE loop. Split: %s, index1: %s, index2: %s", split_p, split_p[0], split_p[1])
+	log.Debug().Msgf("Before MODE loop")
 	for mode_param_offset, m := range split_p {
 		log.Debug().Msgf("Starting inner MODE loop. mode_param_offset: %d, m: %s", mode_param_offset, m)
 		if seen[mode_param_offset] {
@@ -206,11 +210,20 @@ func mode(params map[string]interface{}) Response {
 				continue
 			}
 
-			if !strings.Contains(supported_channel_modes, str_mode) {
-				log.Debug().Msgf("Not a supported mode: %s. Continuing", str_mode)
-				unknown_mode_task := NewTask(UNICAST, ERR_UNKNOWNMODE("", str_mode).Msg()+" \r\n", 0.0, client.ClientConn, nil)
-				mode_task = append(mode_task, unknown_mode_task)
-				continue
+			if is_chan {
+				if !strings.Contains(supported_channel_modes, str_mode) {
+					log.Debug().Msgf("Not a supported channel mode: %s. Continuing", str_mode)
+					unknown_mode_task := NewTask(UNICAST, ERR_UNKNOWNMODE("", str_mode).Msg()+" \r\n", 0.0, client.ClientConn, nil)
+					mode_task = append(mode_task, unknown_mode_task)
+					continue
+				}
+			} else {
+				if !supported_user_mode(str_mode) {
+					log.Debug().Msgf("Not a supported user mode: %s. Continuing", str_mode)
+					unknown_mode_task := NewTask(UNICAST, ERR_UNKNOWNMODE("", str_mode).Msg()+" \r\n", 0.0, client.ClientConn, nil)
+					mode_task = append(mode_task, unknown_mode_task)
+					continue
+				}
 			}
 
 			// TODO
@@ -354,7 +367,14 @@ func mode(params map[string]interface{}) Response {
 	// TODO
 	// try sending target
 	msg := fmt.Sprintf(":%s MODE %s %s%s \r\n", client_details, target, res_modes, res_final_params)
-	valid_mode_task := NewTask(MULTICAST, msg, 0.0, client.ClientConn, channel)
+	var valid_mode_task *Task
+	if is_chan {
+		valid_mode_task = NewTask(MULTICAST, msg, 0.0, client.ClientConn, channel)
+	} else {
+		// TODO
+		// should this be unicast since it is a user mode?
+		valid_mode_task = NewTask(UNICAST, msg, 0.0, client.ClientConn, nil)
+	}
 	mode_task = append(mode_task, valid_mode_task)
 
 	current_offset = 1
@@ -410,6 +430,15 @@ var user_modes = map[string]func(params *map[string]interface{}) *Response{
 	"B": B,
 	"W": W,
 	"H": H,
+}
+
+func supported_user_mode(mode string) bool {
+	for k, _ := range user_modes {
+		if k == mode {
+			return true
+		}
+	}
+	return false
 }
 
 // use `return nil` as a good thing below
