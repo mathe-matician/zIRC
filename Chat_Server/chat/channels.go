@@ -98,6 +98,14 @@ func (c *Channel) FmtModes() string {
 	return modes + " " + strings.TrimLeft(params, " ")
 }
 
+func isChannel(channel string) bool {
+	if len(channel) != 0 && string(channel[0]) == GENERAL_CHAN_PREFIX || string(channel[0]) == LOCAL_CHAN_PREFIX || string(channel[0]) == MODELESS_CHAN_PREFIX {
+		return true
+	}
+
+	return false
+}
+
 func NewMode(mode string, params string) *Mode {
 	return &Mode{
 		ModeChar: mode,

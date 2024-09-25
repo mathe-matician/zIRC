@@ -1,6 +1,7 @@
 package chat
 
 import (
+	"fmt"
 	"io"
 	"net"
 	"reflect"
@@ -28,16 +29,17 @@ type ServerConfig interface {
 }
 
 type IrcServer struct {
-	DnsName       string
-	Version       string
-	CreationDate  time.Time
-	Addr          string
-	Role          string
-	Listener      *net.Listener
-	_ServerManger *ServerManager
-	Servers       []*IrcServer
-	Clients       []*Client
-	Config        map[string]string
+	DnsName         string
+	Version         string
+	CreationDate    time.Time
+	Addr            string
+	Role            string
+	Listener        *net.Listener
+	_MessageManager *MessageManager
+	_ServerManager  *ServerManager
+	Servers         []*IrcServer
+	Clients         []*Client
+	Config          map[string]string
 }
 
 // type Task struct {
@@ -46,6 +48,10 @@ type IrcServer struct {
 // 	weight float64
 // 	task   string
 // }
+
+type ServerManager struct {
+	Addr string
+}
 
 type Worker struct {
 	id           uuid.UUID
@@ -56,7 +62,7 @@ type Worker struct {
 	mu           sync.Mutex
 }
 
-type ServerManager struct {
+type MessageManager struct {
 	Name               string
 	ClientList         *[]*Client
 	ClientMap          *map[string]*Client
@@ -69,21 +75,46 @@ type ServerManager struct {
 	decreasing_workers bool
 }
 
-// Run starts the ServerManager which manages the Worker pool
 func (sm *ServerManager) Run() {
-	log.Info().Msg("ServerManager started")
+	// listens on port 7000 for servers joining the irc network
+	ln, err := net.Listen("tcp", sm.Addr)
+	if err != nil {
+		log.Error().Msg(err.Error())
+		panic(err.Error())
+	}
+
+	log.Info().Msgf("ServerManager listening: %s", sm.Addr)
+
+	for {
+		conn, err := ln.Accept()
+		if err != nil {
+			log.Error().Msgf("Error accepting connection: %s", err.Error())
+			continue
+		}
+		log.Info().Msgf("ServerManager recv conn: addr: %s", conn.RemoteAddr())
+	}
+}
+
+// Run starts the MessageManager which manages the Worker pool
+func (sm *MessageManager) Run() {
+	log.Info().Msg("MessageManager started")
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("Recovered from panic:", r)
+		}
+	}()
 
 	for {
 		select {
 		case client_task := <-sm.Task_runner:
-			log.Info().Msgf("client_tasks: %s, len: %d", client_task, len(client_task))
+			log.Info().Msgf("client_tasks: %v, len: %d", client_task, len(client_task))
 			sm.worker_tasks <- client_task
 		}
 	}
 }
 
 // TODO - is this fn even needed?
-func (sm *ServerManager) StartTask(task string, client_chan chan string) {
+func (sm *MessageManager) StartTask(task string, client_chan chan string) {
 	if len(task) == 0 {
 		return
 	}
@@ -107,13 +138,15 @@ func (sm *ServerManager) StartTask(task string, client_chan chan string) {
 		}
 	}
 
-	log.Debug().Msgf("Lowest worker: %s, count: %s", lowest_worker, lowest_count)
+	log.Debug().Msgf("Lowest worker: %s, count: %d", lowest_worker, lowest_count)
 }
 
-// ScaleWorkerPool allows the servermanager to increase or delete workers from the pool
+// TODO
+// this is NOT functional
+// ScaleWorkerPool allows the message_manager to increase or delete workers from the pool
 // if force is true, delete the workers immediately
 // MUST be run in a go routine
-func (sm *ServerManager) ScaleWorkerPool(by int, force bool) {
+func (sm *MessageManager) ScaleWorkerPool(by int, force bool) {
 	if sm.decreasing_workers {
 		log.Info().Msg("In the process of decreasing worker count")
 		return
@@ -167,7 +200,7 @@ func (sm *ServerManager) ScaleWorkerPool(by int, force bool) {
 	}
 }
 
-func (sm *ServerManager) GetClientByNick(nick string) *Client {
+func (sm *MessageManager) GetClientByNick(nick string) *Client {
 	log.Debug().Msgf("GetClientByNick: %s", nick)
 	client_map := sm.ClientMap
 	client, ok := (*client_map)[nick]
@@ -178,19 +211,24 @@ func (sm *ServerManager) GetClientByNick(nick string) *Client {
 	return client
 }
 
-func (sm *ServerManager) Debug() {
-	log.Info().Msgf("ServerManager Debug!")
+func (sm *MessageManager) Debug() {
+	log.Info().Msgf("MessageManager Debug!")
 }
 
 func (w *Worker) MarshalObject(e *log.Entry) {
 	e.Str("id", w.id.String()).Float64("current_load", w.current_load)
 }
 
+func (sm *MessageManager) Route() {
+	// route msg across spanning tree irc network
+
+}
+
 // task_weight_mapping := map[string]float64 {
 
 // }
 
-func (w *Worker) unicast(server_manager *ServerManager, task *Task) {
+func (w *Worker) unicast(message_manager *MessageManager, task *Task) {
 	// target := (*task.Target)
 	// if target != nil {
 	// 	// If we reach here, we are sending a message to both some other 1 client + the source client
@@ -200,7 +238,7 @@ func (w *Worker) unicast(server_manager *ServerManager, task *Task) {
 	// 	// we should never get a Channel target here
 
 	// 	// if task.FindTarget != "" {
-	// 	// 	client_list := (*server_manager).ClientList
+	// 	// 	client_list := (*message_manager).ClientList
 	// 	// 	for _, c := range *client_list {
 
 	// 	// 	}
@@ -225,11 +263,11 @@ func (w *Worker) unicast(server_manager *ServerManager, task *Task) {
 	}
 }
 
-func (w *Worker) broadcast(server_manager *ServerManager, task *Task) {
+func (w *Worker) broadcast(message_manager *MessageManager, task *Task) {
 
 }
 
-func (w *Worker) multicast(server_manager *ServerManager, task *Task) {
+func (w *Worker) multicast(message_manager *MessageManager, task *Task) {
 	if task == nil {
 		log.Debug().EmbedObject(w).Msgf("Multicast task is nil!")
 		return
@@ -306,28 +344,28 @@ var workerActionMap = map[string]map[string]bool{
 
 // Work
 //
-//	job: jobs received from the ServerManager
-//	results: any results that are returned back to the ServerManager can be sent back to the client if needed
+//	job: jobs received from the MessageManager
+//	results: any results that are returned back to the MessageManager can be sent back to the client if needed
 //
-// TODO - this func may only need the ServerManager's ClientList and ServerList
-func (w *Worker) Work(tasks chan []*Task, results chan string, server_manager *ServerManager) {
+// TODO - this func may only need the MessageManager's ClientList and ServerList
+func (w *Worker) Work(tasks chan []*Task, results chan string, message_manager *MessageManager) {
 	for {
 		select {
 		case task := <-tasks:
 			log.Info().EmbedObject(w).Msgf("Tasks received")
-			server_manager.Debug()
+			message_manager.Debug()
 
 			if len(task) == 0 {
 				log.Warn().EmbedObject(w).Msgf("No tasks to run!")
 				continue
 			}
 
-			if server_manager.ClientList == nil {
-				msg := "servermanager client list is null! idk how we got to this point..."
+			if message_manager.ClientList == nil {
+				msg := "message_manager client list is null! idk how we got to this point..."
 				log.Error().EmbedObject(w).Msg(msg)
 				panic(msg)
 			}
-			log.Debug().EmbedObject(w).Msgf("Client List Len: %d", len(*server_manager.ClientList))
+			log.Debug().EmbedObject(w).Msgf("Client List Len: %d", len(*message_manager.ClientList))
 
 			for _, task := range task {
 				if task == nil {
@@ -342,16 +380,16 @@ func (w *Worker) Work(tasks chan []*Task, results chan string, server_manager *S
 					// 	server to client (as in a response message)
 					//	client to client (privmsg to single person)
 
-					w.unicast(server_manager, task)
+					w.unicast(message_manager, task)
 				} else if task.Type == MULTICAST {
 					log.Debug().Msgf("%s task", MULTICAST)
 					// multicast only purpose is to send client msgs to a specific channel
-					w.multicast(server_manager, task)
+					w.multicast(message_manager, task)
 				} else if task.Type == BROADCAST {
 					log.Debug().Msgf("%s task", BROADCAST)
 					// broadcast examples:
 					//	server admin broadcast to all users (e.g. server going down for maintenance)
-					w.broadcast(server_manager, task)
+					w.broadcast(message_manager, task)
 				} else if task.Type == SERVER {
 					log.Debug().Msgf("%s task", SERVER)
 					// split_task := strings.Split(task.Task, " ")
@@ -375,7 +413,13 @@ func (w *Worker) Work(tasks chan []*Task, results chan string, server_manager *S
 	}
 }
 
-func NewServerManager(client_list *[]*Client, server_list *[]*IrcServer) *ServerManager {
+func NewServerManager() *ServerManager {
+	return &ServerManager{
+		Addr: helpers.GetEnv("IRC_SERVER_MANAGER_PORT", "7000"),
+	}
+}
+
+func NewMessageManager(client_list *[]*Client, server_list *[]*IrcServer) *MessageManager {
 	init_worker_count, err := strconv.Atoi(helpers.GetEnv("IRC_SERVER_INIT_WORKER_COUNT", "3"))
 	if err != nil {
 		panic("can't init workers...")
@@ -384,13 +428,13 @@ func NewServerManager(client_list *[]*Client, server_list *[]*IrcServer) *Server
 	if client_list == nil || server_list == nil {
 		// the app's functionality requires the server manager being setup correctly
 		// if its not, panic
-		panic("servermanager: client_list or server_list is null! This cannot be!")
+		panic("message_manager: client_list or server_list is null! This cannot be!")
 	}
 
 	channel_list := make(map[string]*Channel)
 	client_map := make(map[string]*Client)
 
-	sm := &ServerManager{
+	sm := &MessageManager{
 		Name:         "",
 		Task_runner:  make(chan []*Task),
 		worker_tasks: make(chan []*Task),
@@ -482,21 +526,25 @@ func NewIrcServer(dns_name string, version string, addr string, server_role stri
 	)
 
 	g_Server = &IrcServer{
-		DnsName:       dns_name,
-		Version:       version,
-		CreationDate:  creation_date_time,
-		Addr:          addr,
-		Role:          server_role,
-		Listener:      nil,
-		_ServerManger: nil,
-		Servers:       *server_list,
-		Clients:       *client_list,
-		Config:        *config,
+		DnsName:         dns_name,
+		Version:         version,
+		CreationDate:    creation_date_time,
+		Addr:            addr,
+		Role:            server_role,
+		Listener:        nil,
+		_MessageManager: nil,
+		_ServerManager:  nil,
+		Servers:         *server_list,
+		Clients:         *client_list,
+		Config:          *config,
 	}
 
-	s_manager := NewServerManager(&g_Server.Clients, &g_Server.Servers)
+	s_manager := NewMessageManager(&g_Server.Clients, &g_Server.Servers)
 	s_manager.Name = dns_name
-	g_Server._ServerManger = s_manager
+	g_Server._MessageManager = s_manager
+
+	server_manager := NewServerManager()
+	g_Server._ServerManager = server_manager
 
 	// TODO - how do you connect to become brock_rockjaw? probably need the NickServ for this
 	superadmin, session_timestamp, err := NewClient(
@@ -510,7 +558,7 @@ func NewIrcServer(dns_name string, version string, addr string, server_role stri
 		panic("cant create defaut admin user")
 	}
 
-	*g_Server._ServerManger.ClientList = append(*g_Server._ServerManger.ClientList, superadmin)
+	*g_Server._MessageManager.ClientList = append(*g_Server._MessageManager.ClientList, superadmin)
 	log.Info().Msgf("Default superadmin brock_rockjaw created at %s", *session_timestamp)
 
 	return g_Server
@@ -526,10 +574,10 @@ func (is *IrcServer) Run() {
 
 	log.Info().Msgf("Server started, role: %s, addr: %s, dns: %s, config: %v", is.Role, is.Addr, is.DnsName, is.Config)
 
-	if is._ServerManger == nil {
+	if is._MessageManager == nil {
 		panic("Server's manager is null!!")
 	}
-	go is._ServerManger.Run()
+	go is._MessageManager.Run()
 
 	for {
 		conn, err := (*is.Listener).Accept()
@@ -549,6 +597,11 @@ func (is *IrcServer) Stop() {
 
 func (is *IrcServer) handleConnection(conn *net.Conn) {
 	defer (*conn).Close()
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("Recovered from panic:", r)
+		}
+	}()
 
 	remote_addr := (*conn).RemoteAddr()
 	remote_ip, remote_port, err := net.SplitHostPort(remote_addr.String())
@@ -594,7 +647,7 @@ func (is *IrcServer) handleConnection(conn *net.Conn) {
 					log.Error().EmbedObject(client).Msg(err.Error())
 				}
 				log.Info().EmbedObject(client).Msgf("Client disconnected: %s", *end_timestamp)
-				// TODO - remove client state from ServerManager!!!
+				// TODO - remove client state from MessageManager!!!
 				// TODO - write session duration as a metric / possible analysis
 
 				// TODO - remove client from all channels they are on
@@ -614,7 +667,7 @@ func (is *IrcServer) handleConnection(conn *net.Conn) {
 			"channelmodes": is.Config["IRC_CHANNEL_MODES"],
 		}
 
-		response := ProcessMessage(&recv_buf, client, is._ServerManger.Task_runner, server_metadata, is._ServerManger.ChannelMap)
+		response := ProcessMessage(&recv_buf, client, is._MessageManager.Task_runner, server_metadata, is._MessageManager.ChannelMap)
 
 		if len(response) == 0 {
 			// e.g. sometimes the server doesn't send anything back to the client

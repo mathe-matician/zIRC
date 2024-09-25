@@ -111,6 +111,15 @@ func RPL_UMODEIS(msg_override, nick, modes string) Response {
 	}
 }
 
+// Sent after server replies with all responses of 352
+func RPL_ENDOFWHO(msg_override, nick, modes string) Response {
+	return &Reply{
+		code:           "315",
+		msg:            "End of WHO list",
+		show_client_ip: false,
+	}
+}
+
 func RPL_CHANNELMODEIS(msg_override, channel, modes string) Response {
 	return &Reply{
 		code:           "324",
@@ -138,6 +147,47 @@ func RPL_TOPIC(msg_override, topic string) Response {
 		code: "332",
 		msg:  fmt.Sprintf(":%s", topic),
 		// msg:  ":irc.example.com 332 <nickname> <channel> :<topic>",
+		show_client_ip: true,
+	}
+}
+
+// :server: The server sending the reply.
+// 352: The numeric code for the WHO reply.
+// <requesting_user>: The nickname of the user who issued the WHO query.
+// <channel>: The channel the user is in. If the query is not channel-specific, this could be *.
+// <user>: The user’s username (ident).
+// <host>: The user’s hostname or IP address.
+// <server>: The name of the IRC server the user is connected to.
+// <nick>: The nickname of the user.
+// <H|G>: The user's "away" status. H means the user is not away ("Here"), and G means they are marked as away.
+// [*]: If present, it indicates that the user is an IRC operator.
+// [@|+]: If the user has channel operator status, this field is @; if they have voice privileges, it's +. If neither, this field is empty.
+// :<hopcount>: The number of hops between the server and the user (used to represent network distance).
+// <real name>: The "real name" (or GECOS) field from the user’s connection information.
+// E.g. :irc.example.com 352 Bob #example alice alice.example.com irc.example.com Alice H@ :0 Alice Smith
+func RPL_WHOREPLY(
+	msg_override,
+	requesting_user,
+	channel,
+	user,
+	host,
+	server,
+	nick,
+	away_status,
+	is_operator,
+	operator_status,
+	hopcount,
+	real_name string,
+) Response {
+	msg := fmt.Sprintf(":%s 352 %s %s %s %s %s %s %s %s %s :%s %s", server, requesting_user, channel, user, host, server, nick, away_status, is_operator, operator_status, hopcount, real_name)
+
+	if len(msg_override) != 0 {
+		msg = msg_override
+	}
+
+	return &Reply{
+		code:           "352",
+		msg:            msg,
 		show_client_ip: true,
 	}
 }

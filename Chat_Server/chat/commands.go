@@ -33,8 +33,9 @@ var command_map = map[string]Command{
 	"NOTIFY":       *NewCommand(notify, map[string]string{"auth_req": "true"}, false),
 	"SERVER":       *NewCommand(server, make(map[string]string), false),
 	"USER":         *NewCommand(user, make(map[string]string), true),
+	"WHO":          *NewCommand(who, map[string]string{"auth_req": "true"}, false),
+	"QUIT":         *NewCommand(quit, make(map[string]string), false),
 	// "WEBIRC":       *NewCommand(webirc, make(map[string]string), false),
-	"QUIT": *NewCommand(quit, make(map[string]string), false),
 }
 
 // TODO
@@ -189,17 +190,6 @@ func protoctl(params map[string]interface{}) Response {
 
 func notify(params map[string]interface{}) Response {
 	msg := "Running NOTIFY..."
-	log.Info().Msg(msg)
-	res := Reply{
-		code: "333",
-		msg:  msg,
-	}
-	return &res
-}
-
-// In the case of a server connection, this command can be used for server-to-server communications (typically not used by clients).
-func server(params map[string]interface{}) Response {
-	msg := "Running SERVER..."
 	log.Info().Msg(msg)
 	res := Reply{
 		code: "333",

@@ -88,7 +88,7 @@ func privmsg(params map[string]interface{}) Response {
 	// TODO
 	// rate limit messages
 
-	task_runner := g_Server._ServerManger.Task_runner
+	task_runner := g_Server._MessageManager.Task_runner
 	// task_runner := _task_runner.(chan []*Task)
 	_client, ok := params["client"]
 	if _client == nil || !ok {
@@ -111,7 +111,7 @@ func privmsg(params map[string]interface{}) Response {
 		log.Debug().Msgf("PRIVMSG: Creating new task for USER")
 
 		// have the server find the target by name
-		dest := g_Server._ServerManger.GetClientByNick(target)
+		dest := g_Server._MessageManager.GetClientByNick(target)
 		if dest == nil {
 			return ERR_NOSUCHNICK("")
 		}

@@ -1,10 +1,18 @@
 package main
 
 import (
+	"fmt"
 	"zirc/chat"
 )
 
 func main() {
+
+	// recover from panics that would crash the server
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("Recovered from panic:", r)
+		}
+	}()
 
 	// TODO - for whatever reason overriding go's default logger
 	// 		  with "github.com/phuslu/log"'s configuration doesn't show logs

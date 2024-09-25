@@ -26,6 +26,7 @@ type Session struct {
 type Client struct {
 	nick          string
 	user          string
+	RealName      string
 	Registered    bool
 	server        string
 	session       Session
@@ -35,6 +36,8 @@ type Client struct {
 	UserModes     []Mode
 	Channels      []string
 	PrivateConvos []string // TODO - idk what this structure / process looks like
+	Host          string
+	AwayMessage   string
 }
 
 func stringTimeFromUnixTimestamp(time uuid.Time) string {
@@ -65,15 +68,17 @@ func NewClient(nick string, user string, conn *rc.RemoteConn, Conn *net.Conn) (*
 	}
 
 	return &Client{
-		nick:       nick,
-		user:       user,
-		Registered: false,
-		server:     helpers.GetEnv("IRC_SERVER_DNS_NAME", "localhost"),
-		session:    *s,
-		ClientConn: Conn,
-		conn:       conn,
-		send:       s_chan,
-		UserModes:  user_modes,
+		nick:        nick,
+		user:        user,
+		Registered:  false,
+		server:      helpers.GetEnv("IRC_SERVER_DNS_NAME", "localhost"),
+		session:     *s,
+		ClientConn:  Conn,
+		conn:        conn,
+		send:        s_chan,
+		UserModes:   user_modes,
+		Host:        g_Server.DnsName,
+		AwayMessage: "",
 	}, &session_timestamp, nil
 }
 
@@ -166,6 +171,9 @@ func (c *Client) Nick() string {
 }
 
 func (c *Client) Ip() string {
+	if c.HasUserMode("x") {
+		return "cloak.z.irc"
+	}
 	return c.conn.Ip
 }
 

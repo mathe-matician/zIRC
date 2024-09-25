@@ -15,13 +15,13 @@ func user(params map[string]interface{}) Response {
 	log.Info().Msg("Running USER...")
 
 	_client, ok := params["client"]
-	if !ok {
+	if _client == nil || !ok {
 		log.Error().Msg("Client not passed to USER command!!")
 		return ERR_UNKNOWNERROR("")
 	}
 
 	_params, ok := params["params"]
-	if !ok {
+	if _params == nil || !ok {
 		log.Error().Msg("Params not in map!")
 		return ERR_NEEDMOREPARAMS("")
 	}
@@ -58,7 +58,7 @@ func user(params map[string]interface{}) Response {
 		// _server_metadata := params["server_metadata"]
 		// server_metadata := _server_metadata.(map[string]string)
 
-		server_name := g_Server._ServerManger.Name
+		server_name := g_Server._MessageManager.Name
 		server_version := g_Server.Version
 		server_usermodes := g_Server.Config["IRC_USER_MODES"]
 		server_channelmodes := g_Server.Config["IRC_CHANNEL_MODES"]
@@ -67,7 +67,7 @@ func user(params map[string]interface{}) Response {
 		client_details := fmt.Sprintf("%s@%s!%s", client_nick, client.User(), client.Ip())
 
 		log.Info().Msg("Before accessing ClientMap...")
-		svr_mang := g_Server._ServerManger
+		svr_mang := g_Server._MessageManager
 		clint_map := svr_mang.ClientMap
 		(*clint_map)[client_nick] = client
 

@@ -94,7 +94,7 @@ func mode(params map[string]interface{}) Response {
 			log.Debug().Msgf("Invalid chan name")
 			return ERR_BADCHANMASK("")
 		}
-		// channel_map := (*g_Server)._ServerManger.ChannelMap
+		// channel_map := (*g_Server)._MessageManager.ChannelMap
 		channel, valid_channel = (*channel_map)[target]
 		if !valid_channel {
 			log.Debug().Msgf("So such chan!")
@@ -107,7 +107,7 @@ func mode(params map[string]interface{}) Response {
 			return ERR_NOSUCHNICK("")
 		}
 
-		client_map := (*g_Server)._ServerManger.ClientMap
+		client_map := (*g_Server)._MessageManager.ClientMap
 		target_client, valid_target_client = (*client_map)[target]
 		if !valid_target_client {
 			log.Debug().Msgf("So such nick!")
@@ -243,7 +243,7 @@ func mode(params map[string]interface{}) Response {
 
 			current_mode_params := ""
 
-			// if command requires params
+			// if command requires params (only applicable to channel modes)
 			// these are the only modes that do
 			// because there is overlap between user and channel modes but they are different
 			// if it is a user mode, then we don't care because they don't need params
@@ -329,9 +329,6 @@ func mode(params map[string]interface{}) Response {
 			// corresponding MODE command function below.
 			// this is because the actual command could fail for whatever reason
 
-			// TODO
-			// how to get args for each corresponding command?
-
 			// e.g.
 			// :Bob!bob@host MODE #example +i
 			res_params := ""
@@ -339,9 +336,6 @@ func mode(params map[string]interface{}) Response {
 				res_params += " " + current_mode_params
 			}
 
-			log.Debug().Msgf("About to add MULTICAST msg with values. action: %s, str_mode: %s, res_params: %s", action, str_mode, res_params)
-
-			// client_details := fmt.Sprintf("%s@%s!%s", client_nick, client.User(), client.Ip())
 			var final_valid_mode bool
 			if is_chan {
 				_, final_valid_mode = channel_modes[str_mode]
@@ -369,10 +363,10 @@ func mode(params map[string]interface{}) Response {
 	msg := fmt.Sprintf(":%s MODE %s %s%s \r\n", client_details, target, res_modes, res_final_params)
 	var valid_mode_task *Task
 	if is_chan {
+		// MULTICAST since other channel members should see these server responses
+		// UNLESS they have some user mode set to NOT see them.
 		valid_mode_task = NewTask(MULTICAST, msg, 0.0, client.ClientConn, channel)
 	} else {
-		// TODO
-		// should this be unicast since it is a user mode?
 		valid_mode_task = NewTask(UNICAST, msg, 0.0, client.ClientConn, nil)
 	}
 	mode_task = append(mode_task, valid_mode_task)
@@ -386,7 +380,7 @@ func mode(params map[string]interface{}) Response {
 
 ////// MODES
 
-// this then makes two sources of truth for modes - the ServerManager or IrcServer and this one
+// this then makes two sources of truth for modes - the MessageManager or IrcServer and this one
 // annoying to update both (also not like modes change frequently, though)
 var channel_modes = map[string]func(params *map[string]interface{}) *Response{
 	"p": p,
@@ -471,9 +465,6 @@ func o_user(params *map[string]interface{}) *Response {
 		res := ERR_NEEDMOREPARAMS("")
 		return &res
 	}
-
-	// todo
-	// add to Channel.Operators client map
 
 	return nil
 }
