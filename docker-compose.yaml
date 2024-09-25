@@ -7,4 +7,5 @@ services:
       context: ./Chat_Server
       dockerfile: Dockerfile
     ports:
-      - "6667:6667"
+      - "6667:6667" # irc server
+      - "7000:7000" # server manager
