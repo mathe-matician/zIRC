@@ -77,6 +77,11 @@ type MessageManager struct {
 
 func (sm *ServerManager) Run() {
 	// listens on port 7000 for servers joining the irc network
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("Recovered from panic:", r)
+		}
+	}()
 	ln, err := net.Listen("tcp", sm.Addr)
 	if err != nil {
 		log.Error().Msg(err.Error())
@@ -91,7 +96,47 @@ func (sm *ServerManager) Run() {
 			log.Error().Msgf("Error accepting connection: %s", err.Error())
 			continue
 		}
-		log.Info().Msgf("ServerManager recv conn: addr: %s", conn.RemoteAddr())
+		go sm.handleConnection(&conn)
+	}
+}
+
+func (sm *ServerManager) handleConnection(conn *net.Conn) {
+	defer (*conn).Close()
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("ServerManager recovered from panic:", r)
+		}
+	}()
+	remote_addr := (*conn).RemoteAddr()
+	log.Info().Msgf("Handling ServerManager connection: %s", remote_addr)
+
+	var max_buffer_size int
+	var err error
+	max_buffer_size, err = strconv.Atoi(helpers.GetEnv("IRC_MAX_BUFFER_SIZE", "8192"))
+	if err != nil {
+		log.Error().Msgf(err.Error())
+		max_buffer_size = 8192
+	}
+
+	for {
+		// block on read until the buffer has at least 1 byte.
+		// just a hacky way for this to block as Read() doesn't block on its own
+		recv_buf := make([]byte, max_buffer_size)
+		_, err := io.ReadAtLeast((*conn), recv_buf, 1)
+		if err != nil {
+			if err == io.EOF {
+				// end_timestamp, err := client.SetSessionEndTimestamp()
+				// if err != nil {
+				// 	log.Error().EmbedObject(client).Msg(err.Error())
+				// }
+				log.Info().Msgf("Server %s disconnected", remote_addr)
+			}
+			return
+		}
+
+		if _, err := (*conn).Write([]byte("")); err != nil {
+			break
+		}
 	}
 }
 
@@ -578,6 +623,7 @@ func (is *IrcServer) Run() {
 		panic("Server's manager is null!!")
 	}
 	go is._MessageManager.Run()
+	go is._ServerManager.Run()
 
 	for {
 		conn, err := (*is.Listener).Accept()
