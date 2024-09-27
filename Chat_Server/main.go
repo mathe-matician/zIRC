@@ -36,7 +36,6 @@ func main() {
 	// 		EndWithMessage: true,
 	// 	},
 	// }
-
 	irc_server := chat.NewIrcServer("", "", "", "", nil, nil, nil)
 	irc_server.Run()
 }

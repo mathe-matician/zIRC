@@ -2,12 +2,19 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	"golang.org/x/crypto/bcrypt"
 )
 
 func main() {
-	hash, err := bcrypt.GenerateFromPassword([]byte("1235"), bcrypt.DefaultCost)
+	args := os.Args
+	if len(args) <= 1 {
+		panic("no args provided")
+	}
+	password := args[1]
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return
 	}

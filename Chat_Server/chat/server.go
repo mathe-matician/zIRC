@@ -1,6 +1,7 @@
 package chat
 
 import (
+	"crypto/tls"
 	"fmt"
 	"io"
 	"net"
@@ -75,6 +76,28 @@ type MessageManager struct {
 	decreasing_workers bool
 }
 
+var server_manager_commands = map[string]string{
+	"PASS":   "",
+	"SERVER": "",
+	"CAP":    "",
+	"SJOIN":  "",
+	"PING":   "",
+	"PONG":   "",
+	"SQUIT":  "",
+}
+
+func (sm *ServerManager) ValidS2SPassword(password string) bool {
+	// check db first
+	// if can't connect to db check locally for conf file or env variable
+	// if all fails, then don't let join
+
+	// last fallback is env var
+	if helpers.GetEnv("IRC_S2S_PASSWORD", "") == password {
+		return true
+	}
+	return false
+}
+
 func (sm *ServerManager) Run() {
 	// listens on port 7000 for servers joining the irc network
 	defer func() {
@@ -82,11 +105,13 @@ func (sm *ServerManager) Run() {
 			fmt.Println("Recovered from panic:", r)
 		}
 	}()
-	ln, err := net.Listen("tcp", sm.Addr)
-	if err != nil {
-		log.Error().Msg(err.Error())
-		panic(err.Error())
-	}
+	ln := GetTCPListener(
+		helpers.GetEnv("IRC_S2S_ENABLE_TLS", "false"),
+		helpers.GetEnv("IRC_S2S_TLS_CERT_PATH", "./.tls/s2s.crt"),
+		helpers.GetEnv("IRC_S2S_TLS_KEY_PATH", "./.tls/s2s.key"),
+		helpers.GetEnv("IRC_S2S_TLS_PORT", "7001"),
+		helpers.GetEnv("IRC_S2S_PORT", "7000"),
+	)
 
 	log.Info().Msgf("ServerManager listening: %s", sm.Addr)
 
@@ -542,8 +567,17 @@ func NewIrcServer(dns_name string, version string, addr string, server_role stri
 		client_list = &cl
 	}
 
+	enable_tls, err := strconv.ParseBool(helpers.GetEnv("IRC_ENABLE_TLS", "false"))
+	if err != nil {
+		log.Error().Msg(err.Error())
+	}
+	port := helpers.GetEnv("IRC_PORT", "6667")
+	if enable_tls {
+		port = helpers.GetEnv("IRC_TLS_PORT", "6697")
+	}
+
 	if len(addr) == 0 {
-		addr = helpers.GetEnv("IRC_HOST", "0.0.0.0") + ":" + helpers.GetEnv("IRC_PORT", "6667")
+		addr = helpers.GetEnv("IRC_HOST", "0.0.0.0") + ":" + port
 	}
 
 	if config == nil {
@@ -609,11 +643,52 @@ func NewIrcServer(dns_name string, version string, addr string, server_role stri
 	return g_Server
 }
 
+// GetTCPListener checks to see if TLS is enabled for the particular listener
+// if it is, it creates a TLS Listener with the provided TLS env vars
+// else it returns a normal Listener
+func GetTCPListener(enableTls, tls_cert_path, tls_key_path, tls_port, port string) net.Listener {
+	var ln net.Listener
+	var err error
+	enable_tls, err1 := strconv.ParseBool(enableTls)
+	if err1 != nil {
+		log.Error().Msg(err1.Error())
+	}
+	if enable_tls {
+		crt_path := tls_cert_path
+		key_path := tls_key_path
+		cert, err := tls.LoadX509KeyPair(crt_path, key_path)
+		if err != nil {
+			panic(err)
+		}
+
+		config := &tls.Config{Certificates: []tls.Certificate{cert}}
+		tls_port := tls_port
+		ln, err = tls.Listen("tcp", ":"+tls_port, config)
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		ln, err = net.Listen("tcp", port)
+		if err != nil {
+			log.Error().Msg(err.Error())
+			panic(err.Error())
+		}
+	}
+	return ln
+}
+
 func (is *IrcServer) Run() {
-	ln, err := net.Listen("tcp", is.Addr)
-	if err != nil {
-		log.Error().Msg(err.Error())
-		panic(err.Error())
+	enabled_tls := helpers.GetEnv("IRC_ENABLE_TLS", "false")
+	tls_port := helpers.GetEnv("IRC_TLS_PORT", "6697")
+	ln := GetTCPListener(
+		enabled_tls,
+		helpers.GetEnv("IRC_TLS_CERT_PATH", "./.tls/server.crt"),
+		helpers.GetEnv("IRC_TLS_KEY_PATH", "./.tls/server.key"),
+		tls_port,
+		helpers.GetEnv("IRC_PORT", "6667"),
+	)
+	if enabled_tls == "true" {
+		is.Addr = tls_port
 	}
 	is.Listener = &ln
 
@@ -623,7 +698,7 @@ func (is *IrcServer) Run() {
 		panic("Server's manager is null!!")
 	}
 	go is._MessageManager.Run()
-	go is._ServerManager.Run()
+	go is._ServerManager.Run() // handler for servers trying to join the network
 
 	for {
 		conn, err := (*is.Listener).Accept()
