@@ -51,7 +51,8 @@ type IrcServer struct {
 // }
 
 type ServerManager struct {
-	Addr string
+	Addr              string
+	serverIpWhitelist map[string]string
 }
 
 type Worker struct {
@@ -86,6 +87,13 @@ var server_manager_commands = map[string]string{
 	"SQUIT":  "",
 }
 
+// Allows this server to Join an existing IRC network
+func (sm *ServerManager) Join() {
+
+}
+
+// Checks to see whether the server trying to connect to this network
+// has entered in a valid password via the PASS command
 func (sm *ServerManager) ValidS2SPassword(password string) bool {
 	// check db first
 	// if can't connect to db check locally for conf file or env variable
@@ -121,6 +129,25 @@ func (sm *ServerManager) Run() {
 			log.Error().Msgf("Error accepting connection: %s", err.Error())
 			continue
 		}
+
+		if conn.RemoteAddr().Network() != "tcp" {
+			conn.Close()
+			continue
+		}
+
+		server_ip, _, err := net.SplitHostPort(conn.RemoteAddr().String())
+		if err != nil {
+			log.Error().Msgf("ServerManager Error extracting IP: %s", err)
+			conn.Close()
+			continue
+		}
+
+		if _, ok := sm.serverIpWhitelist[server_ip]; !ok {
+			log.Error().Msgf("ServerManager not a whitelisted server ip!: %s", server_ip)
+			conn.Close()
+			continue
+		}
+
 		go sm.handleConnection(&conn)
 	}
 }
@@ -704,6 +731,11 @@ func (is *IrcServer) Run() {
 		conn, err := (*is.Listener).Accept()
 		if err != nil {
 			log.Error().Msgf("Error accepting connection: %s", err.Error())
+			continue
+		}
+
+		if conn.RemoteAddr().Network() != "tcp" {
+			conn.Close()
 			continue
 		}
 
