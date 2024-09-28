@@ -98,6 +98,7 @@ func NewIrcServer(dns_name string, version string, addr string, server_role stri
 			"IRC_MAX_USER_CHANNELS": helpers.GetEnv("IRC_MAX_USER_CHANNELS", "20"),
 			"IRC_USER_MODES":        helpers.GetEnv("IRC_USER_MODES", "oiws"),
 			"IRC_CHANNEL_MODES":     helpers.GetEnv("IRC_CHANNEL_MODES", "opsmt"),
+			"CAPABILITIES":          helpers.GetEnv("IRC_SERVER_CAPABILITIES", ""),
 		}
 		config = &conf
 	}
@@ -165,6 +166,7 @@ func GetTCPListener(enableTls, tls_cert_path, tls_key_path, tls_port, port strin
 	if err1 != nil {
 		log.Error().Msg(err1.Error())
 	}
+	irc_host := helpers.GetEnv("IRC_HOST", "0.0.0.0")
 	if enable_tls {
 		crt_path := tls_cert_path
 		key_path := tls_key_path
@@ -175,12 +177,12 @@ func GetTCPListener(enableTls, tls_cert_path, tls_key_path, tls_port, port strin
 
 		config := &tls.Config{Certificates: []tls.Certificate{cert}}
 		tls_port := tls_port
-		ln, err = tls.Listen("tcp", ":"+tls_port, config)
+		ln, err = tls.Listen("tcp", irc_host+":"+tls_port, config)
 		if err != nil {
 			panic(err)
 		}
 	} else {
-		ln, err = net.Listen("tcp", port)
+		ln, err = net.Listen("tcp", irc_host+":"+port)
 		if err != nil {
 			log.Error().Msg(err.Error())
 			panic(err.Error())

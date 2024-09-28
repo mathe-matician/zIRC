@@ -9,7 +9,6 @@ RUN go mod download
 COPY main.go ./
 COPY chat/ chat/
 COPY helpers/ helpers/
-COPY server/ server/
 COPY remote_conn/ remote_conn/
 
 RUN go build zirc

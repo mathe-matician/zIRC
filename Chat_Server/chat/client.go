@@ -38,6 +38,7 @@ type Client struct {
 	PrivateConvos []string // TODO - idk what this structure / process looks like
 	Host          string
 	AwayMessage   string
+	Capabilities  map[string]string
 }
 
 func stringTimeFromUnixTimestamp(time uuid.Time) string {
@@ -63,22 +64,25 @@ func NewClient(nick string, user string, conn *rc.RemoteConn, Conn *net.Conn) (*
 	// i: invisible? hide them from all other users UNLESS they are on the same channel?
 	// x: cloaked mode, cloak the ip address
 	user_modes := []Mode{
-		Mode{ModeChar: "C", Params: ""},
-		Mode{ModeChar: "x", Params: ""},
+		{ModeChar: "C", Params: ""},
+		{ModeChar: "x", Params: ""},
 	}
 
+	caps := make(map[string]string)
+
 	return &Client{
-		nick:        nick,
-		user:        user,
-		Registered:  false,
-		server:      helpers.GetEnv("IRC_SERVER_DNS_NAME", "localhost"),
-		session:     *s,
-		ClientConn:  Conn,
-		conn:        conn,
-		send:        s_chan,
-		UserModes:   user_modes,
-		Host:        g_Server.DnsName,
-		AwayMessage: "",
+		nick:         nick,
+		user:         user,
+		Registered:   false,
+		server:       helpers.GetEnv("IRC_SERVER_DNS_NAME", "localhost"),
+		session:      *s,
+		ClientConn:   Conn,
+		conn:         conn,
+		send:         s_chan,
+		UserModes:    user_modes,
+		Host:         g_Server.DnsName,
+		AwayMessage:  "",
+		Capabilities: caps,
 	}, &session_timestamp, nil
 }
 
@@ -160,6 +164,13 @@ func (c *Client) HasUserMode(mode string) bool {
 		}
 	}
 	return false
+}
+
+func (c *Client) HasCapability(cap string) bool {
+	if _, ok := c.Capabilities[cap]; !ok {
+		return false
+	}
+	return true
 }
 
 func (c *Client) GetConn() *rc.RemoteConn {

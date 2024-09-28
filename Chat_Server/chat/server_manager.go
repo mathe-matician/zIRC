@@ -12,6 +12,7 @@ import (
 
 var server_manager_commands = map[string]string{
 	"PASS":   "",
+	"CAPAB":  "",
 	"SERVER": "",
 	"CAP":    "",
 	"SJOIN":  "",
@@ -31,12 +32,51 @@ func NewServerManager() *ServerManager {
 	}
 }
 
-func (sm *ServerManager) UpdateServerIpWhiteList(ip, args string) {
+func (sm *ServerManager) AddToServerIpWhiteList(ip, args string) {
 	sm.serverIpWhitelist[ip] = args
 }
 
+func (sm *ServerManager) RemoveFromServerIpWhiteList(ip string) {
+	delete(sm.serverIpWhitelist, ip)
+}
+
 // Allows this server to Join an existing IRC network
-func (sm *ServerManager) Join() {
+// TODO
+// should this be an init function?
+// e.g. get Join config
+func (sm *ServerManager) Join(ip string) {
+	/*
+		1. PASS
+		2. CAPAB (capability announcement)
+			The server initiating the connection sends a CAPAB (capability) message to the receiving server. This message lists the features or protocol extensions that the server supports.
+
+			CAPAB :QS EX IE KLN UNKLN
+
+			Here, the server is advertising that it supports several features:
+
+			QS: Quiet Channel Synchronization
+			EX: Extended bans
+			IE: Invite exceptions
+			KLN: Kill line commands
+			UNKLN: Undo kill line commands
+
+			Each capability represents a specific feature or extension that allows enhanced communication between the servers.
+
+		3. CAPAB matching
+			Once the first server announces its capabilities, the receiving server also sends back a CAPAB message indicating its own supported capabilities.
+
+			The two servers then compare their lists of supported capabilities. Both servers will use the features they both support for further communication. If a capability is not supported by one of the servers, it is not used in future communication.
+
+		4. Negotiate features
+
+			If both servers support advanced features (like extended bans, invite exceptions, etc.), they will use these capabilities in communication. For instance, if both servers support EX (extended bans), they will use extended ban syntax when communicating about bans across the network.
+
+			If one of the servers does not support a specific feature, the two servers will revert to the basic, standard IRC protocol features for that area of communication.
+
+		5. SERVER cmd
+
+		https://docs.inspircd.org/server/examples/connection/
+	*/
 
 }
 

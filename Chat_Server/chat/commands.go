@@ -127,19 +127,6 @@ func authenticate(params map[string]interface{}) Response {
 	return &res
 }
 
-func cap(params map[string]interface{}) Response {
-	msg := "Running CAP..."
-	log.Info().Msg(msg)
-	// response := map[string]string{
-	// 	"msg": msg,
-	// }
-	res := &Reply{
-		code: "333",
-		msg:  "hi",
-	}
-	return res
-}
-
 // Although not commonly used, a client can send an ERROR message to notify the server of a fatal error condition.
 func error_cmd(params map[string]interface{}) Response {
 	msg := "Running ERROR..."

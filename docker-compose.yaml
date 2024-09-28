@@ -9,3 +9,14 @@ services:
     ports:
       - "6667:6667" # irc server
       - "7000:7000" # server manager
+
+  # zirc_nickserv:
+  #   container_name: zirc_nickserv
+  #   # image: zirc_nickserv
+  #   env_file: ./NickServ/.env
+  #   build:
+  #     context: ./NickServ
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     - "6667:6667"
+  #     - "7000:7000"
