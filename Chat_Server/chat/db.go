@@ -8,7 +8,7 @@ import (
 	"time"
 	"zirc/helpers"
 
-	"github.com/go-pg/pg"
+	"github.com/go-pg/pg/v10"
 	"github.com/phuslu/log"
 )
 
@@ -26,14 +26,26 @@ func db_init() {
 		tls_config = helpers.CreateTLSConfig(crt_path, key_path)
 	}
 
+	db_user := helpers.GetEnv("IRC_DB_USER", "postgres")
+	db_database := helpers.GetEnv("IRC_DB_DATABASE", "postgres")
+	db_app_name := helpers.GetEnv("IRC_DB_APPLICATION_NAME", "zirc_server")
+	db_host := fmt.Sprintf("%s:%s", helpers.GetEnv("IRC_DB_HOST", "zirc_db"), helpers.GetEnv("IRC_DB_PORT", "5432"))
+
 	g_DB = pg.Connect(&pg.Options{
-		Addr:            fmt.Sprintf("%s:%s", helpers.GetEnv("IRC_DB_HOST", "zirc_db"), helpers.GetEnv("IRC_DB_PORT", "5432")),
-		User:            helpers.GetEnv("IRC_DB_USER", "postgres"),
+		Addr:            db_host,
+		User:            db_user,
 		Password:        helpers.GetEnv("IRC_DB_PASSWORD", "password"),
-		Database:        helpers.GetEnv("IRC_DB_DATABASE", "postgres"),
-		ApplicationName: helpers.GetEnv("IRC_DB_APPLICATION_NAME", "zirc_server"),
+		Database:        db_database,
+		ApplicationName: db_app_name,
 		TLSConfig:       tls_config,
 	})
+
+	ctx := context.Background()
+	if err := g_DB.Ping(ctx); err != nil {
+		log.Info().Msgf("Could not ping database upon startup: %s", err)
+	} else {
+		log.Info().Msgf("Successfully connected to db. Host: %s, User: %s, Db: %s, AppName: %s", db_host, db_user, db_database, db_app_name)
+	}
 }
 
 func init() {
@@ -42,7 +54,8 @@ func init() {
 }
 
 func reconnect_db_listener() {
-	reconnect_wait_interval, err := strconv.Atoi(helpers.GetEnv("IRC_DB_RECONNECT_WAIT_INTERVAL", "3"))
+	log.Info().Msgf("DB Reconnect Listener started")
+	reconnect_wait_interval, err := strconv.Atoi(helpers.GetEnv("IRC_DB_HEALTHCHECK_INTERVAL", "3"))
 	if err != nil {
 		log.Error().Msgf(err.Error())
 	}
