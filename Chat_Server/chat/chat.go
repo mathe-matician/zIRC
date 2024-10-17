@@ -90,7 +90,7 @@ func ProcessMessage(recv_buf *[]byte, client *Client, task_runner chan []*Task, 
 	//		  S2S communication uses cmds like PING/PONG, SYNCHRONIZE
 
 	log.Debug().Msgf("Validating command %s", split_msg[0])
-	cmd, _validation_res := commandValidation(strings.Trim(split_msg[0], " "), client.session.state["server_password"], client.Registered)
+	cmd, _validation_res := commandValidation(strings.Trim(split_msg[0], " "), client.session.state["server_password"], client.Registered, client.Capabilities)
 	if reflect.TypeOf(_validation_res).Name() == "ErrorResponse" || cmd == nil {
 		log.Error().Msgf("Error during command validation")
 		return helpers.FormatResponse(server, _validation_res.Code(), target, _validation_res.Msg())
@@ -148,5 +148,6 @@ func ProcessMessage(recv_buf *[]byte, client *Client, task_runner chan []*Task, 
 	if client.Registered {
 		target = client.FormattedClientDetails()
 	}
-	return helpers.FormatResponse(server, str_cmd[0], target, msg)
+	// return helpers.FormatResponse(server, str_cmd[0], target, msg)
+	return helpers.FormatResponse(server, target, msg)
 }

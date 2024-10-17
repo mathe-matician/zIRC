@@ -1,6 +1,7 @@
 package helpers
 
 import (
+	"crypto/tls"
 	"errors"
 	"os"
 )
@@ -42,4 +43,15 @@ func FormatResponse(response_args ...string) []byte {
 	}
 	response += "\r\n"
 	return []byte(response)
+}
+
+// CreateTLSConfig creates a tls.Config
+// using the passed crt and key paths
+func CreateTLSConfig(crt_path, key_path string) *tls.Config {
+	cert, err := tls.LoadX509KeyPair(crt_path, key_path)
+	if err != nil {
+		panic(err)
+	}
+
+	return &tls.Config{Certificates: []tls.Certificate{cert}}
 }

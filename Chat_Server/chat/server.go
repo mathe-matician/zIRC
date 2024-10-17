@@ -168,14 +168,7 @@ func GetTCPListener(enableTls, tls_cert_path, tls_key_path, tls_port, port strin
 	}
 	irc_host := helpers.GetEnv("IRC_HOST", "0.0.0.0")
 	if enable_tls {
-		crt_path := tls_cert_path
-		key_path := tls_key_path
-		cert, err := tls.LoadX509KeyPair(crt_path, key_path)
-		if err != nil {
-			panic(err)
-		}
-
-		config := &tls.Config{Certificates: []tls.Certificate{cert}}
+		config := helpers.CreateTLSConfig(tls_cert_path, tls_key_path)
 		tls_port := tls_port
 		ln, err = tls.Listen("tcp", irc_host+":"+tls_port, config)
 		if err != nil {
@@ -189,6 +182,16 @@ func GetTCPListener(enableTls, tls_cert_path, tls_key_path, tls_port, port strin
 		}
 	}
 	return ln
+}
+
+func (is *IrcServer) HasCapability(cap string) bool {
+	caps := strings.Split(is.Config["CAPABILITIES"], " ")
+	for _, c := range caps {
+		if c == cap {
+			return true
+		}
+	}
+	return false
 }
 
 func (is *IrcServer) Run() {

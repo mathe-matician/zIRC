@@ -19,7 +19,7 @@ type Command struct {
 }
 
 var command_map = map[string]Command{
-	"AUTHENTICATE": *NewCommand(authenticate, map[string]string{"auth_req": "true"}, true),
+	"AUTHENTICATE": *NewCommand(authenticate, make(map[string]string), true),
 	"CAP":          *NewCommand(cap, make(map[string]string), false),
 	"ERROR":        *NewCommand(error_cmd, make(map[string]string), false),
 	"NICK":         *NewCommand(nick, make(map[string]string), true),
@@ -72,7 +72,7 @@ func (c *Command) DeleteMetadata(cmd, key, value string) {
 // - ensures the command is a valid IRC command
 // - checks whether the client is registered or not and limits commands based on that
 // - checks whether the client is a server or a client and limits more commands based on that
-func commandValidation(cmd, client_password_state string, client_registered bool) (*Command, Response) {
+func commandValidation(cmd, client_password_state string, client_registered bool, capabilities map[string]string) (*Command, Response) {
 	server_password := helpers.GetEnv("IRC_SERVER_PASSWORD", "")
 	if len(server_password) != 0 && cmd != "PASS" && client_password_state != "accepted" {
 		return nil, ERR_PASSWDMISMATCH(":You need to send your password before registering")
@@ -89,6 +89,11 @@ func commandValidation(cmd, client_password_state string, client_registered bool
 	if !client_registered && auth_req {
 		log.Debug().Msgf("CommandValidation: ")
 		return nil, ERR_NOTREGISTERED("")
+	}
+
+	_, has_sasl := capabilities["sasl"]
+	if cmd == "AUTHENTICATE" && !has_sasl {
+		return nil, ERR_NOSASL("")
 	}
 
 	log.Debug().Msgf("Valid command: %s", cmd)
@@ -115,16 +120,6 @@ func WELCOME_WRAPPER(client_conn *net.Conn, server_name, server_version, server_
 	}
 
 	return responses
-}
-
-func authenticate(params map[string]interface{}) Response {
-	msg := "Running AUTHENTICATE..."
-	log.Info().Msg(msg)
-	res := Reply{
-		code: "333",
-		msg:  msg,
-	}
-	return &res
 }
 
 // Although not commonly used, a client can send an ERROR message to notify the server of a fatal error condition.

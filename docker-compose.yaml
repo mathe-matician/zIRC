@@ -10,6 +10,19 @@ services:
       - "6667:6667" # irc server
       - "7000:7000" # server manager
 
+  zirc_db:
+    image: postgres:16
+    container_name: zirc_db
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+    ports:
+      - "5432:5432"
+    volumes:
+      - $HOME/zirc_chat:/var/lib/postgresql/data
+      # - ./Chat_Server/db/postgres/pgdump.sql:/pgdump.sql
+      # - ./Chat_Server/db/postgres/restore.sh:/docker-entrypoint-initdb.d/restore.sh
+
   # zirc_nickserv:
   #   container_name: zirc_nickserv
   #   # image: zirc_nickserv

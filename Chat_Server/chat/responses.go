@@ -489,3 +489,43 @@ func ERR_NOTONCHANNEL(msg_override, channel string) Response {
 	}
 	return er
 }
+
+func ERR_SASLFAIL(msg_override string) Response {
+	er := &ErrorResponse{
+		code:           "904",
+		msg:            ":SASL authentication not enabled",
+		show_client_ip: true,
+	}
+	if len(msg_override) != 0 {
+		er.MsgOverride(msg_override)
+	}
+	return er
+}
+
+// Used with:
+// when client hasn't enabled sasl capability, e.g. CAP REQ sasl
+func ERR_NOSASL(msg_override string) Response {
+	er := &ErrorResponse{
+		code:           "908",
+		msg:            ":SASL authentication not enabled",
+		show_client_ip: true,
+	}
+	if len(msg_override) != 0 {
+		er.MsgOverride(msg_override)
+	}
+	return er
+}
+
+func RPL_SASLMECHS(msg_override string) Response {
+	// TODO
+	// grab existing sasl mechs and return them
+	er := &ErrorResponse{
+		code:           "909",
+		msg:            ":SASL authentication not enabled",
+		show_client_ip: true,
+	}
+	if len(msg_override) != 0 {
+		er.MsgOverride(msg_override)
+	}
+	return er
+}
