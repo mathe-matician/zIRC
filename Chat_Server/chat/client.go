@@ -23,24 +23,44 @@ type Session struct {
 	state         map[string]string
 }
 
-type Client struct {
-	nick                string
-	user                string
-	RealName            string
-	Registered          bool
-	server              string
-	session             Session
-	conn                *rc.RemoteConn
-	ClientConn          *net.Conn
-	send                chan string
-	UserModes           []Mode
-	Channels            []string
-	PrivateConvos       []string // TODO - idk what this structure / process looks like
-	Host                string
-	AwayMessage         string
-	Capabilities        map[string]string
-	CapState            string
+type AuthNType string
+type AuthZType string
+
+type ClientAuth struct {
 	AuthenticationState map[string]int
+	IsAuthenticated     bool
+	AuthenticationType  AuthNType
+	AuthorizationType   AuthZType
+}
+
+type Client struct {
+	nick          string
+	user          string
+	RealName      string
+	Registered    bool
+	server        string
+	session       Session
+	conn          *rc.RemoteConn
+	ClientConn    *net.Conn
+	send          chan string
+	UserModes     []Mode
+	Channels      []string
+	PrivateConvos []string // TODO - idk what this structure / process looks like / or even if it matters
+	Host          string
+	AwayMessage   string
+	Capabilities  map[string]string
+	CapState      string
+	Auth          ClientAuth
+}
+
+func NewClientAuth() ClientAuth {
+	auth_state := make(map[string]int)
+	return ClientAuth{
+		AuthenticationState: auth_state,
+		IsAuthenticated:     false,
+		AuthenticationType:  "",
+		AuthorizationType:   "",
+	}
 }
 
 func stringTimeFromUnixTimestamp(time uuid.Time) string {
@@ -71,22 +91,22 @@ func NewClient(nick string, user string, conn *rc.RemoteConn, Conn *net.Conn) (*
 	}
 
 	caps := make(map[string]string)
-	authState := make(map[string]int)
+	// authState := make(map[string]int)
 
 	return &Client{
-		nick:                nick,
-		user:                user,
-		Registered:          false,
-		server:              helpers.GetEnv("IRC_SERVER_DNS_NAME", "localhost"),
-		session:             *s,
-		ClientConn:          Conn,
-		conn:                conn,
-		send:                s_chan,
-		UserModes:           user_modes,
-		Host:                g_Server.DnsName,
-		AwayMessage:         "",
-		Capabilities:        caps,
-		AuthenticationState: authState,
+		nick:         nick,
+		user:         user,
+		Registered:   false,
+		server:       helpers.GetEnv("IRC_SERVER_DNS_NAME", "localhost"),
+		session:      *s,
+		ClientConn:   Conn,
+		conn:         conn,
+		send:         s_chan,
+		UserModes:    user_modes,
+		Host:         g_Server.DnsName,
+		AwayMessage:  "",
+		Capabilities: caps,
+		Auth:         NewClientAuth(),
 	}, &session_timestamp, nil
 }
 

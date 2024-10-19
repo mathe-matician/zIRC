@@ -19,7 +19,9 @@ type Command struct {
 }
 
 var command_map = map[string]Command{
-	"AUTHENTICATE": *NewCommand(authenticate, make(map[string]string), true),
+	"AUTHENTICATE": *NewCommand(authenticate, map[string]string{"cap_req": "sasl"}, true),
+	"REGISTER":     *NewCommand(register, map[string]string{"cap_req": "account-registration"}, true),
+	"VERIFY":       *NewCommand(verify, map[string]string{"cap_req": "account-registration"}, true),
 	"CAP":          *NewCommand(cap, make(map[string]string), false),
 	"ERROR":        *NewCommand(error_cmd, make(map[string]string), false),
 	"NICK":         *NewCommand(nick, make(map[string]string), true),

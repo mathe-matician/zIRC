@@ -2,12 +2,29 @@ package chat
 
 import (
 	"encoding/base64"
+	"fmt"
 	"strings"
+	"zirc/helpers"
 
+	"github.com/go-pg/pg/v10"
 	"github.com/phuslu/log"
 )
 
-const SUPPORTED_AUTH_TYPES = ":PLAIN, SCRAM-SHA-256, OAUTHBEARER"
+var SUPPORTED_AUTH_TYPES = helpers.GetEnv("IRC_SERVER_SUPPORTED_AUTH_TYPES", "")
+
+func ValidAuthNType(authType string) bool {
+	authTypes := strings.Split(SUPPORTED_AUTH_TYPES, ",")
+	for _, i := range authTypes {
+		if authType == i {
+			return true
+		}
+	}
+	return false
+}
+
+func ValidAuthZType() {
+
+}
 
 func authenticate(params map[string]interface{}) Response {
 	msg := "Running AUTHENTICATE..."
@@ -28,7 +45,7 @@ func authenticate(params map[string]interface{}) Response {
 		return ERR_UNKNOWNERROR("")
 	}
 	client := _client.(*Client)
-	client_Auth := &client.AuthenticationState
+	client_Auth := &client.Auth.AuthenticationState
 	_, valid_authType := (*client_Auth)[cmd_params]
 
 	if !valid_authType {
@@ -38,7 +55,7 @@ func authenticate(params map[string]interface{}) Response {
 
 	var res Response
 	if cmd_params == "PLAIN" {
-		res = plain(client_Auth, cmd_params)
+		res = plain(client_Auth, cmd_params, client)
 	} else if cmd_params == "SCRAM-SHA-256" {
 		res = scramSha265(client_Auth, cmd_params)
 	} else if cmd_params == "OAUTHBEARER" {
@@ -47,7 +64,7 @@ func authenticate(params map[string]interface{}) Response {
 		res = external(client_Auth, cmd_params)
 	} else {
 		// just return the available auth methods
-		return ERR_NOSASL(SUPPORTED_AUTH_TYPES)
+		return ERR_NOSASL(fmt.Sprintf(":%s", SUPPORTED_AUTH_TYPES))
 	}
 
 	return res
@@ -70,7 +87,7 @@ var auth_step_count = map[string]int{
 	"OAUTHBEARER":   5,
 }
 
-func plain(auth_step *map[string]int, params string) Response {
+func plain(auth_step *map[string]int, params string, client *Client) Response {
 	log.Debug().Msg("Running PLAIN authentication")
 	var res Response
 
@@ -110,7 +127,20 @@ func plain(auth_step *map[string]int, params string) Response {
 		}
 
 		// check if valid authcid
-		// check if they can assume this role
+		var _username, _password string
+		_, err = plain_auth_stmt.QueryOne(pg.Scan(&_username, &_password), authcid)
+
+		if err != nil {
+			log.Error().Msgf("Error executing PLAIN auth query: %s", err)
+			return ERR_SASLFAIL("SASL Failed")
+		}
+
+		// check if they can assume this role authzid
+
+		// finally if we get here, the client's authentication/authorization process was successful
+		client.Auth.IsAuthenticated = true
+		client.Auth.AuthorizationType = AuthZType(authzid)  // (assumed role)
+		client.Auth.AuthenticationType = AuthNType(authcid) // (assumed role)
 	}
 
 	return res
@@ -118,16 +148,16 @@ func plain(auth_step *map[string]int, params string) Response {
 
 func scramSha265(auth_step *map[string]int, params string) Response {
 	log.Debug().Msg("Running SCRAM-SHA-256 authentication")
-	return ERR_NOSASL(SUPPORTED_AUTH_TYPES)
+	return ERR_NOSASL(fmt.Sprintf(":%s", SUPPORTED_AUTH_TYPES))
 }
 
 func oAuthBearer(auth_step *map[string]int, params string) Response {
 	log.Debug().Msg("Running OAUTHBEARER authentication")
-	return ERR_NOSASL(SUPPORTED_AUTH_TYPES)
+	return ERR_NOSASL(fmt.Sprintf(":%s", SUPPORTED_AUTH_TYPES))
 }
 
 // conn.ConnectionState().PeerCertificates[0]
 func external(auth_step *map[string]int, params string) Response {
 	log.Debug().Msg("Running EXTERNAL authentication")
-	return ERR_NOSASL(SUPPORTED_AUTH_TYPES)
+	return ERR_NOSASL(fmt.Sprintf(":%s", SUPPORTED_AUTH_TYPES))
 }

@@ -9,9 +9,23 @@ services:
     ports:
       - "6667:6667" # irc server
       - "7000:7000" # server manager
+    networks:
+      zirc_subnet:
+        ipv4_address: 172.20.0.4
+
+  zirc_nickserv:
+    container_name: zirc_nickserv
+    # image: zirc_nickserv
+    env_file: ./NickServ/.env
+    build:
+      context: ./NickServ
+      dockerfile: Dockerfile
+    networks:
+      zirc_subnet:
+        ipv4_address: 172.20.0.2
 
   zirc_db:
-    image: postgres:16
+    image: postgres:17
     container_name: zirc_db
     environment:
       - POSTGRES_USER=postgres
@@ -19,17 +33,15 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - $HOME/zirc_chat:/var/lib/postgresql/data
+      - $HOME/zirc_chat_db:/var/lib/postgresql/data
       # - ./Chat_Server/db/postgres/pgdump.sql:/pgdump.sql
       # - ./Chat_Server/db/postgres/restore.sh:/docker-entrypoint-initdb.d/restore.sh
+    networks:
+      zirc_subnet:
+        ipv4_address: 172.20.0.3
 
-  # zirc_nickserv:
-  #   container_name: zirc_nickserv
-  #   # image: zirc_nickserv
-  #   env_file: ./NickServ/.env
-  #   build:
-  #     context: ./NickServ
-  #     dockerfile: Dockerfile
-  #   ports:
-  #     - "6667:6667"
-  #     - "7000:7000"
+networks:
+  zirc_subnet:
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
