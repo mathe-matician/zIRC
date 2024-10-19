@@ -9,6 +9,8 @@ services:
     ports:
       - "6667:6667" # irc server
       - "7000:7000" # server manager
+    depends_on:
+      - zirc_db
     networks:
       zirc_subnet:
         ipv4_address: 172.20.0.4
@@ -34,8 +36,8 @@ services:
       - "5432:5432"
     volumes:
       - $HOME/zirc_chat_db:/var/lib/postgresql/data
-      # - ./Chat_Server/db/postgres/pgdump.sql:/pgdump.sql
-      # - ./Chat_Server/db/postgres/restore.sh:/docker-entrypoint-initdb.d/restore.sh
+      - ./Chat_Server/db/postgres/pgdump.sql:/pgdump.sql
+      - ./Chat_Server/db/postgres/restore.sh:/docker-entrypoint-initdb.d/restore.sh
     networks:
       zirc_subnet:
         ipv4_address: 172.20.0.3

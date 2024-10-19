@@ -13,8 +13,9 @@ import (
 )
 
 var g_DB *pg.DB
-var plain_auth_stmt *pg.Stmt
-var register_stmt *pg.Stmt
+
+// var plain_auth_stmt *pg.Stmt
+// var register_stmt *pg.Stmt
 
 func db_init() {
 	var tls_config *tls.Config
@@ -72,18 +73,18 @@ func reconnect_db_listener() {
 func init() {
 	db_init()
 
-	var err error
-	plain_auth_stmt, err = g_DB.Prepare(`SELECT username, password from users where username = $1::text`)
-	if err != nil {
-		log.Error().Msgf("Error creating plain_auth_stmt")
-		panic(err)
-	}
+	// var err error
+	// plain_auth_stmt, err = g_DB.Prepare(`SELECT email, credentials from auth where username = $1::text`)
+	// if err != nil {
+	// 	log.Error().Msgf("Error creating plain_auth_stmt")
+	// 	panic(err)
+	// }
 
-	register_stmt, err = g_DB.Prepare(`INSERT INTO users VALUES (default, $1::text, $2::text)`)
-	if err != nil {
-		log.Error().Msgf("Error creating register_stmt")
-		panic(err)
-	}
+	// register_stmt, err = g_DB.Prepare(`INSERT INTO users VALUES (default, $1::text, $2::text)`)
+	// if err != nil {
+	// 	log.Error().Msgf("Error creating register_stmt")
+	// 	panic(err)
+	// }
 
 	go reconnect_db_listener()
 }

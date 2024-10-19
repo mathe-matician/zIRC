@@ -6,7 +6,6 @@ import (
 	"strings"
 	"zirc/helpers"
 
-	"github.com/go-pg/pg/v10"
 	"github.com/phuslu/log"
 )
 
@@ -127,13 +126,13 @@ func plain(auth_step *map[string]int, params string, client *Client) Response {
 		}
 
 		// check if valid authcid
-		var _username, _password string
-		_, err = plain_auth_stmt.QueryOne(pg.Scan(&_username, &_password), authcid)
+		// var _username, _password string
+		// _, err = plain_auth_stmt.QueryOne(pg.Scan(&_username, &_password), authcid)
 
-		if err != nil {
-			log.Error().Msgf("Error executing PLAIN auth query: %s", err)
-			return ERR_SASLFAIL("SASL Failed")
-		}
+		// if err != nil {
+		// 	log.Error().Msgf("Error executing PLAIN auth query: %s", err)
+		// 	return ERR_SASLFAIL("SASL Failed")
+		// }
 
 		// check if they can assume this role authzid
 

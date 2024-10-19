@@ -1,10 +1,5 @@
 package chat
 
-import (
-	"github.com/go-pg/pg/v10"
-	"github.com/phuslu/log"
-)
-
 // REGISTER <account> <password> <email>
 // <account>: Desired account name.
 // <password>: Chosen password for the account.
@@ -20,13 +15,13 @@ func register(params map[string]interface{}) Response {
 	// e.g. REGISTER <account> * <email>
 	// we would need to check whether they have authenticated
 
-	var _username, _password string
-	_, err := register_stmt.QueryOne(pg.Scan(&_username, &_password), _username, _password)
+	// var _username, _password string
+	// _, err := register_stmt.QueryOne(pg.Scan(&_username, &_password), _username, _password)
 
-	if err != nil {
-		log.Error().Msgf("Error executing PLAIN auth query: %s", err)
-		return ERR_SASLFAIL("SASL Failed")
-	}
+	// if err != nil {
+	// 	log.Error().Msgf("Error executing PLAIN auth query: %s", err)
+	// 	return ERR_SASLFAIL("SASL Failed")
+	// }
 
 	return &Reply{}
 }
