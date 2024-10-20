@@ -1,0 +1,5 @@
+package nickserv
+
+func verify() {
+
+}

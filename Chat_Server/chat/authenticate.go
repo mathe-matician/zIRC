@@ -25,6 +25,10 @@ func ValidAuthZType() {
 
 }
 
+// authenticate uses sasl cap
+// allows a user to reserve a nick IF they authenticate
+// if other users try to connect and use that nick for a registered user
+// then they can't unless they can authenticate
 func authenticate(params map[string]interface{}) Response {
 	msg := "Running AUTHENTICATE..."
 	log.Info().Msg(msg)
@@ -77,7 +81,7 @@ func authenticate(params map[string]interface{}) Response {
 //
 //	used when a user can "assume" another identity. useful for admins / bots
 //
-// <authcid> is the authentication identity (username).
+// <authcid> is the authentication identity (username/nick).
 // <password> is the password.
 
 var auth_step_count = map[string]int{
