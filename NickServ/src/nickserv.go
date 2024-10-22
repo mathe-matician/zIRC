@@ -4,6 +4,7 @@ import (
 	"io"
 	"net"
 	"strconv"
+	"time"
 
 	"github.com/phuslu/log"
 )
@@ -34,6 +35,7 @@ func NewNickServ() *NickServ {
 func (ns *NickServ) HandleConnection(conn *net.Conn) {
 	defer (*conn).Close()
 	remote_addr := (*conn).RemoteAddr()
+
 	// remote_ip, remote_port, err := net.SplitHostPort(remote_addr.String())
 	// if err != nil {
 	// 	log.Error().Str("remote_addr", remote_addr.String()).Msgf("Error splitting remote addr: %s", err.Error())
@@ -68,9 +70,6 @@ func (ns *NickServ) HandleConnection(conn *net.Conn) {
 			}
 
 			//if err == io.ErrShortBuffer
-			if conn != nil {
-				(*conn).Close()
-			}
 			return
 		}
 
@@ -79,10 +78,36 @@ func (ns *NickServ) HandleConnection(conn *net.Conn) {
 		log.Debug().Msgf("Client sent: %s", msg)
 
 		if len(msg) <= 0 {
-			if conn != nil {
-				(*conn).Close()
-			}
 			return
+		}
+
+		// TODO
+		// timeout should be based on specific commands
+		// e.g. if I'm an admin, I probably don't want my connection timing out
+		// if there is back and forth type commands
+		// that is, ONLY IF those types of commands exist
+		conn_timeout_duration, err := strconv.Atoi(GetEnv("NICKSERV_CONN_TIMEOUT_DURATION", "2"))
+		if err != nil {
+			log.Error().Msgf("Error parsing conn timeout duration env var")
+			panic(err)
+		}
+
+		// TODO
+		// (determine IF this needs to be conditionally applied)
+		// Since interactions with NickServ shouldn't be long running
+		// set a dealine for read interactions on this socket
+		// This read deadline is the timeout between socket reads
+		// e.g. a client is performing some command
+		//		IF there should be interactions back and forth between client and server
+		//		have each client interaction timeout at max after X seconds
+		//		if the client sends a msg within the window, that deadline renews
+		(*conn).SetReadDeadline(time.Now().Add(time.Duration(conn_timeout_duration) * time.Minute))
+
+		response := []byte("")
+
+		if _, err := (*conn).Write(response); err != nil {
+			log.Error().Msgf("Error writing to client: %s", err.Error())
+			break
 		}
 	}
 }
