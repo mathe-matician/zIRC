@@ -13,21 +13,21 @@ import (
 
 var g_DB *pgx.Conn
 
-func db_init() {
-	// var tls_config *tls.Config
-	enable_tls, err := strconv.ParseBool(GetEnv("IRC_DB_ENABLE_TLS", "false"))
-	if err != nil {
-		log.Error().Msg(err.Error())
-	}
-
+func genConn() *pgx.Conn {
 	db_user := GetEnv("IRC_DB_USER", "postgres")
 	db_database := GetEnv("IRC_DB_DATABASE", "postgres")
 	db_app_name := GetEnv("IRC_DB_APPLICATION_NAME", "zirc_server")
 	db_host := GetEnv("IRC_DB_HOST", "zirc_db")
 	db_port := GetEnv("IRC_DB_PORT", "5432")
-	sslmode := GetEnv("IRC_DB_SSLMODE", "prefer")
+	sslmode := GetEnv("IRC_DB_SSLMODE", "disable")
+	db_password := GetEnv("IRC_DB_PASSWORD", "password")
 
-	connStr := fmt.Sprintf("host='%s' port='%s' dbname='%s' user='%s' sslmode='%s' application_name='%s'", db_host, db_port, db_database, db_user, sslmode, db_app_name)
+	connStr := fmt.Sprintf("host=%s port=%s dbname=%s password=%s user=%s sslmode=%s application_name=%s", db_host, db_port, db_database, db_password, db_user, sslmode, db_app_name)
+
+	enable_tls, err := strconv.ParseBool(GetEnv("IRC_DB_ENABLE_TLS", "false"))
+	if err != nil {
+		log.Error().Msg(err.Error())
+	}
 	if enable_tls {
 		crt_path := GetEnv("IRC_DB_TLS_CERT_PATH", "")
 		key_path := GetEnv("IRC_DB_TLS_KEY_PATH", "")
@@ -40,11 +40,21 @@ func db_init() {
 		panic(err)
 	}
 
-	g_DB, err := pgx.ConnectConfig(context.Background(), pgConfig)
+	conn, err := pgx.ConnectConfig(context.Background(), pgConfig)
 	if err != nil {
 		log.Error().Msgf("Unable to connect to database: %s\n", err.Error())
 		panic(err)
 	}
+
+	log.Info().Msgf("Creating config: Host: %s, User: %s, Db: %s, AppName: %s", db_host, db_user, db_database, db_app_name)
+
+	return conn
+}
+
+func db_init() {
+	// var tls_config *tls.Config
+
+	g_DB = genConn()
 
 	ctx := context.Background()
 	if err := g_DB.Ping(ctx); err != nil {
@@ -57,7 +67,6 @@ func db_init() {
 		} else {
 			log.Info().Msgf("Pg version: %s", row)
 		}
-		log.Info().Msgf("Successfully connected to db. Host: %s, User: %s, Db: %s, AppName: %s", db_host, db_user, db_database, db_app_name)
 	}
 }
 
@@ -65,11 +74,17 @@ func reconnect_db_listener() {
 	log.Info().Msgf("DB Reconnect Listener started")
 	reconnect_wait_interval, err := strconv.Atoi(GetEnv("IRC_DB_HEALTHCHECK_INTERVAL", "3"))
 	if err != nil {
-		log.Error().Msgf(err.Error())
+		log.Error().Msgf("Error converting healthcheck interval to int: %s", err.Error())
+		panic(err)
 	}
 
 	ctx := context.Background()
 	for {
+		if g_DB == nil {
+			log.Error().Msgf("Global DB pointer was null!!")
+			g_DB = genConn()
+		}
+
 		if err := g_DB.Ping(ctx); err != nil {
 			log.Info().Msgf("Lost connection to database: %s", err)
 			log.Info().Msgf("Reconnecting to database...")
@@ -83,19 +98,5 @@ func reconnect_db_listener() {
 func DB_pkg_init() {
 	db_init()
 
-	// var err error
-	// will return this error:
-	// ERROR:  there is no unique or exclusion constraint matching the ON CONFLICT specification
-	// register_user_stmt, err = g_DB.Prepare(`INSERT INTO users VALUES (default, $1::text, $2::text) ON CONFLICT (nick, email) DO NOTHING`)
-	// if err != nil {
-	// 	log.Error().Msgf("Error creating register_user_stmt: %s", err.Error())
-	// 	panic(err)
-	// }
-
 	go reconnect_db_listener()
-}
-
-type UserModel struct {
-	username string
-	password string
 }

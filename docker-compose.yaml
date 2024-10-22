@@ -30,14 +30,15 @@ services:
     image: postgres:17
     container_name: zirc_db
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=password
+      - PGUSER=postgres
+      - PGPASSWORD=password
     ports:
       - "5432:5432"
     volumes:
       - $HOME/zirc_chat_db:/var/lib/postgresql/data
-      - ./Chat_Server/db/postgres/pgdump.sql:/pgdump.sql
-      - ./Chat_Server/db/postgres/restore.sh:/docker-entrypoint-initdb.d/restore.sh
+      - ./db/postgres/pgdump.sql:/pgdump.sql
+      - ./db/postgres/restore.sh:/docker-entrypoint-initdb.d/restore.sh
+      - ./db/pg_hba.conf:/var/lib/postgresql/data/pg_hba.conf
     networks:
       zirc_subnet:
         ipv4_address: 172.20.0.3

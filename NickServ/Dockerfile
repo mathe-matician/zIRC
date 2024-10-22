@@ -11,7 +11,9 @@ COPY src/ src/
 
 RUN go build nickserv
 
-FROM debian:bookworm-slim
+CMD ["./nickserv"]
+
+FROM debian:bookworm-slim as prod
 
 RUN set -x && apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
     ca-certificates && \
