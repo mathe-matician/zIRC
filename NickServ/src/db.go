@@ -33,8 +33,9 @@ func genPgConfig() {
 	if enable_tls {
 		crt_path := GetEnv("IRC_DB_TLS_CERT_PATH", "")
 		key_path := GetEnv("IRC_DB_TLS_KEY_PATH", "")
+		sslrootcert := GetEnv("IRC_DB_TLS_ROOT_CERT", "")
 		// tls_config := CreateTLSConfig(crt_path, key_path)
-		connStr += fmt.Sprintf("sslcert='%s' sslkey='%s' sslrootcert='%s'", crt_path, key_path)
+		connStr += fmt.Sprintf(" sslcert='%s' sslkey='%s' sslrootcert='%s'", crt_path, key_path, sslrootcert)
 	}
 	pgConfig, err = pgx.ParseConfig(connStr)
 	if err != nil {
