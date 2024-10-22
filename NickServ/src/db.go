@@ -12,8 +12,10 @@ import (
 )
 
 var g_DB *pgx.Conn
+var pgConfig *pgx.ConnConfig
 
-func genConn() *pgx.Conn {
+func genPgConfig() {
+	// var tls_config *tls.Config
 	db_user := GetEnv("IRC_DB_USER", "postgres")
 	db_database := GetEnv("IRC_DB_DATABASE", "postgres")
 	db_app_name := GetEnv("IRC_DB_APPLICATION_NAME", "zirc_server")
@@ -34,27 +36,28 @@ func genConn() *pgx.Conn {
 		// tls_config := CreateTLSConfig(crt_path, key_path)
 		connStr += fmt.Sprintf("sslcert='%s' sslkey='%s' sslrootcert='%s'", crt_path, key_path)
 	}
-	pgConfig, err := pgx.ParseConfig(connStr)
+	pgConfig, err = pgx.ParseConfig(connStr)
 	if err != nil {
 		log.Error().Msgf("Unable to parse db config: %s\n", err.Error())
 		panic(err)
 	}
 
-	conn, err := pgx.ConnectConfig(context.Background(), pgConfig)
-	if err != nil {
-		log.Error().Msgf("Unable to connect to database: %s\n", err.Error())
-		panic(err)
-	}
-
-	log.Info().Msgf("Creating config: Host: %s, User: %s, Db: %s, AppName: %s", db_host, db_user, db_database, db_app_name)
-
-	return conn
+	log.Info().Msgf("Created config: Host: %s, User: %s, Db: %s, AppName: %s", db_host, db_user, db_database, db_app_name)
 }
 
 func db_init() {
-	// var tls_config *tls.Config
-
-	g_DB = genConn()
+	var err error
+	for {
+		g_DB, err = pgx.ConnectConfig(context.Background(), pgConfig)
+		if err != nil {
+			log.Error().Msgf("Unable to init connection to database: %s\n", err.Error())
+			log.Error().Msgf("Waiting for DB to start...")
+		} else {
+			break
+		}
+		time.Sleep(time.Duration(3) * time.Second)
+	}
+	log.Info().Msgf("Successfully connected to DB!")
 
 	ctx := context.Background()
 	if err := g_DB.Ping(ctx); err != nil {
@@ -65,38 +68,46 @@ func db_init() {
 		if err != nil {
 			log.Error().Msgf("Unable to get version from db: %s\n", err.Error())
 		} else {
-			log.Info().Msgf("Pg version: %s", row)
+			log.Info().Msgf("%s", row)
 		}
 	}
 }
 
 func reconnect_db_listener() {
-	log.Info().Msgf("DB Reconnect Listener started")
+	var err error
 	reconnect_wait_interval, err := strconv.Atoi(GetEnv("IRC_DB_HEALTHCHECK_INTERVAL", "3"))
 	if err != nil {
 		log.Error().Msgf("Error converting healthcheck interval to int: %s", err.Error())
 		panic(err)
 	}
+	log.Info().Msgf("DB Reconnect Listener started. Healthcheck interval: %d", reconnect_wait_interval)
 
 	ctx := context.Background()
 	for {
+		reconn := "Reconnecting to database..."
+		unable := "Unable to reconnect to database: %s\n"
 		if g_DB == nil {
-			log.Error().Msgf("Global DB pointer was null!!")
-			g_DB = genConn()
-		}
-
-		if err := g_DB.Ping(ctx); err != nil {
-			log.Info().Msgf("Lost connection to database: %s", err)
-			log.Info().Msgf("Reconnecting to database...")
-			db_init()
-			return
+			log.Info().Msgf(reconn)
+			g_DB, err = pgx.ConnectConfig(context.Background(), pgConfig)
+			if err != nil {
+				log.Error().Msgf(unable, err.Error())
+			}
+		} else if err := g_DB.Ping(ctx); err != nil {
+			log.Info().Msgf(reconn)
+			g_DB.Close(ctx)
+			g_DB, err = pgx.ConnectConfig(context.Background(), pgConfig)
+			if err != nil {
+				log.Error().Msgf(unable, err.Error())
+			}
+		} else {
+			log.Info().Msgf("DB healthcheck running...")
 		}
 		time.Sleep(time.Duration(reconnect_wait_interval) * time.Second)
 	}
 }
 
 func DB_pkg_init() {
+	genPgConfig()
 	db_init()
-
 	go reconnect_db_listener()
 }
