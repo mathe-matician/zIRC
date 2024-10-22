@@ -1,6 +1,7 @@
 .DS_Store
 Chat_Server/.tls/*.key
 Chat_Server/.tls/*.crt
+NickServ/.tls
 ChatClient
 Chat_Server/node_modules
 Chat_Server/commands/tests/__debug*

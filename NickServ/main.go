@@ -1,13 +1,14 @@
-package nickserv
+package main
 
-import "github.com/phuslu/log"
+import (
+	nickserv "nickserv/src"
 
-func connect() {
-
-}
+	"github.com/phuslu/log"
+)
 
 func main() {
 	log.Info().Msg("Starting NickServ")
+	nickserv.DB_pkg_init()
 	for {
 		// conn, err := (*is.Listener).Accept()
 		// if err != nil {

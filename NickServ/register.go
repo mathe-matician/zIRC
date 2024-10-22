@@ -1,5 +1,0 @@
-package nickserv
-
-func register() {
-
-}
