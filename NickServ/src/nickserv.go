@@ -32,6 +32,7 @@ func NewNickServ() *NickServ {
 }
 
 func (ns *NickServ) HandleConnection(conn *net.Conn) {
+	defer (*conn).Close()
 	remote_addr := (*conn).RemoteAddr()
 	// remote_ip, remote_port, err := net.SplitHostPort(remote_addr.String())
 	// if err != nil {
@@ -67,9 +68,21 @@ func (ns *NickServ) HandleConnection(conn *net.Conn) {
 			}
 
 			//if err == io.ErrShortBuffer
+			if conn != nil {
+				(*conn).Close()
+			}
 			return
 		}
 
-		log.Debug().Msgf("Client sent: %s", string(recv_buf))
+		msg := string(recv_buf)
+
+		log.Debug().Msgf("Client sent: %s", msg)
+
+		if len(msg) <= 0 {
+			if conn != nil {
+				(*conn).Close()
+			}
+			return
+		}
 	}
 }
