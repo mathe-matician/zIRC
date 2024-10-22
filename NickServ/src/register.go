@@ -2,6 +2,7 @@ package nickserv
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/phuslu/log"
@@ -15,18 +16,18 @@ import (
 // The server can validate the user based on the SASL credentials provided.
 // REGISTER <account> * <email>
 
-func register() {
-
-}
-
-func register2(account, auth, email string) {
+func register(params map[string]string) string {
+	// func register(account, auth, email string) string {
 	// check if nick is already registered
+	account := params["account"]
+	email := params["email"]
+
 	var res string
 	err := g_DB.QueryRow(context.Background(), "INSERT INTO users VALUES (default, $1, $2) ON CONFLICT (nick, email) DO NOTHING", account, email).Scan(&res)
 	if err != nil {
 		if strings.Contains(err.Error(), "there is no unique or exclusion constraint") {
-			return
-			// return fmt.Sprintf("*** Error: Nickname '%s' is currently in use by another user.", account)
+			// return
+			return fmt.Sprintf("*** Error: Nickname '%s' is currently in use by another user.", account)
 		}
 		log.Error().Msgf("Error executing PLAIN auth query: %s", err)
 		panic(err)
@@ -35,6 +36,7 @@ func register2(account, auth, email string) {
 	// if not then register it
 	// if there is an existing user with that nick, kick them!
 	// send email for email verification
+	return ""
 }
 
 // responses
