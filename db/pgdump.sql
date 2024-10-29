@@ -127,14 +127,14 @@ COPY public.users (id, nick, email, email_verified) FROM stdin;
 -- Name: auth_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.auth_id_seq', 1, false);
+SELECT pg_catalog.setval('public.auth_id_seq', 5, true);
 
 
 --
 -- Name: users_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.users_id_seq', 1, false);
+SELECT pg_catalog.setval('public.users_id_seq', 9, true);
 
 
 --
@@ -143,6 +143,22 @@ SELECT pg_catalog.setval('public.users_id_seq', 1, false);
 
 ALTER TABLE ONLY public.auth
     ADD CONSTRAINT auth_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: users unique_email; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.users
+    ADD CONSTRAINT unique_email UNIQUE (email);
+
+
+--
+-- Name: users unique_nick; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.users
+    ADD CONSTRAINT unique_nick UNIQUE (nick);
 
 
 --

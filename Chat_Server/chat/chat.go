@@ -1,7 +1,6 @@
 package chat
 
 import (
-	"bytes"
 	"errors"
 	"reflect"
 	"regexp"
@@ -20,10 +19,10 @@ var re = regexp.MustCompile(`^\S*`)
 // meant to be used with FindStringSubmatch(str)
 var cmd_re = regexp.MustCompile(`^(\S+)(.*)`)
 
-func ProcessMessage(recv_buf *[]byte, client *Client, task_runner chan []*Task, server_metadata map[string]string, channel_map *map[string]*Channel) []byte {
+func ProcessMessage(trimmed_msg string, client *Client, task_runner chan []*Task, server_metadata map[string]string, channel_map *map[string]*Channel) []byte {
 	log.Debug().Msg("------------MSG START------------")
-	trimmed_msg := string(bytes.Trim(bytes.TrimLeft(*recv_buf, " "), "\x00"))
-	log.Info().Msgf("Raw Client msg: %s", trimmed_msg)
+	// trimmed_msg := string(bytes.Trim(bytes.TrimLeft(*recv_buf, " "), "\x00"))
+	// log.Info().Msgf("Raw Client msg: %s", trimmed_msg)
 
 	server := helpers.GetEnv("IRC_SERVER_DNS_NAME", "localhost")
 	target := "*"
@@ -130,7 +129,7 @@ func ProcessMessage(recv_buf *[]byte, client *Client, task_runner chan []*Task, 
 	log.Info().Msgf("Before running func")
 	_response := cmd.Fn(cmd_param_slice)
 
-	log.Info().Msgf("Command res: %s", _response)
+	log.Info().Msgf("Command res msg: %s, code: %s", _response.Msg(), _response.Code())
 	log.Debug().Msg("------------MSG END------------")
 
 	msg := _response.Msg()
@@ -141,7 +140,7 @@ func ProcessMessage(recv_buf *[]byte, client *Client, task_runner chan []*Task, 
 	}
 
 	if reflect.TypeOf(_response).Name() == "ErrorResponse" {
-		return helpers.FormatResponse(server, code, target, msg)
+		return helpers.FormatResponse(server, code, msg, target)
 	}
 
 	// check for _response["target"] as some responses don't format target the same way
@@ -149,5 +148,5 @@ func ProcessMessage(recv_buf *[]byte, client *Client, task_runner chan []*Task, 
 		target = client.FormattedClientDetails()
 	}
 	// return helpers.FormatResponse(server, str_cmd[0], target, msg)
-	return helpers.FormatResponse(server, target, msg)
+	return helpers.FormatResponse(server, code, msg, target)
 }

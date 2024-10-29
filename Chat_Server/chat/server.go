@@ -1,6 +1,7 @@
 package chat
 
 import (
+	"bytes"
 	"crypto/tls"
 	"fmt"
 	"io"
@@ -310,7 +311,18 @@ func (is *IrcServer) handleConnection(conn *net.Conn) {
 			"channelmodes": is.Config["IRC_CHANNEL_MODES"],
 		}
 
-		response := ProcessMessage(&recv_buf, client, is._MessageManager.Task_runner, server_metadata, is._MessageManager.ChannelMap)
+		trimmed_msg := string(bytes.Trim(bytes.TrimLeft(recv_buf, " "), "\x00"))
+
+		split_trimmed_msg := strings.Split(trimmed_msg, "\r\n")
+		log.Debug().Msgf("split_trimmed_msg: %s", split_trimmed_msg)
+
+		var response []byte
+		for _, msg := range split_trimmed_msg {
+			if len(msg) == 0 {
+				continue
+			}
+			response = ProcessMessage(msg+"\r\n", client, is._MessageManager.Task_runner, server_metadata, is._MessageManager.ChannelMap)
+		}
 
 		if len(response) == 0 {
 			// e.g. sometimes the server doesn't send anything back to the client

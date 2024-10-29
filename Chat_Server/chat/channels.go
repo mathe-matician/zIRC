@@ -86,7 +86,9 @@ func NewChannel(name, topic, topic_details, channel_password, status, duration s
 	}
 }
 
-func (c *Channel) IsTarget() {}
+// func (c *Channel) IsTarget() {}
+
+func (c Channel) IsTarget() {}
 
 func (c *Channel) FmtModes() string {
 	modes := ""

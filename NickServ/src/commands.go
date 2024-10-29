@@ -40,13 +40,14 @@ package nickserv
 // Help and Documentation
 // HELP: Provides users with a list of available commands and detailed instructions on how to use them. Users can type:
 
-var command_map = map[string]func(params map[string]string) string{
+var command_map = map[string]func(params string) string{
 	"REGISTER": register,
 	// "IDENTIFY":       identify,
 	// "DROP":           drop,
 	// "RECOVER":        recover,
 	// "RELEASE":        release,
 	// "SET PASSWORD":   set_password,
+	// "SET SASL":   	 set_sasl, // e.g. SET SASL ADD OAUTHBEARER
 	// "SET EMAIL":      set_email,
 	// "SET ENFORCE":    set_enforce,
 	// "SET KILL":       set_kill,

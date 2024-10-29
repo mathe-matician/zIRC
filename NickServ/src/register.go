@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/phuslu/log"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // REGISTER <account> <password> <email>
@@ -16,14 +17,32 @@ import (
 // The server can validate the user based on the SASL credentials provided.
 // REGISTER <account> * <email>
 
-func register(params map[string]string) string {
+func register(params string) string {
 	// func register(account, auth, email string) string {
 	// check if nick is already registered
-	account := params["account"]
-	email := params["email"]
+	params_split := strings.Split(params, " ")
+	if len(params_split) < 3 {
+		return ""
+	}
+
+	account := params_split[0]
+	password := params_split[1]
+	email := params_split[2]
+
+	// TODO
+	// check password requirements
+
+	// password_hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	_, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		// TODO
+		// if this fails then the user will need to use the SET command to set their password? idk
+		return ""
+	}
 
 	var res string
-	err := g_DB.QueryRow(context.Background(), "INSERT INTO users VALUES (default, $1, $2) ON CONFLICT (nick, email) DO NOTHING", account, email).Scan(&res)
+	query := "with new_user as (insert into users (id, nick, email) values (default, $1, $2) on conflict (email) do nothing returning id) insert into auth (user_id, auth_type, credentials) select id, 'PLAIN', 'pw' from new_user"
+	err = g_DB.QueryRow(context.Background(), query, account, email).Scan(&res)
 	if err != nil {
 		if strings.Contains(err.Error(), "there is no unique or exclusion constraint") {
 			// return
@@ -32,6 +51,16 @@ func register(params map[string]string) string {
 		log.Error().Msgf("Error executing PLAIN auth query: %s", err)
 		panic(err)
 	}
+
+	log.Debug().Msgf("REGISTER db res: %s", res)
+
+	var hash_res string
+	err = g_DB.QueryRow(context.Background(), "", account).Scan(&hash_res)
+	if err != nil {
+
+	}
+
+	log.Debug().Msgf("REGISTER hash res: %s", hash_res)
 
 	// if not then register it
 	// if there is an existing user with that nick, kick them!

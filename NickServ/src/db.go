@@ -101,7 +101,7 @@ func reconnect_db_listener() {
 				log.Error().Msgf(unable, err.Error())
 			}
 		} else {
-			log.Info().Msgf("DB healthcheck running...")
+			log.Debug().Msgf("DB healthcheck running...")
 		}
 		time.Sleep(time.Duration(reconnect_wait_interval) * time.Second)
 	}

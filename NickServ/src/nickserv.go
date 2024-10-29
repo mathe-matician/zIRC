@@ -3,11 +3,17 @@ package nickserv
 import (
 	"io"
 	"net"
+	"regexp"
 	"strconv"
 	"time"
 
 	"github.com/phuslu/log"
 )
+
+// captures until first space and has two capture groups, what comes before the space and what comes after
+// e.g. `#general hello world` would contain two capture groups: ((#general), (hello world))
+// meant to be used with FindStringSubmatch(str)
+var cmd_re = regexp.MustCompile(`^(\S+)(.*)`)
 
 type NickServ struct {
 	ConnListener *net.Listener
@@ -103,9 +109,24 @@ func (ns *NickServ) HandleConnection(conn *net.Conn) {
 		//		if the client sends a msg within the window, that deadline renews
 		(*conn).SetReadDeadline(time.Now().Add(time.Duration(conn_timeout_duration) * time.Minute))
 
-		response := []byte("")
+		// Get params sent in msg
+		split_msg := cmd_re.FindStringSubmatch(msg)
+		log.Debug().Msgf("split_msg: %s", split_msg)
+		cmd := split_msg[0]
 
-		if _, err := (*conn).Write(response); err != nil {
+		// get func from command map
+		fn, ok := command_map[cmd]
+		if !ok {
+			log.Error().Msgf("Not a valid NickServ command: %s", cmd)
+			// TODO
+			// should this return something to the client?
+			break
+		}
+
+		params := split_msg[1]
+		response := fn(params)
+
+		if _, err := (*conn).Write([]byte(response)); err != nil {
 			log.Error().Msgf("Error writing to client: %s", err.Error())
 			break
 		}

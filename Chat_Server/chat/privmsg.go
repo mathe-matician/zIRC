@@ -105,7 +105,7 @@ func privmsg(params map[string]interface{}) Response {
 
 	var _task *Task
 	if isChan {
-		log.Debug().Msgf("PRIVMSG: Creating new task for channel")
+		log.Debug().Msgf("PRIVMSG: Creating new task for channel: %s", channel.Name)
 		_task = NewTask(MULTICAST, msg, 0.0, client.ClientConn, channel)
 	} else {
 		log.Debug().Msgf("PRIVMSG: Creating new task for USER")

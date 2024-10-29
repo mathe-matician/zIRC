@@ -54,7 +54,10 @@ func (r *Reply) Msg() string {
 }
 
 func EMPTY_RESPONSE() Response {
-	return &Reply{}
+	return &Reply{
+		code: "0",
+		msg:  "*",
+	}
 }
 
 func RPL_WELCOME(msg_override, nick string) Response {
