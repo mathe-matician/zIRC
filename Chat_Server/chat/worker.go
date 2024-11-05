@@ -3,6 +3,7 @@ package chat
 import (
 	"reflect"
 	"sync"
+	"zirc/helpers"
 
 	"github.com/google/uuid"
 	"github.com/phuslu/log"
@@ -15,6 +16,7 @@ type Worker struct {
 	quit         chan int
 	frozen       bool
 	mu           sync.Mutex
+	Config       map[string]string
 }
 
 func NewWorker() *Worker {
@@ -23,11 +25,16 @@ func NewWorker() *Worker {
 		return nil
 	}
 
+	config := map[string]string{
+		"server": helpers.GetEnv("IRC_SERVER_DNS_NAME", "localhost"),
+	}
+
 	return &Worker{
 		id:           uid,
 		tasks:        make([]*Task, 0),
 		current_load: 0.0,
 		quit:         make(chan int, 1),
+		Config:       config,
 	}
 }
 
@@ -77,6 +84,11 @@ func (w *Worker) unicast(message_manager *MessageManager, task *Task) {
 	// }
 
 	// send a response to the client performing the action
+
+	// TODO
+	// need a way to aggregate failures when sending messages to clients here
+	// otherwise this will loop forever failing
+	// {"time":"2024-11-04T00:30:48.441Z","level":"error","message":"Error writing to client: write tcp 172.20.0.4:6667->192.168.65.1:19442: use of closed network connection"}
 	c := (*task.ClientConn)
 	if _, err := c.Write([]byte(task.Task)); err != nil {
 		log.Error().Msgf("Error writing to client: %s", err.Error())
@@ -98,33 +110,28 @@ func (w *Worker) multicast(message_manager *MessageManager, task *Task) {
 		return
 	}
 
-	// log.Debug().Msgf("the_target: %v", the_target)
-	// log.Debug().Msgf("the_target deref: %v", *the_target)
-	// log.Debug().Msgf("Reflect Name: %v", reflect.TypeOf(the_target).Name())
-
-	obj_kind := reflect.TypeOf(the_target).Kind()
-	log.Debug().Msgf("Reflect Kind: %v", obj_kind)
-
-	// TODO
-	// cast Target to Channel or Client
-	var target_type string
-	// if obj_kind == reflect.Ptr {
-	// 	target_type = reflect.TypeOf(*the_target).Name()
-	// 	target_type = reflect.TypeOf(*the_target).Name()
-	// } else {
-	// 	target_type = reflect.TypeOf(the_target).Name()
-	// }
-	target_type = reflect.TypeOf(the_target).Name()
-	log.Debug().Msgf("target_type Name: %s", target_type)
-
 	switch target := the_target.(type) {
 	case *Channel:
 		log.Debug().Msgf("Target type is Channel")
 
 		channel_user_map := target.UserList
+		log.Debug().Msgf("channel_user_map len: %d", len(channel_user_map))
 		for _, c := range channel_user_map {
 			if c == nil {
 				log.Debug().EmbedObject(w).Msgf("Client is nil - trying next")
+				continue
+			}
+
+			// TODO
+			// don't send message to self
+			_src := task.ClientConn
+			src := (*_src).RemoteAddr()
+			_dest := c.ClientConn
+			dest := (*_dest).RemoteAddr()
+
+			if src == dest {
+				log.Debug().EmbedObject(w).Msgf("Not sending to self!")
+				log.Debug().EmbedObject(w).Msgf("src: %s, dest: %s", src, dest)
 				continue
 			}
 
@@ -136,7 +143,10 @@ func (w *Worker) multicast(message_manager *MessageManager, task *Task) {
 					continue
 				}
 				conn := *(c.ClientConn)
-				if _, err := conn.Write([]byte(task.Task)); err != nil {
+				// need to send prefix
+				msg := ":" + w.Config["server"] + "@ZIRC 0 * " + task.Task
+				log.Info().EmbedObject(c).Msgf("Sending MSG to Client: nick: %s, user: %s", c.Nick(), c.User())
+				if _, err := conn.Write([]byte(msg)); err != nil {
 					log.Error().EmbedObject(c).Msgf("Error writing to client: %s", err.Error())
 					continue
 				}
@@ -159,54 +169,9 @@ func (w *Worker) multicast(message_manager *MessageManager, task *Task) {
 			return
 		}
 	default:
-		log.Error().Msgf("Unknown target type %s", target_type)
+		log.Error().Msgf("Unknown target type %s", reflect.TypeOf(target).Name())
 		return
 	}
-
-	// if target_type == "Channel" {
-	// 	log.Debug().Msgf("Target type is Channel")
-	// 	channel = the_target.(Channel)
-	// 	channel_user_map := channel.UserList
-	// 	for _, c := range channel_user_map {
-	// 		if c == nil {
-	// 			log.Debug().EmbedObject(w).Msgf("Client is nil - trying next")
-	// 			continue
-	// 		}
-
-	// 		// TODO some modes allow you to send messages to unregistered clients
-	// 		if c.Registered {
-	// 			log.Debug().EmbedObject(w).Msgf("Staring task: %s", task.Id.String())
-	// 			if c.ClientConn == nil {
-	// 				log.Error().EmbedObject(w).Msg("Client connection is nil!!")
-	// 				continue
-	// 			}
-	// 			conn := *(c.ClientConn)
-	// 			if _, err := conn.Write([]byte(task.Task)); err != nil {
-	// 				log.Error().EmbedObject(c).Msgf("Error writing to client: %s", err.Error())
-	// 				continue
-	// 			}
-	// 		} else {
-	// 			// TODO some modes allow you to send messages to unregistered clients
-	// 			log.Info().EmbedObject(w).Msg("Client not registered")
-	// 		}
-	// 	}
-	// } else if target_type == "Client" {
-	// 	// Is there a MULTICAST Client option here??
-	// 	// probably not?
-	// 	// maybe something a Server can only do...
-	// 	// need to figure out
-	// 	// i.e. why wouldn't we just send a UNICAST?
-	// 	log.Debug().Msgf("Target type is Client")
-	// 	client = (the_target).(*Client)
-	// 	conn := *(client.ClientConn)
-	// 	if _, err := conn.Write([]byte(task.Task)); err != nil {
-	// 		log.Error().EmbedObject(client).Msgf("Error writing to client: %s", err.Error())
-	// 		return
-	// 	}
-	// } else {
-	// 	log.Error().Msgf("Unknown target type %s", target_type)
-	// 	return
-	// }
 }
 
 // Work

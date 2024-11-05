@@ -34,7 +34,7 @@ func join(params map[string]interface{}) Response {
 
 		client_details := fmt.Sprintf("%s@%s!%s", client.Nick(), client.User(), client.Ip())
 
-		msg := fmt.Sprintf(":%s JOIN :%s \r\n", client_details, cmd_params)
+		msg := fmt.Sprintf(":%s JOIN :%s\r\n", client_details, cmd_params)
 
 		_task_runner := params["task_runner"]
 		task_runner := _task_runner.(chan []*Task)
@@ -91,14 +91,14 @@ func join(params map[string]interface{}) Response {
 
 		server_name := server_metadata["name"]
 
-		_rpl_topic := RPL_TOPIC("", "")
+		_rpl_topic := RPL_TOPIC("", channel.Topic, client.Nick(), channel.Name)
 		_rpl_topic_msg := helpers.FormatResponse(server_name, _rpl_topic.Code(), _rpl_topic.Msg())
-		_rpl_namreply := RPL_NAMREPLY("")
+		_rpl_namreply := RPL_NAMREPLY("", client.Nick(), "=", channel.Name, channel.UserList)
 		_rpl_namreply_msg := helpers.FormatResponse(server_name, _rpl_namreply.Code(), _rpl_namreply.Msg())
-		_rpl_endofnames := RPL_ENDOFNAMES("")
+		_rpl_endofnames := RPL_ENDOFNAMES("", client.Nick(), channel.Name)
 		_rpl_endofnames_msg := helpers.FormatResponse(server_name, _rpl_endofnames.Code(), _rpl_endofnames.Msg())
 
-		join_msg := NewTask(MULTICAST, msg, 0.0, nil, channel)
+		join_msg := NewTask(MULTICAST, msg, 0.0, client.ClientConn, channel)
 		rpl_topic := NewTask(UNICAST, string(_rpl_topic_msg), 0.0, client.ClientConn, channel)
 		rpl_namreply := NewTask(UNICAST, string(_rpl_namreply_msg), 0.0, client.ClientConn, channel)
 		rpl_endofnames := NewTask(UNICAST, string(_rpl_endofnames_msg), 0.0, client.ClientConn, channel)

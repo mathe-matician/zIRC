@@ -41,7 +41,7 @@ func nick(params map[string]interface{}) Response {
 	// this special update of their old nickname, and especially send it to other
 	if len(current_client_nick) != 0 && len(client.User()) != 0 {
 		// when modifying old nickname
-		res.MsgOverride(fmt.Sprintf(":%s!%s@%s NICK :%s \r\n", current_client_nick, client.User(), client.Ip(), nick))
+		res.MsgOverride(fmt.Sprintf(":%s!%s@%s NICK :%s\r\n", current_client_nick, client.User(), client.Ip(), nick))
 		// :oldnickname!username@hostname NICK :newnickname
 
 		// server then broadcasts :Alice!alice@192.0.2.1 NICK :Alicia
@@ -98,6 +98,8 @@ func nick(params map[string]interface{}) Response {
 		_task_runner := params["task_runner"]
 		task_runner := _task_runner.(chan []*Task)
 		task_runner <- responses
+
+		// go ping(client)
 	}
 
 	return res

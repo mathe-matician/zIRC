@@ -91,7 +91,19 @@ const Connect = () => {
   });
   client.on('data', (data) => {
     const _data = data.toString();
-    console.log(`${_data}`);
+    const split_data = _data.split(/\r\n/)
+    for (var i = 0; i < split_data.length; i++) {
+      console.log(split_data[i]);
+      if (split_data[i].includes("PING")) {
+        console.log(`DATA INCLUDES PING: ${split_data[i]}`)
+        const datasplit = split_data[i].split(" ")
+        const rmtraildata = datasplit[1].split(":")
+        // console.log(`rmtraildata: ${rmtraildata}`)
+        const pongrply = `PONG :${rmtraildata[1]}`
+        console.log(`Sending: ${pongrply}`)
+        client.write(pongrply)
+      }
+    }
   });
   client.on('end', (data) => {
     console.log(`Server terminated connection`);

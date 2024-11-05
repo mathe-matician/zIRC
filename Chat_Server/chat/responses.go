@@ -55,8 +55,8 @@ func (r *Reply) Msg() string {
 
 func EMPTY_RESPONSE() Response {
 	return &Reply{
-		code: "0",
-		msg:  "*",
+		code: "",
+		msg:  "",
 	}
 }
 
@@ -89,7 +89,7 @@ func RPL_CREATED(msg_override, server_creation_date string) Response {
 func RPL_MYINFO(msg_override, nick, server_name, server_version, usermodes, channelmodes string) Response {
 	return &Reply{
 		code:           "004",
-		msg:            fmt.Sprintf("%s %s %s %s %s", nick, server_name, server_version, usermodes, channelmodes),
+		msg:            fmt.Sprintf("%s %s %s %s%s", nick, server_name, server_version, usermodes, channelmodes),
 		show_client_ip: true,
 	}
 }
@@ -142,13 +142,13 @@ func RPL_CREATIONTIME(msg_override, channel, timestamp string) Response {
 	}
 }
 
-func RPL_TOPIC(msg_override, topic string) Response {
+func RPL_TOPIC(msg_override, topic, nick, channel string) Response {
 	if len(topic) == 0 {
 		topic = "No topic is set"
 	}
 	return &Reply{
 		code: "332",
-		msg:  fmt.Sprintf(":%s", topic),
+		msg:  fmt.Sprintf("%s %s :%s", nick, channel, topic),
 		// msg:  ":irc.example.com 332 <nickname> <channel> :<topic>",
 		show_client_ip: true,
 	}
@@ -195,18 +195,32 @@ func RPL_WHOREPLY(
 	}
 }
 
-func RPL_NAMREPLY(msg_override string) Response {
+// :server_name: The name of the IRC server sending the reply.
+// 353: The numeric reply code for RPL_NAMREPLY.
+// <nick>: The nickname of the user who issued the command.
+// <symbol>: A character describing the type of channel (= for public, @ for secret, and * for private).
+// <channel>: The name of the channel being listed.
+// :[prefix]<nick> [prefix]<nick> [...]: The list of users in the channel. The optional [prefix] indicates user status, such as:
+// @: Channel operator.
+// +: Voiced user.
+// Other custom prefixes may also be included depending on the server and IRCv3 extensions.
+func RPL_NAMREPLY(msg_override, nick, symbol, channel string, users map[string]*Client) Response {
+	msg := fmt.Sprintf(":irc.example.com 353 %s %s %s :", nick, symbol, channel)
+	for _, c := range users {
+		msg += "@" + c.Nick() + " "
+	}
+
 	return &Reply{
 		code:           "353",
-		msg:            ":irc.example.com 353 <nickname> = <channel> :@<nick1> +<nick2> <nick3>",
+		msg:            msg,
 		show_client_ip: true,
 	}
 }
 
-func RPL_ENDOFNAMES(msg_override string) Response {
+func RPL_ENDOFNAMES(msg_override, nick, channel string) Response {
 	return &Reply{
 		code:           "366",
-		msg:            ":irc.example.com 366 <nickname> <channel> :End of /NAMES list.",
+		msg:            fmt.Sprintf(":irc.example.com 366 %s %s :End of /NAMES list.", nick, channel),
 		show_client_ip: true,
 	}
 }

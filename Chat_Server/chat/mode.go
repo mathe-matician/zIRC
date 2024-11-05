@@ -187,7 +187,7 @@ func mode(params map[string]interface{}) Response {
 		}
 		if len(pre_modes) == 1 && !valid_mode {
 			log.Debug().Msgf("Not a valid mode. pre_modes: %s", pre_modes)
-			unknown_mode_task := NewTask(UNICAST, ERR_UNKNOWNMODE("", pre_modes).Msg()+" \r\n", 0.0, client.ClientConn, nil)
+			unknown_mode_task := NewTask(UNICAST, ERR_UNKNOWNMODE("", pre_modes).Msg()+"\r\n", 0.0, client.ClientConn, nil)
 			mode_task = append(mode_task, unknown_mode_task)
 			continue
 		}
@@ -213,14 +213,14 @@ func mode(params map[string]interface{}) Response {
 			if is_chan {
 				if !strings.Contains(supported_channel_modes, str_mode) {
 					log.Debug().Msgf("Not a supported channel mode: %s. Continuing", str_mode)
-					unknown_mode_task := NewTask(UNICAST, ERR_UNKNOWNMODE("", str_mode).Msg()+" \r\n", 0.0, client.ClientConn, nil)
+					unknown_mode_task := NewTask(UNICAST, ERR_UNKNOWNMODE("", str_mode).Msg()+"\r\n", 0.0, client.ClientConn, nil)
 					mode_task = append(mode_task, unknown_mode_task)
 					continue
 				}
 			} else {
 				if !supported_user_mode(str_mode) {
 					log.Debug().Msgf("Not a supported user mode: %s. Continuing", str_mode)
-					unknown_mode_task := NewTask(UNICAST, ERR_UNKNOWNMODE("", str_mode).Msg()+" \r\n", 0.0, client.ClientConn, nil)
+					unknown_mode_task := NewTask(UNICAST, ERR_UNKNOWNMODE("", str_mode).Msg()+"\r\n", 0.0, client.ClientConn, nil)
 					mode_task = append(mode_task, unknown_mode_task)
 					continue
 				}
@@ -360,7 +360,7 @@ func mode(params map[string]interface{}) Response {
 	client_details := fmt.Sprintf("%s@%s!%s", client_nick, client.User(), client.Ip())
 	// TODO
 	// try sending target
-	msg := fmt.Sprintf(":%s MODE %s %s%s \r\n", client_details, target, res_modes, res_final_params)
+	msg := fmt.Sprintf(":%s MODE %s %s%s\r\n", client_details, target, res_modes, res_final_params)
 	var valid_mode_task *Task
 	if is_chan {
 		// MULTICAST since other channel members should see these server responses

@@ -262,7 +262,9 @@ func (is *IrcServer) handleConnection(conn *net.Conn) {
 	}
 
 	// add the client to the global client list
+	// log.Info().EmbedObject(client).Msgf("is.Client len before: %d", len(is.Clients))
 	is.Clients = append(is.Clients, client)
+	// log.Info().EmbedObject(client).Msgf("is.Client len after: %d", len(is.Clients))
 
 	log.Info().EmbedObject(client).Msgf("Client connected at %s", *session_timestamp)
 

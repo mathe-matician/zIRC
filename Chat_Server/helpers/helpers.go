@@ -41,6 +41,7 @@ func FormatResponse(response_args ...string) []byte {
 		response += val
 		response += " "
 	}
+	response = response[:len(response)-1]
 	response += "\r\n"
 	return []byte(response)
 }

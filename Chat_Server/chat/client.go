@@ -51,6 +51,7 @@ type Client struct {
 	Capabilities  map[string]string
 	CapState      string
 	Auth          ClientAuth
+	PingPongChan  chan string
 }
 
 func NewClientAuth() ClientAuth {
@@ -107,6 +108,7 @@ func NewClient(nick string, user string, conn *rc.RemoteConn, Conn *net.Conn) (*
 		AwayMessage:  "",
 		Capabilities: caps,
 		Auth:         NewClientAuth(),
+		PingPongChan: make(chan string, 1), // buffered channel
 	}, &session_timestamp, nil
 }
 

@@ -101,7 +101,7 @@ func privmsg(params map[string]interface{}) Response {
 	// TODO
 	// channel.Name could be a user name too
 	original_msg := msg
-	msg = fmt.Sprintf(":%s PRIVMSG %s :%s \r\n", client_details, target, msg)
+	msg = fmt.Sprintf(":%s PRIVMSG %s :%s\r\n", client_details, target, msg)
 
 	var _task *Task
 	if isChan {

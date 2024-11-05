@@ -26,7 +26,6 @@ var command_map = map[string]Command{
 	"ERROR":        *NewCommand(error_cmd, make(map[string]string), false),
 	"NICK":         *NewCommand(nick, make(map[string]string), true),
 	"PASS":         *NewCommand(pass, make(map[string]string), false),
-	"PING":         *NewCommand(ping, make(map[string]string), false),
 	"PONG":         *NewCommand(pong, make(map[string]string), false),
 	"JOIN":         *NewCommand(join, map[string]string{"auth_req": "true"}, true),
 	"PROTOCTL":     *NewCommand(protoctl, make(map[string]string), false),
@@ -37,6 +36,7 @@ var command_map = map[string]Command{
 	"USER":         *NewCommand(user, make(map[string]string), true),
 	"WHO":          *NewCommand(who, map[string]string{"auth_req": "true"}, false),
 	"QUIT":         *NewCommand(quit, make(map[string]string), false),
+	// "PING":         *NewCommand(ping, make(map[string]string), false),
 	// "WEBIRC":       *NewCommand(webirc, make(map[string]string), false),
 }
 
@@ -107,7 +107,7 @@ func WELCOME_WRAPPER(client_conn *net.Conn, server_name, server_version, server_
 	_002 := string(helpers.FormatResponse(server_name, "002", client_nick, RPL_YOURHOST("", server_name, server_version).Msg()))
 	_003 := string(helpers.FormatResponse(server_name, "003", client_nick, RPL_CREATED("", server_creation_date).Msg()))
 	_rpl_myinfo := RPL_MYINFO("", client_nick, server_name, server_version, server_usermodes, server_channelmodes).Msg()
-	_004 := string(helpers.FormatResponse(server_name, "004", client_nick, _rpl_myinfo))
+	_004 := string(helpers.FormatResponse(server_name, "004", _rpl_myinfo))
 
 	rpl_welcome := NewTask(UNICAST, _001, 0.0, client_conn, nil)
 	rpl_yourhost := NewTask(UNICAST, _002, 0.0, client_conn, nil)
@@ -138,42 +138,9 @@ func error_cmd(params map[string]interface{}) Response {
 	return &res
 }
 
-func ping(params map[string]interface{}) Response {
-	msg := "Running PING..."
-	log.Info().Msg(msg)
-	// response := map[string]string{
-	// 	"msg": msg,
-	// }
-	res := Reply{
-		code: "333",
-		msg:  msg,
-	}
-	return &res
-}
-
-func pong(params map[string]interface{}) Response {
-	msg := "Running PONG..."
-	log.Info().Msg(msg)
-	res := Reply{
-		code: "333",
-		msg:  msg,
-	}
-	return &res
-}
-
 // This command is used in some IRC networks to negotiate specific protocol features.
 func protoctl(params map[string]interface{}) Response {
 	msg := "Running PROTOCTL..."
-	log.Info().Msg(msg)
-	res := Reply{
-		code: "333",
-		msg:  msg,
-	}
-	return &res
-}
-
-func notify(params map[string]interface{}) Response {
-	msg := "Running NOTIFY..."
 	log.Info().Msg(msg)
 	res := Reply{
 		code: "333",
@@ -188,13 +155,3 @@ func notify(params map[string]interface{}) Response {
 // 	log.Info().Msg(msg)
 // 	return msg
 // }
-
-func quit(params map[string]interface{}) Response {
-	msg := "Running QUIT..."
-	log.Info().Msg(msg)
-	res := Reply{
-		code: "333",
-		msg:  msg,
-	}
-	return &res
-}

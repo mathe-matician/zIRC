@@ -85,6 +85,7 @@ func user(params map[string]interface{}) Response {
 		_task_runner := params["task_runner"]
 		task_runner := _task_runner.(chan []*Task)
 		task_runner <- responses
+		// go ping(client)
 	}
 
 	return res
