@@ -29,7 +29,27 @@ cd $CHAT_ROOT
 docker compose up --build -d
 ```
 
-## Using the cli test client
+## Testing with clients
+
+There are two ways to test against the zirc server:
+1. With an existing IRC client
+2. With the test client
+
+Both are useful for various reasons. The only existing IRC client zirc has been tested with is [Halloy](https://halloy.squidowl.org/index.html).
+
+### Halloy
+
+To [configure](https://halloy.squidowl.org/configuration/index.html) Halloy to work locally with zirc, set this in your Halloy configuration `config.toml`: 
+
+```toml
+[servers.zirc]
+nickname = "halloy9478"
+server = "localhost"
+port = 6667
+use_tls = false
+```
+
+### Test cli client
 
 Note the test cli is just that, a testing tool. It doesn't accept high level user commands like `/msg` for `PRIVMSG` - it only accepts protocol commands directly.
 
