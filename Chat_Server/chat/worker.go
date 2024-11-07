@@ -122,16 +122,13 @@ func (w *Worker) multicast(message_manager *MessageManager, task *Task) {
 				continue
 			}
 
-			// TODO
-			// don't send message to self
 			_src := task.ClientConn
 			src := (*_src).RemoteAddr()
 			_dest := c.ClientConn
 			dest := (*_dest).RemoteAddr()
 
-			if src == dest {
-				log.Debug().EmbedObject(w).Msgf("Not sending to self!")
-				log.Debug().EmbedObject(w).Msgf("src: %s, dest: %s", src, dest)
+			if !(*task).MultiCastSendToSelf && src == dest {
+				log.Debug().EmbedObject(w).Msgf("Not sending to self! src: %s, dest: %s", src, dest)
 				continue
 			}
 
@@ -143,9 +140,11 @@ func (w *Worker) multicast(message_manager *MessageManager, task *Task) {
 					continue
 				}
 				conn := *(c.ClientConn)
-				// need to send prefix
-				msg := ":" + w.Config["server"] + "@ZIRC 0 * " + task.Task
-				log.Info().EmbedObject(c).Msgf("Sending MSG to Client: nick: %s, user: %s", c.Nick(), c.User())
+				// TODO
+				// 0 in the command below should be the COMMAND that was sent
+				// e.g. PRIVMSG, JOIN, PING
+				msg := task.Task
+				log.Info().EmbedObject(c).Msgf("Sending MSG to Client: nick: %s, user: %s, conn: %s", c.Nick(), c.User(), conn.RemoteAddr())
 				if _, err := conn.Write([]byte(msg)); err != nil {
 					log.Error().EmbedObject(c).Msgf("Error writing to client: %s", err.Error())
 					continue

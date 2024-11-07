@@ -146,7 +146,10 @@ func ProcessMessage(trimmed_msg string, client *Client, task_runner chan []*Task
 	// check for _response["target"] as some responses don't format target the same way
 	if client.Registered {
 		target = client.FormattedClientDetails()
+		log.Debug().Msgf("chat.go target: %s", target)
 	}
 	// return helpers.FormatResponse(server, str_cmd[0], target, msg)
-	return helpers.FormatResponse(server, code, msg, target)
+	finalMsg := helpers.FormatResponse(server, code, msg, target)
+	log.Debug().Msgf("chat.go finalMsg: %s", finalMsg)
+	return finalMsg
 }

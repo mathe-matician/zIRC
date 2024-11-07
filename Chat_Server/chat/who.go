@@ -82,7 +82,7 @@ func who(params map[string]interface{}) Response {
 				}
 
 				res := RPL_WHOREPLY("", c.Nick(), user_channel, c.User(), c.Ip(), c.Host, c.Nick(), away_status, operator_status, chan_operator, hopcount, c.RealName)
-				task := NewTask(UNICAST, res.Msg(), 0.0, client.ClientConn, nil)
+				task := NewTask(UNICAST, res.Msg(), 0.0, client.ClientConn, nil, false)
 				list_all_users_tasks = append(list_all_users_tasks, task)
 			}
 		}

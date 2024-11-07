@@ -4,6 +4,9 @@ WORKDIR /chat_server
 
 # caches dependencies
 COPY go.mod go.sum ./
+# RUN --mount=type=cache,target=/root/.cache,id=chat_server_cache \
+#     --mount=type=cache,target=/go/pkg/mod,id=go_pkg_cache \
+#     go mod download
 RUN go mod download
 
 COPY main.go ./

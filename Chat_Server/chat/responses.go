@@ -205,7 +205,7 @@ func RPL_WHOREPLY(
 // +: Voiced user.
 // Other custom prefixes may also be included depending on the server and IRCv3 extensions.
 func RPL_NAMREPLY(msg_override, nick, symbol, channel string, users map[string]*Client) Response {
-	msg := fmt.Sprintf(":irc.example.com 353 %s %s %s :", nick, symbol, channel)
+	msg := fmt.Sprintf("%s %s %s :", nick, symbol, channel)
 	for _, c := range users {
 		msg += "@" + c.Nick() + " "
 	}
@@ -220,7 +220,7 @@ func RPL_NAMREPLY(msg_override, nick, symbol, channel string, users map[string]*
 func RPL_ENDOFNAMES(msg_override, nick, channel string) Response {
 	return &Reply{
 		code:           "366",
-		msg:            fmt.Sprintf(":irc.example.com 366 %s %s :End of /NAMES list.", nick, channel),
+		msg:            fmt.Sprintf("%s %s :End of /NAMES list.", nick, channel),
 		show_client_ip: true,
 	}
 }

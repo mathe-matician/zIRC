@@ -55,7 +55,7 @@ func ping(c *Client) {
 
 		task_runner := g_Server._MessageManager.Task_runner
 
-		_task := NewTask(UNICAST, cmdmsg, 0.0, conn, nil)
+		_task := NewTask(UNICAST, cmdmsg, 0.0, conn, nil, false)
 		ping_task := []*Task{}
 		ping_task = append(ping_task, _task)
 

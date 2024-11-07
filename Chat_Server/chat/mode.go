@@ -187,7 +187,7 @@ func mode(params map[string]interface{}) Response {
 		}
 		if len(pre_modes) == 1 && !valid_mode {
 			log.Debug().Msgf("Not a valid mode. pre_modes: %s", pre_modes)
-			unknown_mode_task := NewTask(UNICAST, ERR_UNKNOWNMODE("", pre_modes).Msg()+"\r\n", 0.0, client.ClientConn, nil)
+			unknown_mode_task := NewTask(UNICAST, ERR_UNKNOWNMODE("", pre_modes).Msg()+"\r\n", 0.0, client.ClientConn, nil, false)
 			mode_task = append(mode_task, unknown_mode_task)
 			continue
 		}
@@ -195,7 +195,7 @@ func mode(params map[string]interface{}) Response {
 		if len(action) == 0 || (action != "+" && action != "-") || len(m) == 1 {
 			log.Debug().Msgf("action empty, action(%s) != + or -, m[1:](%s) len == 1", action, m[1:])
 			// if no action is specified, we don't know whether to add or remove the modes
-			// need_more_params := NewTask(UNICAST, ERR_NEEDMOREPARAMS("").Msg()+" \r\n", 0.0, client.ClientConn, nil)
+			// need_more_params := NewTask(UNICAST, ERR_NEEDMOREPARAMS("").Msg()+" \r\n", 0.0, client.ClientConn, nil, false)
 			// mode_task = append(mode_task, need_more_params)
 			// continue
 			return ERR_NEEDMOREPARAMS("")
@@ -213,14 +213,14 @@ func mode(params map[string]interface{}) Response {
 			if is_chan {
 				if !strings.Contains(supported_channel_modes, str_mode) {
 					log.Debug().Msgf("Not a supported channel mode: %s. Continuing", str_mode)
-					unknown_mode_task := NewTask(UNICAST, ERR_UNKNOWNMODE("", str_mode).Msg()+"\r\n", 0.0, client.ClientConn, nil)
+					unknown_mode_task := NewTask(UNICAST, ERR_UNKNOWNMODE("", str_mode).Msg()+"\r\n", 0.0, client.ClientConn, nil, false)
 					mode_task = append(mode_task, unknown_mode_task)
 					continue
 				}
 			} else {
 				if !supported_user_mode(str_mode) {
 					log.Debug().Msgf("Not a supported user mode: %s. Continuing", str_mode)
-					unknown_mode_task := NewTask(UNICAST, ERR_UNKNOWNMODE("", str_mode).Msg()+"\r\n", 0.0, client.ClientConn, nil)
+					unknown_mode_task := NewTask(UNICAST, ERR_UNKNOWNMODE("", str_mode).Msg()+"\r\n", 0.0, client.ClientConn, nil, false)
 					mode_task = append(mode_task, unknown_mode_task)
 					continue
 				}
@@ -365,9 +365,9 @@ func mode(params map[string]interface{}) Response {
 	if is_chan {
 		// MULTICAST since other channel members should see these server responses
 		// UNLESS they have some user mode set to NOT see them.
-		valid_mode_task = NewTask(MULTICAST, msg, 0.0, client.ClientConn, channel)
+		valid_mode_task = NewTask(MULTICAST, msg, 0.0, client.ClientConn, channel, false)
 	} else {
-		valid_mode_task = NewTask(UNICAST, msg, 0.0, client.ClientConn, nil)
+		valid_mode_task = NewTask(UNICAST, msg, 0.0, client.ClientConn, nil, false)
 	}
 	mode_task = append(mode_task, valid_mode_task)
 

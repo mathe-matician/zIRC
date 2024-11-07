@@ -32,7 +32,7 @@ func join(params map[string]interface{}) Response {
 
 		// TODO - check if chan exists before doing stuff
 
-		client_details := fmt.Sprintf("%s@%s!%s", client.Nick(), client.User(), client.Ip())
+		client_details := fmt.Sprintf("%s!%s@%s", client.Nick(), client.User(), client.Ip())
 
 		msg := fmt.Sprintf(":%s JOIN :%s\r\n", client_details, cmd_params)
 
@@ -98,10 +98,10 @@ func join(params map[string]interface{}) Response {
 		_rpl_endofnames := RPL_ENDOFNAMES("", client.Nick(), channel.Name)
 		_rpl_endofnames_msg := helpers.FormatResponse(server_name, _rpl_endofnames.Code(), _rpl_endofnames.Msg())
 
-		join_msg := NewTask(MULTICAST, msg, 0.0, client.ClientConn, channel)
-		rpl_topic := NewTask(UNICAST, string(_rpl_topic_msg), 0.0, client.ClientConn, channel)
-		rpl_namreply := NewTask(UNICAST, string(_rpl_namreply_msg), 0.0, client.ClientConn, channel)
-		rpl_endofnames := NewTask(UNICAST, string(_rpl_endofnames_msg), 0.0, client.ClientConn, channel)
+		join_msg := NewTask(MULTICAST, msg, 0.0, client.ClientConn, channel, true)
+		rpl_topic := NewTask(UNICAST, string(_rpl_topic_msg), 0.0, client.ClientConn, channel, false)
+		rpl_namreply := NewTask(UNICAST, string(_rpl_namreply_msg), 0.0, client.ClientConn, channel, false)
+		rpl_endofnames := NewTask(UNICAST, string(_rpl_endofnames_msg), 0.0, client.ClientConn, channel, false)
 
 		task_runner <- []*Task{
 			join_msg,

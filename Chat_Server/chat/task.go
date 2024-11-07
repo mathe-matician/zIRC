@@ -40,12 +40,13 @@ type Dest struct {
 func (d *Dest) NewLocation() {}
 
 type Task struct {
-	Id         uuid.UUID
-	Type       string
-	Weight     float64
-	Task       string
-	ClientConn *net.Conn
-	Target     Target
+	Id                  uuid.UUID
+	Type                string
+	Weight              float64
+	Task                string
+	ClientConn          *net.Conn
+	Target              Target
+	MultiCastSendToSelf bool
 	// Src        Location
 	// Dest       Location
 }
@@ -75,18 +76,19 @@ func NewDest(conn *net.Conn) *Dest {
 
 // func NewTask(_type, task string, src Location, dest Location, weight float64) *Task {
 // NewTask[T int64 | float64](_type, task string, weight float64, client_conn *net.Conn, target *T)
-func NewTask(_type, task string, weight float64, client_conn *net.Conn, target Target) *Task {
+func NewTask(_type, task string, weight float64, client_conn *net.Conn, target Target, mSendToSelf bool) *Task {
 	uid, err := uuid.NewV7()
 	if err != nil {
 		return nil
 	}
 
 	return &Task{
-		Id:         uid,
-		Type:       _type,
-		Weight:     weight, // TODO - determine weight of task somehow, may be useful
-		Task:       task,
-		ClientConn: client_conn,
-		Target:     target,
+		Id:                  uid,
+		Type:                _type,
+		Weight:              weight, // TODO - determine weight of task somehow, may be useful
+		Task:                task,
+		ClientConn:          client_conn,
+		Target:              target,
+		MultiCastSendToSelf: mSendToSelf,
 	}
 }

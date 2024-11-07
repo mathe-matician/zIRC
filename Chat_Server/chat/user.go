@@ -2,6 +2,7 @@ package chat
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/phuslu/log"
 )
@@ -38,14 +39,51 @@ func user(params map[string]interface{}) Response {
 		log.Error().Msg("not enough params")
 		return ERR_NEEDMOREPARAMS("")
 	}
-	user := p
-	// user := p_split[0]
-	// mode := p_split[1]
-	// unused := p_split[2]
-	// realname := p_split[3]
+
+	// user := p
+
+	var user, mode, unused, realname string
+	log.Debug().Msgf("USER: p: %s", p)
+	trimmedParams := strings.Trim(p, " ")
+	// TODO
+	// these length checks are arbitrary
+	// check if there is actually a limit for these
+	if strings.Contains(trimmedParams, " ") {
+		p_split := cmd_re.FindStringSubmatch(trimmedParams)
+
+		log.Debug().Msgf("USER: p_split: %s, p_split len: %d", p_split, len(p_split))
+		user = p_split[1]
+		if len(user) > 100 {
+			user = user[:100]
+		}
+
+		mode_split := cmd_re.FindStringSubmatch(strings.Trim(p_split[2], " "))
+		log.Debug().Msgf("USER: mode_split: %s", mode_split)
+		_mode := mode_split[1]
+		if len(_mode) > 100 {
+			_mode = _mode[:100]
+		}
+		mode = _mode
+
+		unused_split := cmd_re.FindStringSubmatch(strings.Trim(mode_split[2], " "))
+		log.Debug().Msgf("USER: unused_split: %s", unused_split)
+		unused = "*"
+
+		realname_trimmed := strings.Trim(unused_split[2], " ")
+		realname = realname_trimmed
+		if len(realname_trimmed) > 100 {
+			realname = realname_trimmed[:100]
+		}
+
+		log.Debug().Msgf("USER: realname: %s", realname)
+	} else {
+		user = trimmedParams
+	}
 
 	client := _client.(*Client)
 	client.SetUser(user)
+
+	log.Info().EmbedObject(client).Msgf("user: %s, mode: %s, unused: %s, realname: %s", user, mode, unused, realname)
 
 	res := EMPTY_RESPONSE()
 
