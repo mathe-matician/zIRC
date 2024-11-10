@@ -49,6 +49,7 @@ func who(params map[string]interface{}) Response {
 				chan_operator := ""
 				if len(c.Channels) != 0 {
 					// race condition here if a client leaves a channel
+					// doesn;t matter much
 					// and some other client runs WHO and this indexes any one client's Channel list
 					user_channel = c.Channels[0]
 					// if chan operator to this chan
@@ -118,7 +119,7 @@ func who(params map[string]interface{}) Response {
 		}
 
 		for _, c := range (*channel).UserList {
-			if c == nil {
+			if c == nil || c.HasUserMode("i") {
 				continue
 			}
 
