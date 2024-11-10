@@ -182,7 +182,7 @@ func RPL_WHOREPLY(
 	hopcount,
 	real_name string,
 ) Response {
-	msg := fmt.Sprintf(":%s 352 %s %s %s %s %s %s %s %s %s :%s %s", server, requesting_user, channel, user, host, server, nick, away_status, is_operator, operator_status, hopcount, real_name)
+	msg := fmt.Sprintf(":%s 352 %s %s %s %s %s %s %s %s%s:%s %s \r\n", server, requesting_user, channel, user, host, server, nick, away_status, is_operator, operator_status, hopcount, real_name)
 
 	if len(msg_override) != 0 {
 		msg = msg_override

@@ -30,7 +30,7 @@ func who(params map[string]interface{}) Response {
 	}
 	client := _client.(*Client)
 
-	if len(params) == 0 {
+	if len(p) == 0 {
 		// show all users visible on server!!
 		message_manager := (*g_Server)._MessageManager
 		client_list := *(*message_manager).ClientList
@@ -95,10 +95,68 @@ func who(params map[string]interface{}) Response {
 	// Network Behavior: Some IRC networks might have configurations or commands (e.g., /WHO **0**)
 	// that can show users across the entire network, but these are not part of the default behavior of the WHO command.
 
-	// is_chan := false
-	// if isChannel() {
-	// 	is_chan = true
-	// }
+	// WHO <nick>: Lists all channels that the specified user is in, provided that you can see those channels (subject to visibility settings and modes like +i).
+	// WHO <channel>: Only lists the users in the specified channel.
+	// WHO (no arguments): Lists users from all visible channels they are in (public channels or channels you're a member of).
+
+	// can handle * and ?
+	// wildcard_match := `.*`
+	// singlechar_match := `.?`
+	// e.g. split word and then add the match var
+	// who_match := regexp.MustCompile(``)
+
+	// can also add a host name!!!!
+	// e.g. user@host.com, WHO ?@host.com (all users on host.com server)
+
+	if isChannel(p) {
+		// is_chan := true
+		// search channels
+		chan_map := g_Server.GetChannelMap()
+		channel, ok := (*chan_map)[p]
+		if channel == nil || !ok {
+			return ERR_UNKNOWNERROR("")
+		}
+
+		for _, c := range (*channel).UserList {
+			if c == nil {
+				continue
+			}
+
+			away_status := "H"
+			if len(c.AwayMessage) != 0 {
+				away_status = "G"
+			}
+
+			// TODO
+			// get hopcount between this user running the WHO command
+			// and the current user
+			// will need to have shortest path algo in place to get this
+			hopcount := ""
+			if client.Host == c.Host {
+				// on the same server
+				hopcount = "0"
+			} else {
+				hopcount = "?"
+			}
+
+			chan_operator := ""
+			operator_status := ""
+			_, ok := channel.Operators[c.Nick()]
+			if ok {
+				operator_status = "*"
+				chan_operator = " @ "
+			}
+
+			cwho := RPL_WHOREPLY("", c.Nick(), channel.Name, c.User(), c.Ip(), c.Host, c.Nick(), away_status, operator_status, chan_operator, hopcount, c.RealName)
+			task := NewTask(UNICAST, cwho.Msg(), 0.0, client.ClientConn, nil, false)
+			g_Server._MessageManager.Task_runner <- []*Task{task}
+		}
+	} else {
+		// search users
+		// TODO
+		// need cross server routing here
+
+	}
 
 	// As iter through client list, if client has +i user mode,
 	// they won't be returned in this command response

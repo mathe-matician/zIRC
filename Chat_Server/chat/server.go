@@ -195,6 +195,10 @@ func (is *IrcServer) HasCapability(cap string) bool {
 	return false
 }
 
+func (is *IrcServer) GetChannelMap() *map[string]*Channel {
+	return is._MessageManager.ChannelMap
+}
+
 func (is *IrcServer) Run() {
 	enabled_tls := helpers.GetEnv("IRC_ENABLE_TLS", "false")
 	tls_port := helpers.GetEnv("IRC_TLS_PORT", "6697")
