@@ -3,7 +3,10 @@ package helpers
 import (
 	"crypto/tls"
 	"errors"
+	"io"
+	"net"
 	"os"
+	"syscall"
 )
 
 var server_modes = []string{
@@ -55,4 +58,17 @@ func CreateTLSConfig(crt_path, key_path string) *tls.Config {
 	}
 
 	return &tls.Config{Certificates: []tls.Certificate{cert}}
+}
+
+// https://stackoverflow.com/a/73029344
+func IsNetConnClosedErr(err error) bool {
+	switch {
+	case
+		errors.Is(err, net.ErrClosed),
+		errors.Is(err, io.EOF),
+		errors.Is(err, syscall.EPIPE):
+		return true
+	default:
+		return false
+	}
 }

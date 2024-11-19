@@ -1,6 +1,8 @@
 package chat
 
 import (
+	"regexp"
+
 	"github.com/phuslu/log"
 )
 
@@ -51,7 +53,9 @@ func who(params map[string]interface{}) Response {
 					// race condition here if a client leaves a channel
 					// doesn;t matter much
 					// and some other client runs WHO and this indexes any one client's Channel list
-					user_channel = c.Channels[0]
+					// TODO
+					// shouldn't this list all channels for all users?
+					user_channel = c.Channels[0].Name
 					// if chan operator to this chan
 					chan_operator = "@"
 					// if voice operator
@@ -110,9 +114,10 @@ func who(params map[string]interface{}) Response {
 	// e.g. user@host.com, WHO ?@host.com (all users on host.com server)
 
 	if isChannel(p) {
-		// is_chan := true
-		// search channels
 		chan_map := g_Server.GetChannelMap()
+		// TODO
+		// parse hidden channels?
+
 		channel, ok := (*chan_map)[p]
 		if channel == nil || !ok {
 			return ERR_UNKNOWNERROR("")
@@ -153,10 +158,125 @@ func who(params map[string]interface{}) Response {
 			g_Server._MessageManager.Task_runner <- []*Task{task}
 		}
 	} else {
+		// IS CLIENT
+		// NOTE: wildcards only matter for nick
+
 		// search users
 		// TODO
 		// need cross server routing here
 
+		// client_list := make([]*Client, 0)
+		var who_re *regexp.Regexp
+
+		regexString := ""
+		containsRegexMatch := false
+		for _, c := range p {
+			if c == '*' || c == '?' {
+				containsRegexMatch = true
+				regexString += "."
+			}
+			regexString += string(c)
+		}
+
+		client_map := g_Server.GetClientMap()
+		client_who_tasks := []*Task{}
+
+		if !containsRegexMatch {
+			searchedClient, ok := (*client_map)[p]
+			if searchedClient == nil || !ok {
+				// TODO
+				// is there a better error to return here?
+				return ERR_UNKNOWNERROR("")
+			}
+			if len(searchedClient.Channels) == 0 {
+				hopcount := "0"
+				away_status := "H"
+				if len(searchedClient.AwayMessage) != 0 {
+					away_status = "G"
+				}
+				cwho := RPL_WHOREPLY("", client.Nick(), "*", searchedClient.User(), searchedClient.Ip(), searchedClient.Host, searchedClient.Nick(), away_status, "", "", hopcount, searchedClient.RealName)
+				task := NewTask(UNICAST, cwho.Msg(), 0.0, client.ClientConn, nil, false)
+				client_who_tasks = append(client_who_tasks, task)
+			} else {
+				for _, ch := range searchedClient.Channels {
+					if ch == nil {
+						log.Debug().Msgf("WHO command, channel was nil, continuing")
+						continue
+					}
+					away_status := "H"
+					if len(searchedClient.AwayMessage) != 0 {
+						away_status = "G"
+					}
+					chan_operator := ""
+					operator_status := ""
+					// TODO
+					// need to route to find this channel
+					_, ok := ch.Operators[searchedClient.Nick()]
+					if ok {
+						operator_status = "*"
+						chan_operator = " @ "
+					}
+					hopcount := "0"
+
+					cwho := RPL_WHOREPLY("", client.Nick(), ch.Name, searchedClient.User(), searchedClient.Ip(), searchedClient.Host, searchedClient.Nick(), away_status, operator_status, chan_operator, hopcount, searchedClient.RealName)
+					task := NewTask(UNICAST, cwho.Msg(), 0.0, client.ClientConn, nil, false)
+					client_who_tasks = append(client_who_tasks, task)
+				}
+			}
+		} else {
+			who_re = regexp.MustCompile(regexString)
+
+			for key, cli := range *client_map {
+				match := who_re.FindAllStringSubmatch(key, -1)
+				log.Debug().Msgf("who match: %v", match)
+				if len(match) != 0 {
+					log.Debug().Msgf("Match successful on: %v", match)
+
+					if len(cli.Channels) == 0 {
+						// TODO
+						// get real hopcount
+						log.Debug().Msgf("Client hasn't JOINed any channels")
+						hopcount := "0"
+						away_status := "H"
+						if len(cli.AwayMessage) != 0 {
+							away_status = "G"
+						}
+						cwho := RPL_WHOREPLY("", client.Nick(), "*", cli.User(), cli.Ip(), cli.Host, cli.Nick(), away_status, "", "", hopcount, cli.RealName)
+						task := NewTask(UNICAST, cwho.Msg(), 0.0, client.ClientConn, nil, false)
+						client_who_tasks = append(client_who_tasks, task)
+					} else {
+						log.Debug().Msgf("Client has JOINed channels, looping through them...")
+						for _, ch := range cli.Channels {
+							if ch == nil {
+								log.Debug().Msgf("WHO command, channel was nil, continuing")
+								continue
+							}
+							away_status := "H"
+							if len(cli.AwayMessage) != 0 {
+								away_status = "G"
+							}
+							chan_operator := ""
+							operator_status := ""
+							// TODO
+							// need to route to find this channel
+							_, ok := ch.Operators[cli.Nick()]
+							if ok {
+								operator_status = "*"
+								chan_operator = " @ "
+							}
+							hopcount := "0"
+
+							cwho := RPL_WHOREPLY("", client.Nick(), ch.Name, cli.User(), cli.Ip(), cli.Host, cli.Nick(), away_status, operator_status, chan_operator, hopcount, cli.RealName)
+							task := NewTask(UNICAST, cwho.Msg(), 0.0, client.ClientConn, nil, false)
+							client_who_tasks = append(client_who_tasks, task)
+						}
+					}
+				}
+			}
+		}
+
+		// log.Debug().Msgf("WHO client_list: %s", client_list)
+		g_Server._MessageManager.Task_runner <- client_who_tasks
 	}
 
 	// As iter through client list, if client has +i user mode,

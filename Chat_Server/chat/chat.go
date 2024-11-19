@@ -126,7 +126,7 @@ func ProcessMessage(trimmed_msg string, client *Client, task_runner chan []*Task
 	cmd_param_slice["server_metadata"] = server_metadata
 	cmd_param_slice["channel_map"] = channel_map
 
-	log.Info().Msgf("Before running func")
+	// log.Debug().Msgf("Before running CMD func")
 	_response := cmd.Fn(cmd_param_slice)
 
 	log.Info().Msgf("Command res msg: %s, code: %s", _response.Msg(), _response.Code())

@@ -52,9 +52,9 @@ func join(params map[string]interface{}) Response {
 
 		// TODO - what if the channel already exists??
 
-		channel := (*channel_map)[cmd_params]
+		channel, ok := (*channel_map)[cmd_params]
 
-		if channel == nil {
+		if channel == nil || !ok {
 			// if channel doesn't exist, this user is the channel creator and default operator
 			channel = NewChannel(
 				cmd_params,
@@ -109,6 +109,8 @@ func join(params map[string]interface{}) Response {
 			rpl_namreply,
 			rpl_endofnames,
 		}
+
+		client.Channels = append(client.Channels, channel)
 	}
 
 	return EMPTY_RESPONSE()

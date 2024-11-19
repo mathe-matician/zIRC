@@ -44,7 +44,7 @@ type Client struct {
 	ClientConn    *net.Conn
 	send          chan string
 	UserModes     []Mode
-	Channels      []string
+	Channels      []*Channel
 	PrivateConvos []string // TODO - idk what this structure / process looks like / or even if it matters
 	Host          string
 	AwayMessage   string
@@ -94,6 +94,19 @@ func NewClient(nick string, user string, conn *rc.RemoteConn, Conn *net.Conn) (*
 	caps := make(map[string]string)
 	// authState := make(map[string]int)
 
+	// maxUserChans, err := strconv.Atoi(helpers.GetEnv("IRC_MAX_USER_CHANNELS", "20"))
+	// if err != nil {
+	// 	log.Error().Msgf(err.Error())
+	// 	maxUserChans = 20
+	// }
+
+	// TODO
+	// clients need to hold state of joined channels
+	// for queries like who
+	// and to keep track of if they can join more channels or not
+	/// EDIT/
+	// this already exists below - client.Channels
+
 	return &Client{
 		nick:         nick,
 		user:         user,
@@ -107,6 +120,7 @@ func NewClient(nick string, user string, conn *rc.RemoteConn, Conn *net.Conn) (*
 		Host:         g_Server.DnsName,
 		AwayMessage:  "",
 		Capabilities: caps,
+		Channels:     make([]*Channel, 0),
 		Auth:         NewClientAuth(),
 		PingPongChan: make(chan string, 1), // buffered channel
 	}, &session_timestamp, nil

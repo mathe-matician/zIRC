@@ -160,14 +160,14 @@ func NewIrcServer(dns_name string, version string, addr string, server_role stri
 // GetTCPListener checks to see if TLS is enabled for the particular listener
 // if it is, it creates a TLS Listener with the provided TLS env vars
 // else it returns a normal Listener
-func GetTCPListener(enableTls, tls_cert_path, tls_key_path, tls_port, port string) net.Listener {
+func GetTCPListener(enableTls, tls_cert_path, tls_key_path, tls_port, irc_host, port string) net.Listener {
 	var ln net.Listener
 	var err error
 	enable_tls, err1 := strconv.ParseBool(enableTls)
 	if err1 != nil {
 		log.Error().Msg(err1.Error())
 	}
-	irc_host := helpers.GetEnv("IRC_HOST", "0.0.0.0")
+
 	if enable_tls {
 		config := helpers.CreateTLSConfig(tls_cert_path, tls_key_path)
 		tls_port := tls_port
@@ -199,15 +199,21 @@ func (is *IrcServer) GetChannelMap() *map[string]*Channel {
 	return is._MessageManager.ChannelMap
 }
 
+func (is *IrcServer) GetClientMap() *map[string]*Client {
+	return is._MessageManager.ClientMap
+}
+
 func (is *IrcServer) Run() {
 	enabled_tls := helpers.GetEnv("IRC_ENABLE_TLS", "false")
 	tls_port := helpers.GetEnv("IRC_TLS_PORT", "6697")
+	addr_split := strings.Split(is.Addr, ":")
 	ln := GetTCPListener(
 		enabled_tls,
 		helpers.GetEnv("IRC_TLS_CERT_PATH", "./.tls/server.crt"),
 		helpers.GetEnv("IRC_TLS_KEY_PATH", "./.tls/server.key"),
 		tls_port,
-		helpers.GetEnv("IRC_PORT", "6667"),
+		addr_split[0],
+		addr_split[1],
 	)
 	if enabled_tls == "true" {
 		is.Addr = tls_port

@@ -84,14 +84,14 @@ func (w *Worker) unicast(message_manager *MessageManager, task *Task) {
 	// }
 
 	// send a response to the client performing the action
-
-	// TODO
-	// need a way to aggregate failures when sending messages to clients here
-	// otherwise this will loop forever failing
-	// {"time":"2024-11-04T00:30:48.441Z","level":"error","message":"Error writing to client: write tcp 172.20.0.4:6667->192.168.65.1:19442: use of closed network connection"}
 	c := (*task.ClientConn)
-	if _, err := c.Write([]byte(task.Task)); err != nil {
-		log.Error().Msgf("Error writing to client: %s", err.Error())
+	_, err := c.Write([]byte(task.Task))
+	if helpers.IsNetConnClosedErr(err) {
+		log.Error().Msgf("UNICAST: Trying to use closed Client Conn: %s", err.Error())
+		// TODO
+		// additional cleanup is necessary for conn / client / etc!!
+	} else {
+		log.Error().Msgf("UNICAST: Error writing to client conn: %s", err.Error())
 	}
 }
 
@@ -145,8 +145,14 @@ func (w *Worker) multicast(message_manager *MessageManager, task *Task) {
 				// e.g. PRIVMSG, JOIN, PING
 				msg := task.Task
 				log.Info().EmbedObject(c).Msgf("Sending MSG to Client: nick: %s, user: %s, conn: %s", c.Nick(), c.User(), conn.RemoteAddr())
-				if _, err := conn.Write([]byte(msg)); err != nil {
-					log.Error().EmbedObject(c).Msgf("Error writing to client: %s", err.Error())
+				_, err := conn.Write([]byte(msg))
+				if helpers.IsNetConnClosedErr(err) {
+					log.Error().EmbedObject(c).Msgf("MULTICAST: Trying to write to closed Client Conn: %s", err.Error())
+					// TODO
+					// further cleanup on client, conn, etc
+					continue
+				} else {
+					log.Error().EmbedObject(c).Msgf("MULTICAST: Error writing to client: %s", err.Error())
 					continue
 				}
 			} else {
@@ -163,12 +169,16 @@ func (w *Worker) multicast(message_manager *MessageManager, task *Task) {
 		log.Debug().Msgf("Target type is Client")
 
 		conn := *(target.ClientConn)
-		if _, err := conn.Write([]byte(task.Task)); err != nil {
-			log.Error().EmbedObject(target).Msgf("Error writing to client: %s", err.Error())
+		_, err := conn.Write([]byte(task.Task))
+		if helpers.IsNetConnClosedErr(err) {
+			log.Error().EmbedObject(target).Msgf("MULTICAST with *Client: trying to write to closed Client Conn %s", err.Error())
+			return
+		} else {
+			log.Error().EmbedObject(target).Msgf("MULTICAST: Error writing to client: %s", err.Error())
 			return
 		}
 	default:
-		log.Error().Msgf("Unknown target type %s", reflect.TypeOf(target).Name())
+		log.Error().Msgf("MULTICAST: Unknown target type %s", reflect.TypeOf(target).Name())
 		return
 	}
 }
@@ -184,7 +194,7 @@ func (w *Worker) Work(tasks chan []*Task, results chan string, message_manager *
 		select {
 		case task := <-tasks:
 			log.Info().EmbedObject(w).Msgf("Tasks received")
-			message_manager.Debug()
+			// message_manager.Debug()
 
 			if len(task) == 0 {
 				log.Warn().EmbedObject(w).Msgf("No tasks to run!")

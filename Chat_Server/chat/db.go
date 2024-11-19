@@ -71,7 +71,16 @@ func reconnect_db_listener() {
 }
 
 func init() {
-	db_init()
+	enableDB, err := strconv.ParseBool(helpers.GetEnv("ZIRC_DB_ENABLED", "false"))
+	if err != nil {
+		log.Error().Msgf("Error parsing bool: %s", err.Error())
+		enableDB = false
+	}
+
+	if enableDB {
+		db_init()
+		go reconnect_db_listener()
+	}
 
 	// var err error
 	// plain_auth_stmt, err = g_DB.Prepare(`SELECT email, credentials from auth where username = $1::text`)
@@ -85,8 +94,6 @@ func init() {
 	// 	log.Error().Msgf("Error creating register_stmt")
 	// 	panic(err)
 	// }
-
-	go reconnect_db_listener()
 }
 
 type UserModel struct {

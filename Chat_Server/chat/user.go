@@ -82,6 +82,9 @@ func user(params map[string]interface{}) Response {
 
 	client := _client.(*Client)
 	client.SetUser(user)
+	if len(realname) == 0 {
+		realname = user
+	}
 	client.RealName = realname
 
 	log.Info().EmbedObject(client).Msgf("user: %s, mode: %s, unused: %s, realname: %s", user, mode, unused, realname)

@@ -106,6 +106,7 @@ func (sm *ServerManager) Run() {
 		helpers.GetEnv("IRC_S2S_TLS_CERT_PATH", "./.tls/s2s.crt"),
 		helpers.GetEnv("IRC_S2S_TLS_KEY_PATH", "./.tls/s2s.key"),
 		helpers.GetEnv("IRC_S2S_TLS_PORT", "7001"),
+		helpers.GetEnv("IRC_HOST", "0.0.0.0"),
 		helpers.GetEnv("IRC_S2S_PORT", "7000"),
 	)
 
