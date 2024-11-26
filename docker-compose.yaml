@@ -14,6 +14,28 @@ services:
     networks:
       zirc_subnet:
         ipv4_address: 172.20.0.4
+    secrets:
+      - s2s_password
+
+  # Used as a an additional server to test multi-server setup
+  zirc_animalhouse:
+    container_name: zirc_animalhouse
+    env_file: ./Chat_Server/.env
+    environment:
+      - IRC_SERVER_DNS_NAME=animal-houseIRC.io
+    build:
+      context: ./Chat_Server
+      dockerfile: Dockerfile
+    ports:
+      - "6600:6667" # irc server
+      - "7070:7000" # server manager
+    depends_on:
+      - zirc_db
+    networks:
+      zirc_subnet:
+        ipv4_address: 172.20.0.6
+    secrets:
+      - s2s_password
 
   zirc_nickserv:
     container_name: zirc_nickserv
@@ -43,8 +65,22 @@ services:
       zirc_subnet:
         ipv4_address: 172.20.0.3
 
+  zirc_test_client:
+    env_file: ./Chat_Server/TestClient/.env
+    build:
+      context: ./Chat_Server/TestClient
+      dockerfile: Dockerfile
+    container_name: zirc_test_client
+    networks:
+      zirc_subnet:
+        ipv4_address: 172.20.0.5
+
 networks:
   zirc_subnet:
     ipam:
       config:
         - subnet: 172.20.0.0/16
+
+secrets:
+  s2s_password:
+    file: s2s_password

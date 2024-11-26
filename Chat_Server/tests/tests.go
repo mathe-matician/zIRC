@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"math/rand"
@@ -8,6 +9,8 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"github.com/phuslu/log"
 )
 
 func init() {
@@ -16,22 +19,29 @@ func init() {
 }
 
 type MockMsg struct {
-	IrcMsg  string
-	Timeout bool
+	IrcMsg              string
+	WaitForResponseCode string
+	Timeout             bool
+}
+
+type MockResponse struct {
+	Response     string
+	CheckSuccess bool
+	Success      bool
 }
 
 type MockClient struct {
 	Connection net.Conn
 	Addr       string
-	SendChan   chan MockMsg // contains message to send to irc server
-	Recv       chan string  // the chan our mock client can send server responses which we can then check in our test
+	SendChan   chan MockMsg      // contains message to send to irc server
+	Recv       chan MockResponse // the chan our mock client can send server responses which we can then check in our test
 }
 
-func NewMockClient(addr string, recv chan string) *MockClient {
+func NewMockClient(addr string, recv chan MockResponse) *MockClient {
 	if addr == "" {
 		panic("missing addr arg for new mock client")
 	}
-	sendChan := make(chan MockMsg)
+	sendChan := make(chan MockMsg, 30)
 
 	return &MockClient{
 		Connection: nil,
@@ -41,8 +51,9 @@ func NewMockClient(addr string, recv chan string) *MockClient {
 	}
 }
 
-func (mc *MockClient) Send(msg string, timeout bool) {
-	mc.SendChan <- MockMsg{msg, timeout}
+func (mc *MockClient) Send(msg, waitForResponseCode string, timeout bool) {
+	// time.Sleep(3 * time.Second)
+	mc.SendChan <- MockMsg{msg, waitForResponseCode, timeout}
 }
 
 func WaitUntilResponseCode(recv chan string, response_code string) {
@@ -50,10 +61,13 @@ func WaitUntilResponseCode(recv chan string, response_code string) {
 	for {
 		select {
 		case res := <-recv:
-			fmt.Printf("Recvd %s\n", res)
+			log.Debug().Msgf("WaitUntilResponseCode recvd: %s", res)
+			// fmt.Printf("Recvd %s\n", res)
 			res_split := strings.Split(res, "\r\n")
+			log.Debug().Msgf("Res split: %v", res_split)
 			for _, v := range res_split {
 				if strings.Contains(v, response_code) {
+					log.Debug().Msgf("Response contains response code: %s", response_code)
 					return
 				}
 			}
@@ -67,27 +81,75 @@ func (mc *MockClient) Run() {
 	var err error
 	mc.Connection, err = net.Dial("tcp", mc.Addr)
 	if err != nil {
-		fmt.Println("Error:", err)
+		fmt.Println("Error connecting to server:", err)
 		os.Exit(1)
 	}
 	defer mc.Connection.Close()
 
+	bufReader := bufio.NewReader(mc.Connection)
+	for {
+		select {
+		case msg := <-mc.SendChan:
+			_, err = mc.Connection.Write([]byte(msg.IrcMsg))
+			if err != nil {
+				fmt.Println("Error sending message:", err)
+				os.Exit(1)
+			}
+			time.Sleep(3 * time.Second)
+
+			if msg.Timeout {
+				ok := make(chan bool)
+				go func() {
+					response := readServerResponse(mc.Connection, ok)
+					fmt.Println("Response:", response)
+					mc.Recv <- MockResponse{response, false, false}
+				}()
+				select {
+				case <-ok:
+				case <-time.After(2 * time.Second):
+					fmt.Println("Expected timeout!")
+				}
+			} else {
+				response, _ := bufReader.ReadString('\n')
+				fmt.Println("Client Received:", response)
+				mc.Recv <- MockResponse{response, false, false}
+			}
+
+		case <-time.After(10 * time.Second):
+			fmt.Println("No messages to process. Exiting.")
+			return
+		}
+	}
+}
+
+func (mc *MockClient) Runold() {
+	var err error
+	mc.Connection, err = net.Dial("tcp", mc.Addr)
+	if err != nil {
+		fmt.Println("Error:", err)
+		os.Exit(1)
+	}
+	defer mc.Connection.Close()
+	mc.Recv <- MockResponse{}
+
 	for {
 		msg := <-mc.SendChan
 		d := []byte(msg.IrcMsg)
+		reply := make([]byte, 1024)
 		_, err = mc.Connection.Write(d)
 		if err != nil {
 			fmt.Println("Error:", err)
 			os.Exit(1)
 		}
 
-		reply := make([]byte, 1024)
 		fmt.Println("Waiting for server reply...")
+
+		response := ""
 
 		if msg.Timeout {
 			ok := make(chan bool)
 
-			go readServerResponse(mc.Connection, &reply, ok)
+			go readServerResponse(mc.Connection, ok)
 
 			select {
 			case <-ok:
@@ -97,12 +159,27 @@ func (mc *MockClient) Run() {
 				return
 			}
 		} else {
-			readServerResponse(mc.Connection, &reply, nil)
+			response = readServerResponse(mc.Connection, nil)
+			log.Debug().Msgf("RESPONSE:::: %v", response)
 		}
 
 		// remove extra null characters from 1024 buffer
+		// log.Debug().Msgf("REPLY:::: %v", string(reply))
 		reply = bytes.Trim(reply, "\x00")
-		mc.Recv <- string(reply)
+		if msg.WaitForResponseCode != "" {
+			log.Debug().Msgf("waiting... recvd: %s", reply)
+			res_split := strings.Split(string(reply), "\r\n")
+			log.Debug().Msgf("Res split: %v", res_split)
+			for _, v := range res_split {
+				if strings.Contains(v, msg.WaitForResponseCode) {
+					log.Debug().Msgf("Response contains response code: %s", msg.WaitForResponseCode)
+					mc.Recv <- MockResponse{"", true, true}
+				}
+			}
+		} else {
+			// mc.Recv <- MockResponse{string(reply), false, false}
+			mc.Recv <- MockResponse{response, false, false}
+		}
 	}
 }
 
@@ -151,7 +228,7 @@ func (mc *MockClient) OLDClientSendChan(addr string, data string, timeout bool) 
 	if timeout {
 		ok := make(chan bool)
 
-		go readServerResponse(mc.Connection, &reply, ok)
+		go readServerResponse(mc.Connection, ok)
 
 		select {
 		case <-ok:
@@ -161,7 +238,7 @@ func (mc *MockClient) OLDClientSendChan(addr string, data string, timeout bool) 
 			return ""
 		}
 	} else {
-		readServerResponse(mc.Connection, &reply, nil)
+		readServerResponse(mc.Connection, nil)
 	}
 
 	// remove extra null characters from 1024 buffer
@@ -170,15 +247,19 @@ func (mc *MockClient) OLDClientSendChan(addr string, data string, timeout bool) 
 	return string(reply)
 }
 
-func readServerResponse(conn net.Conn, buffer *[]byte, ok chan bool) {
-	_, err := conn.Read(*buffer)
+func readServerResponse(conn net.Conn, ok chan bool) string {
+	reply := make([]byte, 1024)
+	_, err := conn.Read(reply)
 	if err != nil {
 		if !strings.Contains(err.Error(), "use of closed network connection") {
 			fmt.Println("Write to server failed: ", err.Error())
 			os.Exit(1)
 		}
 	}
+
 	if ok != nil {
 		ok <- true
 	}
+
+	return string(bytes.Trim(reply, "\x00"))
 }

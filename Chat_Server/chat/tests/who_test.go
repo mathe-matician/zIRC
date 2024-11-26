@@ -44,43 +44,35 @@ func TestWHO_NickQuery(t *testing.T) {
 
 	t.Run("Test 1: single NICK query with no JOINed channels", func(t *testing.T) {
 		// t.Parallel()
-		mc_recv := make(chan string)
+		mc_recv := make(chan zt.MockResponse)
 		mc := zt.NewMockClient(serverAddr, mc_recv)
 		go mc.Run()
-		mc2_recv := make(chan string)
+
+		mc2_recv := make(chan zt.MockResponse)
 		mc2 := zt.NewMockClient(serverAddr, mc2_recv)
 		go mc2.Run()
 
-		// do nothing with client 1's server responses
-		go func() {
-			for {
-				<-mc_recv
-			}
-		}()
-
-		// time.Sleep(5 * time.Second)
-
 		mc_reg := zt.RegisterMsg(serverAddr, "zak", "zak")
-		mc.Send(mc_reg, false)
-		// zt.WaitUntilResponseCode(mc_recv, "004")
+		mc.Send(mc_reg, "004", false)
+		for {
+			res := <-mc_recv
+			if strings.Contains(res.Response, "004") {
+				break
+			}
+		}
 
 		mc2_reg := zt.RegisterMsg(serverAddr, "marmar", "marmar")
-		go func() {
-			for {
-				res := <-mc_recv
-				res_split := strings.Split(res, "\r\n")
-				for _, v := range res_split {
-					if strings.Contains(v, "004") {
-						return
-					}
-				}
+		mc2.Send(mc2_reg, "004", false)
+		for {
+			res := <-mc_recv
+			if strings.Contains(res.Response, "004") {
+				break
 			}
-		}()
-		mc2.Send(mc2_reg, false)
-		// zt.WaitUntilResponseCode(mc2_recv, "004")
+		}
 
-		mc2.Send("WHO zak\r\n", false)
-		got := <-mc2_recv
+		mc2.Send("WHO zak\r\n", "", false)
+		_got := <-mc2_recv
+		got := _got.Response
 		want := ":zirc-test.com 352 marmar * zak cloak.z.irc zirc-test.com zak H :0 zak \r\n"
 
 		if want != got {

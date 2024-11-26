@@ -85,17 +85,19 @@ func (w *Worker) unicast(message_manager *MessageManager, task *Task) {
 
 	// send a response to the client performing the action
 	c := (*task.ClientConn)
+	log.Debug().Msgf("UNICAST writing task to client(%s): %s", c.RemoteAddr(), task.Task)
 	_, err := c.Write([]byte(task.Task))
 	if helpers.IsNetConnClosedErr(err) {
 		log.Error().Msgf("UNICAST: Trying to use closed Client Conn: %s", err.Error())
 		// TODO
 		// additional cleanup is necessary for conn / client / etc!!
-	} else {
-		log.Error().Msgf("UNICAST: Error writing to client conn: %s", err.Error())
 	}
 }
 
+// broadcast is generally reserved for server to server communication
 func (w *Worker) broadcast(message_manager *MessageManager, task *Task) {
+	// e.g. broadcast to all other servers that
+	// :ServerA NICK zach 1691000000
 
 }
 
@@ -151,9 +153,6 @@ func (w *Worker) multicast(message_manager *MessageManager, task *Task) {
 					// TODO
 					// further cleanup on client, conn, etc
 					continue
-				} else {
-					log.Error().EmbedObject(c).Msgf("MULTICAST: Error writing to client: %s", err.Error())
-					continue
 				}
 			} else {
 				// TODO some modes allow you to send messages to unregistered clients
@@ -172,9 +171,6 @@ func (w *Worker) multicast(message_manager *MessageManager, task *Task) {
 		_, err := conn.Write([]byte(task.Task))
 		if helpers.IsNetConnClosedErr(err) {
 			log.Error().EmbedObject(target).Msgf("MULTICAST with *Client: trying to write to closed Client Conn %s", err.Error())
-			return
-		} else {
-			log.Error().EmbedObject(target).Msgf("MULTICAST: Error writing to client: %s", err.Error())
 			return
 		}
 	default:
@@ -210,7 +206,7 @@ func (w *Worker) Work(tasks chan []*Task, results chan string, message_manager *
 
 			for _, task := range task {
 				if task == nil {
-					log.Warn().Msg("Task is null!")
+					log.Error().Msg("Task is null!")
 					continue
 				}
 
@@ -230,6 +226,9 @@ func (w *Worker) Work(tasks chan []*Task, results chan string, message_manager *
 					log.Debug().Msgf("%s task", BROADCAST)
 					// broadcast examples:
 					//	server admin broadcast to all users (e.g. server going down for maintenance)
+					// this server broadcasts to all other servers in the network when some action happens.
+					//		e.g. a user joins this server.
+					//			it broadcasts to all other servers that this client exists on this server
 					w.broadcast(message_manager, task)
 				} else if task.Type == SERVER {
 					log.Debug().Msgf("%s task", SERVER)

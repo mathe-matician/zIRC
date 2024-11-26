@@ -51,7 +51,18 @@ use_tls = false
 
 ### Test cli client
 
-Note the test cli is just that, a testing tool. It doesn't accept high level user commands like `/msg` for `PRIVMSG` - it only accepts protocol commands directly.
+Note the test cli is just that, a testing tool. It doesn't accept high level user commands like `/msg` for `PRIVMSG` - it only accepts raw protocol commands directly.
+
+#### Docker compose use
+
+There is a test client that is spun up as part of the docker compose build. The advantage of using the docker compose client is that it makes it easier to test a multi-server environment where you can use the direct docker compose service name or docker network static ip.
+
+1. Exec into the test client container
+2. Run `node test_client.js` to start it
+3. Set the host name of the irc server you want to connect to (see options)
+4. Run `connect` to connect to it.
+
+#### Local use
 
 1. Navigate to the test client dir
 

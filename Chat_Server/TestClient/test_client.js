@@ -21,6 +21,8 @@ console.log(`//// Available Commands:`);
 console.log(`//// \trole <role>:`);
 console.log(`//// \t\tclient (default): Sends messages without a source prefix`);
 console.log(`//// \t\tserver: Sends messages with source prefix`);
+console.log(`//// \tip <ip>:`);
+console.log(`//// \t\t127.0.0.1 (default): Set the host to connect to`);
 console.log(`//// \ttest_mode <mode>:`);
 console.log(`//// \t\tclient: sends messages as client (normal)`);
 console.log(`//// \t\tserver: Sends messages as "servermanager"`);
@@ -40,6 +42,14 @@ const reader = readline.createInterface({ input: process.stdin });
       } else {
         mode = "client"
       }
+    } else if (line.includes("ip")) {
+      const res = line.split(" ");
+      host = res[1] === "" ? "127.0.0.1" : res[1]
+      console.log(`Host set to: ${host}`)
+    } else if (line.includes("port")) {
+      const res = line.split(" ");
+      port = res[1] === "" ? "6667" : res[1]
+      console.log(`Port set to: ${port}`)
     } else {
       // if (line.includes("use")) {
       //   const res = line.split(" ");

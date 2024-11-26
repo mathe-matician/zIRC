@@ -4,32 +4,77 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"os"
 	"strconv"
 	"zirc/helpers"
 
 	"github.com/phuslu/log"
+	"gopkg.in/yaml.v3"
 )
 
 var server_manager_commands = map[string]string{
-	"PASS":   "",
-	"CAPAB":  "",
-	"SERVER": "",
-	"CAP":    "",
-	"SJOIN":  "",
-	"PING":   "",
-	"PONG":   "",
-	"SQUIT":  "",
+	"PASS":    "",
+	"CAPAB":   "",
+	"SERVER":  "",
+	"CAP":     "",
+	"SJOIN":   "",
+	"PING":    "",
+	"PONG":    "",
+	"SQUIT":   "",
+	"CONNECT": "",
+}
+
+type ServerConnection struct {
+	Host         string `yaml:"host"`
+	Port         string `yaml:"port"`
+	Password     string `yaml:"password"`
+	Passwordfile string `yaml:"password_file"`
+}
+
+type ServerManagerConfig struct {
+	ServerList []ServerConnection
 }
 
 type ServerManager struct {
 	Addr              string
 	serverIpWhitelist map[string]string
+	Config            ServerConfig
 }
 
 func NewServerManager() *ServerManager {
 	return &ServerManager{
 		Addr: helpers.GetEnv("IRC_SERVER_MANAGER_PORT", "7000"),
 	}
+}
+
+func NewServerConnection() *ServerConnection {
+	return &ServerConnection{}
+}
+
+func NewServerManagerConfig() *ServerManagerConfig {
+	config_path := helpers.GetEnv("IRC_S2S_CONFIG_FILE", "/etc/zirc/s2s_config.yaml")
+	config_data, err := os.ReadFile(config_path)
+	if err != nil {
+		log.Error().Msgf("Error reading config file %v", err)
+		panic(err)
+	}
+
+	var server_list []ServerConnection
+
+	err = yaml.Unmarshal([]byte(config_data), &server_list)
+	if err != nil {
+		log.Error().Msgf("ServerManagerConfig couldn't unmarshal config: %v", err)
+		panic(err)
+	}
+
+	return &ServerManagerConfig{
+		ServerList: server_list,
+	}
+}
+
+// connect to another server
+func (sm *ServerManager) Connect() {
+
 }
 
 func (sm *ServerManager) AddToServerIpWhiteList(ip, args string) {
@@ -88,10 +133,7 @@ func (sm *ServerManager) ValidS2SPassword(password string) bool {
 	// if all fails, then don't let join
 
 	// last fallback is env var
-	if helpers.GetEnv("IRC_S2S_PASSWORD", "") == password {
-		return true
-	}
-	return false
+	return helpers.GetEnv("IRC_S2S_PASSWORD", "") == password
 }
 
 func (sm *ServerManager) Run() {
