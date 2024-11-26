@@ -38,12 +38,13 @@ type ServerManagerConfig struct {
 type ServerManager struct {
 	Addr              string
 	serverIpWhitelist map[string]string
-	Config            ServerConfig
+	Config            ServerManagerConfig
 }
 
 func NewServerManager() *ServerManager {
 	return &ServerManager{
-		Addr: helpers.GetEnv("IRC_SERVER_MANAGER_PORT", "7000"),
+		Addr:   helpers.GetEnv("IRC_SERVER_MANAGER_PORT", "7000"),
+		Config: NewServerManagerConfig(),
 	}
 }
 
@@ -51,8 +52,8 @@ func NewServerConnection() *ServerConnection {
 	return &ServerConnection{}
 }
 
-func NewServerManagerConfig() *ServerManagerConfig {
-	config_path := helpers.GetEnv("IRC_S2S_CONFIG_FILE", "/etc/zirc/s2s_config.yaml")
+func NewServerManagerConfig() ServerManagerConfig {
+	config_path := helpers.GetEnv("IRC_S2S_CONFIG_FILE", "/chat_server/s2s_config.yaml")
 	config_data, err := os.ReadFile(config_path)
 	if err != nil {
 		log.Error().Msgf("Error reading config file %v", err)
@@ -67,7 +68,9 @@ func NewServerManagerConfig() *ServerManagerConfig {
 		panic(err)
 	}
 
-	return &ServerManagerConfig{
+	log.Debug().Msgf("Server config list: %v", server_list)
+
+	return ServerManagerConfig{
 		ServerList: server_list,
 	}
 }

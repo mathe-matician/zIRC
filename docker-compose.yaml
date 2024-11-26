@@ -36,6 +36,8 @@ services:
         ipv4_address: 172.20.0.6
     secrets:
       - s2s_password
+    profiles:
+      - multi
 
   zirc_nickserv:
     container_name: zirc_nickserv
@@ -83,4 +85,4 @@ networks:
 
 secrets:
   s2s_password:
-    file: s2s_password
+    file: ./Chat_Server/secrets/s2s_password

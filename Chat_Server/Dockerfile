@@ -13,6 +13,7 @@ COPY main.go ./
 COPY chat/ chat/
 COPY helpers/ helpers/
 COPY remote_conn/ remote_conn/
+COPY s2s_config.yaml s2s_config.yaml
 
 RUN go build zirc
 
@@ -23,5 +24,6 @@ RUN set -x && apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -
     rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /chat_server/zirc /chat_server/zirc
+COPY --from=builder /chat_server/s2s_config.yaml /chat_server/s2s_config.yaml
 
 CMD ["/chat_server/zirc"]
