@@ -99,6 +99,8 @@ func nick(params map[string]interface{}) Response {
 		task_runner := _task_runner.(chan []*Task)
 		task_runner <- responses
 
+		g_Server.ClientServerMap[client.nick] = g_Server.DnsName
+
 		// go ping(client)
 	}
 

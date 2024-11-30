@@ -56,41 +56,21 @@ var workerActionMap = map[string]map[string]bool{
 }
 
 func (w *Worker) unicast(message_manager *MessageManager, task *Task) {
-	// target := (*task.Target)
-	// if target != nil {
-	// 	// If we reach here, we are sending a message to both some other 1 client + the source client
-	// 	// but something else needs to be sent to another client which is stored in Task.Target
-
-	// 	// we only expect this to be for Client Targets...
-	// 	// we should never get a Channel target here
-
-	// 	// if task.FindTarget != "" {
-	// 	// 	client_list := (*message_manager).ClientList
-	// 	// 	for _, c := range *client_list {
-
-	// 	// 	}
-	// 	// }
-
-	// 	client := (target).(*Client)
-	// 	conn := *(client.ClientConn)
-	// 	if conn == nil {
-	// 		log.Error().EmbedObject(client).Msgf("Conn is nil!!")
-	// 		return
-	// 	}
-	// 	if _, err := conn.Write([]byte(task.Task)); err != nil {
-	// 		log.Error().EmbedObject(client).Msgf("Error writing to client: %s", err.Error())
-	// 		return
-	// 	}
-	// }
-
 	// send a response to the client performing the action
-	c := (*task.ClientConn)
-	log.Debug().Msgf("UNICAST writing task to client(%s): %s", c.RemoteAddr(), task.Task)
-	_, err := c.Write([]byte(task.Task))
-	if helpers.IsNetConnClosedErr(err) {
-		log.Error().Msgf("UNICAST: Trying to use closed Client Conn: %s", err.Error())
+	switch target := task.Target.(type) {
+	case *RemoteTask:
+		log.Debug().Msgf("UNICAST task is for remote target: %s, %s", target.DNS, target.ClientNick)
 		// TODO
-		// additional cleanup is necessary for conn / client / etc!!
+		// relay msg to server
+	default:
+		c := (*task.ClientConn)
+		log.Debug().Msgf("UNICAST writing task to client(%s): %s", c.RemoteAddr(), task.Task)
+		_, err := c.Write([]byte(task.Task))
+		if helpers.IsNetConnClosedErr(err) {
+			log.Error().Msgf("UNICAST: Trying to use closed Client Conn: %s", err.Error())
+			// TODO
+			// additional cleanup is necessary for conn / client / etc!!
+		}
 	}
 }
 
@@ -167,11 +147,20 @@ func (w *Worker) multicast(message_manager *MessageManager, task *Task) {
 		// i.e. why wouldn't we just send a UNICAST?
 		log.Debug().Msgf("Target type is Client")
 
-		conn := *(target.ClientConn)
-		_, err := conn.Write([]byte(task.Task))
-		if helpers.IsNetConnClosedErr(err) {
-			log.Error().EmbedObject(target).Msgf("MULTICAST with *Client: trying to write to closed Client Conn %s", err.Error())
-			return
+		if target.server == g_Server.DnsName {
+			// target is on this server so write directly to this client
+			conn := *(target.ClientConn)
+			_, err := conn.Write([]byte(task.Task))
+			if helpers.IsNetConnClosedErr(err) {
+				// TODO
+				// clean up closed connection!!
+				log.Error().EmbedObject(target).Msgf("MULTICAST with *Client: trying to write to closed Client Conn %s", err.Error())
+				return
+			}
+		} else {
+			// client is on another server
+			// send msg there
+			log.Debug().Msgf("Msg is for client '%s' on another server!", target.Nick())
 		}
 	default:
 		log.Error().Msgf("MULTICAST: Unknown target type %s", reflect.TypeOf(target).Name())

@@ -113,9 +113,32 @@ func privmsg(params map[string]interface{}) Response {
 		log.Debug().Msgf("PRIVMSG: Creating new task for USER")
 
 		// have the server find the target by name
-		dest := g_Server._MessageManager.GetClientByNick(target)
-		if dest == nil {
+		// TODO
+		// this doesn't make sense in a multi-server setup
+		// TODO
+		// check clientservermap first
+		// if not on this server
+		clientServer, ok := g_Server.ClientServerMap[target]
+		if !ok {
+			log.Error().Msgf("Could not find client '%s' in client-server map", target)
 			return ERR_NOSUCHNICK("")
+		}
+
+		var dest *Client
+		var remoteServerTask Target
+		if clientServer == g_Server.DnsName {
+			dest := g_Server._MessageManager.GetClientByNick(target)
+			if dest == nil {
+				return ERR_NOSUCHNICK("")
+			}
+		} else {
+			// create 'dummy' client obj to use as ref to remote client
+			remoteServerTask = &RemoteTask{
+				clientServer,
+				target,
+				msg,
+			}
+			dest = &Client{nick: target, server: clientServer}
 		}
 
 		// TODO
@@ -126,7 +149,7 @@ func privmsg(params map[string]interface{}) Response {
 			parseCTCP()
 		}
 
-		_task = NewTask(UNICAST, msg, 0.0, (*dest).ClientConn, nil, false)
+		_task = NewTask(UNICAST, msg, 0.0, (*dest).ClientConn, remoteServerTask, false)
 	}
 
 	privmsg_task := []*Task{}

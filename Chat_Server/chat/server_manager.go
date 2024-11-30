@@ -42,10 +42,62 @@ type ServerManager struct {
 }
 
 func NewServerManager() *ServerManager {
+	sm_config := NewServerManagerConfig()
+	if len(sm_config.ServerList) != 0 {
+		// do connections
+		for _, server := range sm_config.ServerList {
+			// TODO
+			// try to connect to these servers
+			go Connect(server)
+		}
+
+		// wait for any failures or successful connections?
+		// select {
+		// case pong_token := <-c.PingPongChan:
+		// 	pongToken := pong_token[1:]
+		// 	if pongToken != pingToken {
+		// 		log.Info().EmbedObject(c).Msgf("%s != %s", pongToken, pingToken)
+		// 		log.Info().EmbedObject(c).Msgf("%s len: %d", pongToken, len(pongToken))
+		// 		log.Info().EmbedObject(c).Msgf("%s len: %d", pingToken, len(pingToken))
+		// 		(*conn).Close()
+		// 	}
+		// 	log.Info().EmbedObject(c).Msgf("PONG successful")
+		// case <-time.After(time.Duration(timeout) * time.Second):
+		// 	log.Info().EmbedObject(c).Msgf("Server never received PONG, closing connection")
+		// 	(*conn).Close()
+		// }
+	}
+
 	return &ServerManager{
 		Addr:   helpers.GetEnv("IRC_SERVER_MANAGER_PORT", "7000"),
-		Config: NewServerManagerConfig(),
+		Config: sm_config,
 	}
+}
+
+// connect to another server
+func Connect(connection ServerConnection) {
+
+	// initial server handshake
+	// - server name
+	// - directly connected servers
+	// - user and channel lists it manages
+	// - network paths to reach other servers
+	// e.g.
+	//       A -- B -- C
+	//			  |
+	//			  D
+	// When B connects to A, it says "I'm connced to C and D"
+	// A could then hold:
+	// []Servers{
+	//		[]B {C, D}
+	//  }
+	// If multiple paths exist, then path selection considers:
+	// 		- shortest path (least hops)
+	//		- link cost (if the network assigns weights to connections)
+
+	//
+	// routing table updates
+	//
 }
 
 func NewServerConnection() *ServerConnection {
@@ -53,14 +105,28 @@ func NewServerConnection() *ServerConnection {
 }
 
 func NewServerManagerConfig() ServerManagerConfig {
+	var server_list []ServerConnection
 	config_path := helpers.GetEnv("IRC_S2S_CONFIG_FILE", "/chat_server/s2s_config.yaml")
 	config_data, err := os.ReadFile(config_path)
 	if err != nil {
+		// probaby doens't have to be an error since we don't _have_ to have a config here
+		// as of right now it only loads connected servers
+		// _could_ support more in the future, though
 		log.Error().Msgf("Error reading config file %v", err)
-		panic(err)
+		return ServerManagerConfig{
+			ServerList: server_list,
+		}
 	}
 
-	var server_list []ServerConnection
+	// TODO
+	// check for zero length config_data
+	// no need to unmarshal then as no additional servers exist
+	if len(config_data) == 0 {
+		log.Info().Msgf("No data in server manager config")
+		return ServerManagerConfig{
+			ServerList: server_list,
+		}
+	}
 
 	err = yaml.Unmarshal([]byte(config_data), &server_list)
 	if err != nil {
@@ -70,13 +136,28 @@ func NewServerManagerConfig() ServerManagerConfig {
 
 	log.Debug().Msgf("Server config list: %v", server_list)
 
+	// TODO
+	// should we connect to the servers here?
+	for _, server := range server_list {
+		if server.Passwordfile == "" {
+			continue
+		}
+
+		server_password, err := os.ReadFile(server.Passwordfile)
+		if err != nil {
+			log.Error().Msgf("Error reading %s password file: %v", server.Host, err)
+			continue
+		}
+
+		server.Password = string(server_password)
+	}
+
 	return ServerManagerConfig{
 		ServerList: server_list,
 	}
 }
 
-// connect to another server
-func (sm *ServerManager) Connect() {
+func (sm *ServerManager) init() {
 
 }
 

@@ -3,13 +3,22 @@ package chat
 type RoutingAction struct {
 }
 
+// e.g.
+// Destination	Next Hop
+// B			Direct
+// C			B
+// D			B
+
 type RoutingTable struct {
-	Neighbors []string // should this be map?
-	Recv      chan RoutingAction
+	Servers map[string]string
+	Recv    chan RoutingAction
 }
 
 func NewRoutingTable() *RoutingTable {
-	return &RoutingTable{}
+	return &RoutingTable{
+		make(map[string]string),
+		make(chan RoutingAction),
+	}
 }
 
 // handles msgs

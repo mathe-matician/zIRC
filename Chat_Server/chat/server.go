@@ -36,8 +36,10 @@ type IrcServer struct {
 	Listener        *net.Listener
 	_MessageManager *MessageManager
 	_ServerManager  *ServerManager
+	RoutingTable    *RoutingTable
 	Servers         []*IrcServer
 	Clients         []*Client
+	ClientServerMap map[string]string
 	Config          map[string]string
 }
 
@@ -127,8 +129,10 @@ func NewIrcServer(dns_name string, version string, addr string, server_role stri
 		Listener:        nil,
 		_MessageManager: nil,
 		_ServerManager:  nil,
+		RoutingTable:    NewRoutingTable(),
 		Servers:         *server_list,
 		Clients:         *client_list,
+		ClientServerMap: make(map[string]string),
 		Config:          *config,
 	}
 

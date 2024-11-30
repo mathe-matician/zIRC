@@ -127,6 +127,9 @@ func user(params map[string]interface{}) Response {
 		_task_runner := params["task_runner"]
 		task_runner := _task_runner.(chan []*Task)
 		task_runner <- responses
+
+		g_Server.ClientServerMap[client.nick] = g_Server.DnsName
+
 		// go ping(client)
 	}
 
