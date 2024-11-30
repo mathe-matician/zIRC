@@ -1,5 +1,7 @@
 package chat
 
+import "errors"
+
 type RoutingAction struct {
 }
 
@@ -19,6 +21,22 @@ func NewRoutingTable() *RoutingTable {
 		make(map[string]string),
 		make(chan RoutingAction),
 	}
+}
+
+// continue to search routing table until you find the root server which connects
+// to this server
+// worst case o(n)
+// best o(1)
+func (rt *RoutingTable) GetServer(server string) (string, error) {
+	next := server
+	var ok bool
+	for next != "direct" {
+		next, ok = rt.Servers[next]
+		if !ok {
+			return "", errors.New("server not in routing table")
+		}
+	}
+	return next, nil
 }
 
 // handles msgs
