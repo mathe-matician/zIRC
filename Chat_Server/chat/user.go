@@ -97,8 +97,6 @@ func user(params map[string]interface{}) Response {
 		client.Registered = true
 
 		client_nick := client.Nick()
-		// _server_metadata := params["server_metadata"]
-		// server_metadata := _server_metadata.(map[string]string)
 
 		server_name := g_Server._MessageManager.Name
 		server_version := g_Server.Version
@@ -124,8 +122,7 @@ func user(params map[string]interface{}) Response {
 			client_details,
 		)
 
-		_task_runner := params["task_runner"]
-		task_runner := _task_runner.(chan []*Task)
+		task_runner := g_Server._MessageManager.Task_runner
 		task_runner <- responses
 
 		g_Server.ClientServerMap[client.nick] = g_Server.DnsName

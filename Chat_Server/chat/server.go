@@ -244,7 +244,7 @@ func (is *IrcServer) Run() {
 			continue
 		}
 
-		go is.handleConnection(&conn)
+		go handleConnection(&conn, false)
 	}
 }
 
@@ -253,7 +253,7 @@ func (is *IrcServer) Stop() {
 	(*is.Listener).Close()
 }
 
-func (is *IrcServer) handleConnection(conn *net.Conn) {
+func handleConnection(conn *net.Conn, isServer bool) {
 	defer (*conn).Close()
 	defer func() {
 		if r := recover(); r != nil {
@@ -266,6 +266,11 @@ func (is *IrcServer) handleConnection(conn *net.Conn) {
 	if err != nil {
 		log.Error().Str("remote_addr", remote_addr.String()).Msgf("Error splitting remote addr: %s", err.Error())
 	}
+	// TODO
+	// create two paths here - one if a client is connecting
+	// and one if a server is connecting via s2s
+	// you can then use NewClient and NewServer (if needed) respectively
+
 	// TODO - resolve DNS name here for additional checks / verification
 	// e.g. w/ servers and compare to server list
 	remote_conn := rc.NewRemoteConn("", remote_ip, remote_port)
@@ -277,13 +282,13 @@ func (is *IrcServer) handleConnection(conn *net.Conn) {
 
 	// add the client to the global client list
 	// log.Info().EmbedObject(client).Msgf("is.Client len before: %d", len(is.Clients))
-	is.Clients = append(is.Clients, client)
+	g_Server.Clients = append(g_Server.Clients, client)
 	// log.Info().EmbedObject(client).Msgf("is.Client len after: %d", len(is.Clients))
 
 	log.Info().EmbedObject(client).Msgf("Client connected at %s", *session_timestamp)
 
 	var max_buffer_size int
-	max_buffer_size, err = strconv.Atoi((*is).Config["MAX_BUFFER_SIZE"])
+	max_buffer_size, err = strconv.Atoi((*g_Server).Config["MAX_BUFFER_SIZE"])
 	if err != nil {
 		log.Error().EmbedObject(client).Msgf(err.Error())
 		max_buffer_size = 8192
@@ -294,6 +299,12 @@ func (is *IrcServer) handleConnection(conn *net.Conn) {
 		// TODO - send periodic PING commands
 		//		  if no PONG is received, terminate the connection
 		//		  used to determine dead connections
+
+		// TODO P1 - this io.ReadAtLeast is NOT how you should handle it
+		// 			it _should_ use:
+		//			bufReader := bufio.NewReader(mc.Connection)
+		//			response, _ := bufReader.ReadString('\n')
+		//			and then timeout if no \n\r is received in some amount of time
 
 		// block on read until the buffer has at least 1 byte.
 		// just a hacky way for this to block as Read() doesn't block on its own
@@ -319,14 +330,6 @@ func (is *IrcServer) handleConnection(conn *net.Conn) {
 			return
 		}
 
-		server_metadata := map[string]string{
-			"name":         is.DnsName,
-			"version":      is.Version,
-			"date":         is.CreationDate.String(),
-			"usermodes":    is.Config["IRC_USER_MODES"],
-			"channelmodes": is.Config["IRC_CHANNEL_MODES"],
-		}
-
 		trimmed_msg := string(bytes.Trim(bytes.TrimLeft(recv_buf, " "), "\x00"))
 
 		split_trimmed_msg := strings.Split(trimmed_msg, "\r\n")
@@ -337,7 +340,7 @@ func (is *IrcServer) handleConnection(conn *net.Conn) {
 			if len(msg) == 0 {
 				continue
 			}
-			response = ProcessMessage(msg+"\r\n", client, is._MessageManager.Task_runner, server_metadata, is._MessageManager.ChannelMap)
+			response = ProcessMessage(msg+"\r\n", client)
 		}
 
 		if len(response) == 0 {

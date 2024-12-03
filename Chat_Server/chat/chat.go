@@ -19,7 +19,7 @@ var re = regexp.MustCompile(`^\S*`)
 // meant to be used with FindStringSubmatch(str)
 var cmd_re = regexp.MustCompile(`^(\S+)(.*)`)
 
-func ProcessMessage(trimmed_msg string, client *Client, task_runner chan []*Task, server_metadata map[string]string, channel_map *map[string]*Channel) []byte {
+func ProcessMessage(trimmed_msg string, client *Client) []byte {
 	log.Debug().Msg("------------MSG START------------")
 	// trimmed_msg := string(bytes.Trim(bytes.TrimLeft(*recv_buf, " "), "\x00"))
 	// log.Info().Msgf("Raw Client msg: %s", trimmed_msg)
@@ -122,9 +122,6 @@ func ProcessMessage(trimmed_msg string, client *Client, task_runner chan []*Task
 	}
 
 	cmd_param_slice["client"] = client
-	cmd_param_slice["task_runner"] = task_runner
-	cmd_param_slice["server_metadata"] = server_metadata
-	cmd_param_slice["channel_map"] = channel_map
 
 	// log.Debug().Msgf("Before running CMD func")
 	_response := cmd.Fn(cmd_param_slice)

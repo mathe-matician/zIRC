@@ -36,10 +36,9 @@ func join(params map[string]interface{}) Response {
 
 		msg := fmt.Sprintf(":%s JOIN :%s\r\n", client_details, cmd_params)
 
-		_task_runner := params["task_runner"]
-		task_runner := _task_runner.(chan []*Task)
-		_channel_map := params["channel_map"]
-		channel_map := _channel_map.(*map[string]*Channel)
+		task_runner := g_Server._MessageManager.Task_runner
+
+		channel_map := g_Server._MessageManager.ChannelMap
 		if channel_map == nil {
 			log.Error().Msg("Channel list is null!!")
 			return ERR_UNKNOWNERROR("")
@@ -86,10 +85,7 @@ func join(params map[string]interface{}) Response {
 
 		// server_task := NewTask(t.SERVER, fmt.Sprintf("create chan %s", cmd_params), 0.0)
 
-		_server_metadata := params["server_metadata"]
-		server_metadata := _server_metadata.(map[string]string)
-
-		server_name := server_metadata["name"]
+		server_name := g_Server.DnsName
 
 		_rpl_topic := RPL_TOPIC("", channel.Topic, client.Nick(), channel.Name)
 		_rpl_topic_msg := helpers.FormatResponse(server_name, _rpl_topic.Code(), _rpl_topic.Msg())

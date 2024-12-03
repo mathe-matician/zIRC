@@ -56,8 +56,7 @@ func mode(params map[string]interface{}) Response {
 		return ERR_NEEDMOREPARAMS("")
 	}
 
-	_channel_map := params["channel_map"]
-	channel_map := _channel_map.(*map[string]*Channel)
+	channel_map := g_Server._MessageManager.ChannelMap
 	if channel_map == nil {
 		log.Error().Msg("Channel list is null!!")
 		return ERR_UNKNOWNERROR("")
@@ -149,12 +148,9 @@ func mode(params map[string]interface{}) Response {
 		}
 	}
 
-	_server_metadata := params["server_metadata"]
-	server_metadata := _server_metadata.(map[string]string)
-	_task_runner := params["task_runner"]
-	task_runner := _task_runner.(chan []*Task)
+	task_runner := g_Server._MessageManager.Task_runner
 
-	supported_channel_modes := server_metadata["channelmodes"]
+	supported_channel_modes := g_Server.Config["IRC_CHANNEL_MODES"]
 	mode_task := []*Task{}
 
 	current_offset := 1

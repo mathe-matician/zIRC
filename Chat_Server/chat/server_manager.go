@@ -29,10 +29,11 @@ type ServerConnection struct {
 	Port         string `yaml:"port"`
 	Password     string `yaml:"password"`
 	Passwordfile string `yaml:"password_file"`
+	Conn         net.Conn
 }
 
 type ServerManagerConfig struct {
-	ServerList []ServerConnection
+	ServerList map[string]ServerConnection
 }
 
 type ServerManager struct {
@@ -105,7 +106,7 @@ func NewServerConnection() *ServerConnection {
 }
 
 func NewServerManagerConfig() ServerManagerConfig {
-	var server_list []ServerConnection
+	var server_list map[string]ServerConnection
 	config_path := helpers.GetEnv("IRC_S2S_CONFIG_FILE", "/chat_server/s2s_config.yaml")
 	config_data, err := os.ReadFile(config_path)
 	if err != nil {
@@ -255,7 +256,12 @@ func (sm *ServerManager) Run() {
 			continue
 		}
 
-		go sm.handleConnection(&conn)
+		// TODO
+		// change this to the IrcServer.handleConnection()
+		// one possible way to do this is to pass if it is a server connection or not
+		go handleConnection(&conn, true)
+
+		// go sm.handleConnection(&conn)
 	}
 }
 

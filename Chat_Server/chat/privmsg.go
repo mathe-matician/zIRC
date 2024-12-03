@@ -52,8 +52,7 @@ func privmsg(params map[string]interface{}) Response {
 		log.Debug().Msgf("Message is for channel as prefix is: %s", first_char)
 		isChan = true
 		// only need to get channel map if sending to channel
-		_channel_map := params["channel_map"]
-		channel_map := _channel_map.(*map[string]*Channel)
+		channel_map := g_Server._MessageManager.ChannelMap
 		if channel_map == nil {
 			log.Error().Msg("Channel list is null!!")
 			return ERR_UNKNOWNERROR("")
@@ -89,7 +88,6 @@ func privmsg(params map[string]interface{}) Response {
 	// rate limit messages
 
 	task_runner := g_Server._MessageManager.Task_runner
-	// task_runner := _task_runner.(chan []*Task)
 	_client, ok := params["client"]
 	if _client == nil || !ok {
 		log.Error().Msg("Client not passed to PRIVMSG command!!")

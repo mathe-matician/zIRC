@@ -68,14 +68,12 @@ func nick(params map[string]interface{}) Response {
 		// so it woud need to support an array of tasks
 
 		client_nick := client.Nick()
-		_server_metadata := params["server_metadata"]
-		server_metadata := _server_metadata.(map[string]string)
 
-		server_name := server_metadata["name"]
-		server_version := server_metadata["version"]
-		server_usermodes := server_metadata["usermodes"]
-		server_channelmodes := server_metadata["channelmodes"]
-		server_creation_date := server_metadata["date"]
+		server_name := g_Server.DnsName
+		server_version := g_Server.Version
+		server_usermodes := g_Server.Config["IRC_USER_MODES"]
+		server_channelmodes := g_Server.Config["IRC_CHANNEL_MODES"]
+		server_creation_date := g_Server.CreationDate.String()
 
 		client_details := fmt.Sprintf("%s@%s!%s", client_nick, client.User(), client.Ip())
 
@@ -95,8 +93,7 @@ func nick(params map[string]interface{}) Response {
 			client_details,
 		)
 
-		_task_runner := params["task_runner"]
-		task_runner := _task_runner.(chan []*Task)
+		task_runner := g_Server._MessageManager.Task_runner
 		task_runner <- responses
 
 		g_Server.ClientServerMap[client.nick] = g_Server.DnsName
