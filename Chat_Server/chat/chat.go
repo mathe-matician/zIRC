@@ -19,6 +19,9 @@ var re = regexp.MustCompile(`^\S*`)
 // meant to be used with FindStringSubmatch(str)
 var cmd_re = regexp.MustCompile(`^(\S+)(.*)`)
 
+// TODO
+// need to pass a client OR server here
+// it needs to be a Target
 func ProcessMessage(trimmed_msg string, client *Client) []byte {
 	log.Debug().Msg("------------MSG START------------")
 	// trimmed_msg := string(bytes.Trim(bytes.TrimLeft(*recv_buf, " "), "\x00"))
@@ -65,7 +68,30 @@ func ProcessMessage(trimmed_msg string, client *Client) []byte {
 	if string(split_msg[0][0]) == ":" {
 		// Clients MUST NOT include a source when sending a message.
 		// E.g. clients must be able to process messages whether from a server or client
+		// TODO
+		// check to see if the prefix is valid! if it isn't from a valid connected link
+		// in the network, then it is a probably spoofed prefix
+		// e.g. check the routing table
 		log.Info().Msg("Message contains source prefix. Must be from another server...")
+		log.Info().Msgf("Trimmed msg 1: %v", trimmed_msg)
+
+		split_server_prefix := strings.Split(split_msg[0], ":")
+		if len(split_server_prefix[1]) == 0 {
+			// no server was included in the prefix - this should never happen
+			err := errors.New("no server prefix included in message")
+			log.Error().Msg(err.Error())
+			return []byte(err.Error())
+		}
+
+		_, err := g_Server.RoutingTable.GetServer(split_server_prefix[1])
+		if err != nil {
+			// if the server doesn't exist in the routing table, this isn't a valid server
+			// TODO
+			// is there a race condition here?
+			(*client.ClientConn).Close()
+			return []byte("")
+		}
+
 		trimmed_msg = trimmed_msg[1:]
 		split_msg = re.FindAllStringSubmatch(trimmed_msg, -1)[0]
 	}
