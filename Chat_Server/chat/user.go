@@ -127,7 +127,7 @@ func user(params map[string]interface{}) Response {
 
 		g_Server.ClientServerMap[client.nick] = g_Server.DnsName
 
-		// go ping(client)
+		go ping(client)
 	}
 
 	return res

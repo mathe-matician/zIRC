@@ -68,9 +68,17 @@ func ping(c *Client) {
 		// 	return
 		// }
 
-		timeout, err := strconv.Atoi(helpers.GetEnv("IRC_PING_PONG_TIMEOUT", "10"))
+		timeout, err := strconv.Atoi(helpers.GetEnv("IRC_PING_PONG_TIMEOUT", "2"))
 		if err != nil {
-			timeout = 10
+			timeout = 2
+		}
+
+		_duration := helpers.GetEnv("IRC_PING_PONG_TIMEOUT_DURATION", "minute")
+		var duration time.Duration
+		if _duration == "minute" {
+			duration = time.Minute
+		} else if _duration == "second" {
+			duration = time.Second
 		}
 
 		select {
@@ -83,9 +91,11 @@ func ping(c *Client) {
 				(*conn).Close()
 			}
 			log.Info().EmbedObject(c).Msgf("PONG successful")
-		case <-time.After(time.Duration(timeout) * time.Second):
+		case <-time.After(time.Duration(timeout) * duration):
 			log.Info().EmbedObject(c).Msgf("Server never received PONG, closing connection")
 			(*conn).Close()
 		}
+
+		time.Sleep(duration)
 	}
 }

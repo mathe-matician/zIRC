@@ -8,7 +8,7 @@ func pong(params map[string]interface{}) Response {
 
 	_client, ok := params["client"]
 	if _client == nil || !ok {
-		log.Error().Msg("Client not passed to JOIN command!!")
+		log.Error().Msg("Client not passed to PONG command!!")
 		return ERR_UNKNOWNERROR("")
 	}
 	client := _client.(*Client)

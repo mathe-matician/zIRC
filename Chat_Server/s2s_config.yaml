@@ -1,4 +1,4 @@
-- host: "zirc_animalhouse"
-  port: "6667"
-  password_file: "/run/secrets/s2s_password" # password_file takes precedence over password
-  password: ""
+# - host: "zirc_animalhouse"
+#   port: "7000"
+#   password_file: "/run/secrets/s2s_password"
+#   password: ""
