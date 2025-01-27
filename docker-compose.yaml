@@ -17,7 +17,7 @@ services:
     secrets:
       - s2s_password
 
-  # Used as a an additional server to test multi-server setup
+  # Used as an additional server to test multi-server setup
   zirc_animalhouse:
     container_name: zirc_animalhouse
     env_file: ./Chat_Server/.env

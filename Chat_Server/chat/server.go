@@ -149,6 +149,7 @@ func NewIrcServer(dns_name string, version string, addr string, server_role stri
 		"brock_rockjaw",
 		nil,
 		nil,
+		false,
 	)
 
 	if err != nil {
@@ -266,6 +267,16 @@ func handleConnection(conn *net.Conn, isServer bool) {
 	if err != nil {
 		log.Error().Str("remote_addr", remote_addr.String()).Msgf("Error splitting remote addr: %s", err.Error())
 	}
+
+	if isServer {
+		log.Debug().Msgf("Message is from server.")
+		// TODO
+		// check if valid server whitelisted connection? ip etc
+
+	} else {
+		log.Debug().Msgf("Message is from client.")
+	}
+
 	// TODO
 	// create two paths here - one if a client is connecting
 	// and one if a server is connecting via s2s
@@ -273,8 +284,9 @@ func handleConnection(conn *net.Conn, isServer bool) {
 
 	// TODO - resolve DNS name here for additional checks / verification
 	// e.g. w/ servers and compare to server list
+
 	remote_conn := rc.NewRemoteConn("", remote_ip, remote_port)
-	client, session_timestamp, err := NewClient("", "", remote_conn, conn)
+	client, session_timestamp, err := NewClient("", "", remote_conn, conn, isServer)
 	if err != nil {
 		log.Error().EmbedObject(client).Msgf(err.Error())
 		return
@@ -340,6 +352,12 @@ func handleConnection(conn *net.Conn, isServer bool) {
 			if len(msg) == 0 {
 				continue
 			}
+			// TODO
+			// ProcessMessage needs to pass a target not just a client (since it could be server or client)
+			// ideally this is what it does...
+			// we could cheap out and just have two ProcessMessage functions...
+			//
+
 			response = ProcessMessage(msg+"\r\n", client)
 		}
 

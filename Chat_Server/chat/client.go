@@ -52,6 +52,7 @@ type Client struct {
 	CapState      string
 	Auth          ClientAuth
 	PingPongChan  chan string
+	IsServer      bool
 }
 
 func NewClientAuth() ClientAuth {
@@ -73,7 +74,7 @@ func stringTimeFromUnixTimestamp(time uuid.Time) string {
 // NewClient creats a new client struct
 // This is run on the current server, so IRC_SERVER_DNS_NAME
 // will be set to the server's name
-func NewClient(nick string, user string, conn *rc.RemoteConn, Conn *net.Conn) (*Client, *string, error) {
+func NewClient(nick string, user string, conn *rc.RemoteConn, Conn *net.Conn, isServer bool) (*Client, *string, error) {
 	s, err := NewSession()
 	if err != nil {
 		log.Error().Msgf("Error creating new client %s", err.Error())
@@ -123,6 +124,7 @@ func NewClient(nick string, user string, conn *rc.RemoteConn, Conn *net.Conn) (*
 		Channels:     make([]*Channel, 0),
 		Auth:         NewClientAuth(),
 		PingPongChan: make(chan string, 1), // buffered channel
+		IsServer:     isServer,
 	}, &session_timestamp, nil
 }
 

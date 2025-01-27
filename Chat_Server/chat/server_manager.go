@@ -1,6 +1,8 @@
 package chat
 
 import (
+	"bytes"
+	"encoding/gob"
 	"fmt"
 	"io"
 	"net"
@@ -22,6 +24,13 @@ var server_manager_commands = map[string]string{
 	"PONG":    "",
 	"SQUIT":   "",
 	"CONNECT": "",
+	"BURST":   "",
+	"EUID":    "",
+	//	b. BURST / EUID (IRCv3)
+	//
+	// Purpose: Synchronize state after a netsplit or during initial connection.
+	// Routing Table Use:
+	// The server ensures that its routing table is updated with the correct paths for users and channels.
 }
 
 type ServerConnection struct {
@@ -75,10 +84,24 @@ func NewServerManager() *ServerManager {
 	}
 }
 
+type ServerConnectionPkg struct {
+	ServerName       string
+	ConnectedServers []ServerConnection // todo this probably shouldn't contain other server passwords
+	ClientList       []Client
+	ChannelList      []Channel
+}
+
 // connect to another server
 func Connect(connection ServerConnection) {
 
 	// initial server handshake
+	var buf bytes.Buffer
+	enc := gob.NewEncoder(&buf)
+	err := enc.Encode(p)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
 	// - server name
 	// - directly connected servers
 	// - user and channel lists it manages
@@ -256,9 +279,6 @@ func (sm *ServerManager) Run() {
 			continue
 		}
 
-		// TODO
-		// change this to the IrcServer.handleConnection()
-		// one possible way to do this is to pass if it is a server connection or not
 		go handleConnection(&conn, true)
 
 		// go sm.handleConnection(&conn)
