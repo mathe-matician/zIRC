@@ -40,7 +40,7 @@ import (
 // }
 
 func ping(c *Client) {
-	log.Debug().EmbedObject(c).Msgf("Running PING keepalive...")
+	// log.Debug().EmbedObject(c).Msgf("Running PING keepalive...")
 
 	for {
 		ping_token, err := uuid.NewV7()
@@ -55,7 +55,7 @@ func ping(c *Client) {
 
 		task_runner := g_Server._MessageManager.Task_runner
 
-		_task := NewTask(UNICAST, cmdmsg, 0.0, conn, nil, false)
+		_task := NewTask(UNICAST, cmdmsg, 0.0, conn, nil, false, "")
 		ping_task := []*Task{}
 		ping_task = append(ping_task, _task)
 
@@ -85,12 +85,10 @@ func ping(c *Client) {
 		case pong_token := <-c.PingPongChan:
 			pongToken := pong_token[1:]
 			if pongToken != pingToken {
-				log.Info().EmbedObject(c).Msgf("%s != %s", pongToken, pingToken)
-				log.Info().EmbedObject(c).Msgf("%s len: %d", pongToken, len(pongToken))
-				log.Info().EmbedObject(c).Msgf("%s len: %d", pingToken, len(pingToken))
+				log.Warn().EmbedObject(c).Msgf("%s != %s", pongToken, pingToken)
 				(*conn).Close()
 			}
-			log.Info().EmbedObject(c).Msgf("PONG successful")
+			// log.Debug().EmbedObject(c).Msgf("PONG successful")
 		case <-time.After(time.Duration(timeout) * duration):
 			log.Info().EmbedObject(c).Msgf("Server never received PONG, closing connection")
 			(*conn).Close()

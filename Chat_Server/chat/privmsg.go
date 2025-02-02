@@ -102,11 +102,12 @@ func privmsg(params map[string]interface{}) Response {
 	msg = fmt.Sprintf(":%s PRIVMSG %s :%s\r\n", client_details, target, msg)
 	// :zach!cloak.z.irc PRIVMSG #test :hi there buddy\r\n
 	// :zzirc.comPRIVMSG:marmar@marmar!cloak.z.irc JOIN :#test
+	// client_prefix := fmt.Sprintf("%s!%s@%s", client.Nick(), client.User(), g_Server.DnsName)
 
 	var _task *Task
 	if isChan {
 		log.Debug().Msgf("PRIVMSG: Creating new task for channel: %s", channel.Name)
-		_task = NewTask(MULTICAST, msg, 0.0, client.ClientConn, channel, false)
+		_task = NewTask(MULTICAST, msg, 0.0, client.ClientConn, channel, false, client_details)
 	} else {
 		log.Debug().Msgf("PRIVMSG: Creating new task for USER")
 
@@ -147,7 +148,7 @@ func privmsg(params map[string]interface{}) Response {
 			parseCTCP()
 		}
 
-		_task = NewTask(UNICAST, msg, 0.0, (*dest).ClientConn, remoteServerTask, false)
+		_task = NewTask(UNICAST, msg, 0.0, (*dest).ClientConn, remoteServerTask, false, client_details)
 	}
 
 	privmsg_task := []*Task{}

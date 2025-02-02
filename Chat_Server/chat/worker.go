@@ -64,17 +64,20 @@ func (w *Worker) unicast(message_manager *MessageManager, task *Task) {
 		if err != nil {
 			// server doesn't exist in map
 			log.Error().Msgf("Server '%s' doesn't exist in RoutingTable: %v", target.DNS, err)
+			return
 		}
-		// TODO
-		// relay msg to server using server manager
-		log.Debug().Msgf("Sending msg to server: %s", directRootServer)
+
+		log.Debug().Msgf("Sending msg, \"%s\" to server: %s", task.Task, directRootServer)
+
+		formatMsg := helpers.FormatResponse(task.SenderPrefix, task.Task)
+		g_Server._ServerManager.Route(formatMsg, directRootServer)
 	default:
 		c := (*task.ClientConn)
 		log.Debug().Msgf("UNICAST writing task to client(%s): %s", c.RemoteAddr(), task.Task)
 		_, err := c.Write([]byte(task.Task))
 		if helpers.IsNetConnClosedErr(err) {
 			log.Error().Msgf("UNICAST: Trying to use closed Client Conn: %s", err.Error())
-			// TODO
+			// TODO P1
 			// additional cleanup is necessary for conn / client / etc!!
 		}
 	}

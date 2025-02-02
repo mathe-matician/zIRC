@@ -45,6 +45,7 @@ type Task struct {
 	Weight              float64
 	Task                string
 	ClientConn          *net.Conn
+	SenderPrefix        string // :nick!username@hostname
 	Target              Target
 	MultiCastSendToSelf bool
 	// Src        Location
@@ -76,7 +77,7 @@ func NewDest(conn *net.Conn) *Dest {
 
 // func NewTask(_type, task string, src Location, dest Location, weight float64) *Task {
 // NewTask[T int64 | float64](_type, task string, weight float64, client_conn *net.Conn, target *T)
-func NewTask(_type, task string, weight float64, client_conn *net.Conn, target Target, mSendToSelf bool) *Task {
+func NewTask(_type, task string, weight float64, client_conn *net.Conn, target Target, mSendToSelf bool, sender_prefix string) *Task {
 	uid, err := uuid.NewV7()
 	if err != nil {
 		return nil
@@ -88,6 +89,7 @@ func NewTask(_type, task string, weight float64, client_conn *net.Conn, target T
 		Weight:              weight, // TODO - determine weight of task somehow, may be useful
 		Task:                task,
 		ClientConn:          client_conn,
+		SenderPrefix:        sender_prefix,
 		Target:              target,
 		MultiCastSendToSelf: mSendToSelf,
 	}

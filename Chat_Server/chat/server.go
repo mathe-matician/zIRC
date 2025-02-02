@@ -288,7 +288,7 @@ func handleConnection(conn *net.Conn, isServer bool) {
 	remote_conn := rc.NewRemoteConn("", remote_ip, remote_port)
 	client, session_timestamp, err := NewClient("", "", remote_conn, conn, isServer)
 	if err != nil {
-		log.Error().EmbedObject(client).Msgf(err.Error())
+		log.Error().EmbedObject(client).Msg(err.Error())
 		return
 	}
 
@@ -302,7 +302,7 @@ func handleConnection(conn *net.Conn, isServer bool) {
 	var max_buffer_size int
 	max_buffer_size, err = strconv.Atoi((*g_Server).Config["MAX_BUFFER_SIZE"])
 	if err != nil {
-		log.Error().EmbedObject(client).Msgf(err.Error())
+		log.Error().EmbedObject(client).Msg(err.Error())
 		max_buffer_size = 8192
 	}
 
@@ -375,7 +375,13 @@ func handleConnection(conn *net.Conn, isServer bool) {
 
 		if strings.Contains(string(response), "ERROR") {
 			log.Error().EmbedObject(client).Msgf("Critical error occurred. Closing client connection: %s", response)
-			(*conn).Close()
+			// conn closed via defer (*conn).Close() at top of func
+			break
+		}
+
+		if strings.Contains(string(response), "TERMINATE") {
+			log.Warn().EmbedObject(client).Msgf("Terminating connection with %s:%s as they aren't whitelisted", client.conn.Ip, client.conn.Port)
+			// conn closed via defer (*conn).Close() at top of func
 			break
 		}
 	}

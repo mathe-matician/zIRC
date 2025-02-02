@@ -109,10 +109,10 @@ func WELCOME_WRAPPER(client_conn *net.Conn, server_name, server_version, server_
 	_rpl_myinfo := RPL_MYINFO("", client_nick, server_name, server_version, server_usermodes, server_channelmodes).Msg()
 	_004 := string(helpers.FormatResponse(server_name, "004", _rpl_myinfo))
 
-	rpl_welcome := NewTask(UNICAST, _001, 0.0, client_conn, nil, false)
-	rpl_yourhost := NewTask(UNICAST, _002, 0.0, client_conn, nil, false)
-	rpl_created := NewTask(UNICAST, _003, 0.0, client_conn, nil, false)
-	rpl_myinfo := NewTask(UNICAST, _004, 0.0, client_conn, nil, false)
+	rpl_welcome := NewTask(UNICAST, _001, 0.0, client_conn, nil, false, "")
+	rpl_yourhost := NewTask(UNICAST, _002, 0.0, client_conn, nil, false, "")
+	rpl_created := NewTask(UNICAST, _003, 0.0, client_conn, nil, false, "")
+	rpl_myinfo := NewTask(UNICAST, _004, 0.0, client_conn, nil, false, "")
 
 	responses := []*Task{
 		rpl_welcome,

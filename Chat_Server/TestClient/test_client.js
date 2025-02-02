@@ -103,14 +103,14 @@ const Connect = () => {
     const _data = data.toString();
     const split_data = _data.split(/\r\n/)
     for (var i = 0; i < split_data.length; i++) {
-      console.log(split_data[i]);
+      // console.log(split_data[i]);
       if (split_data[i].includes("PING")) {
-        console.log(`DATA INCLUDES PING: ${split_data[i]}`)
+        // console.log(`DATA INCLUDES PING: ${split_data[i]}`)
         const datasplit = split_data[i].split(" ")
         const rmtraildata = datasplit[1].split(":")
         // console.log(`rmtraildata: ${rmtraildata}`)
         const pongrply = `PONG :${rmtraildata[1]}`
-        console.log(`Sending: ${pongrply}`)
+        // console.log(`Sending: ${pongrply}`)
         client.write(pongrply)
       }
     }

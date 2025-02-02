@@ -1,6 +1,7 @@
 package chat
 
 import (
+	"net"
 	"zirc/helpers"
 
 	"github.com/phuslu/log"
@@ -12,13 +13,6 @@ import (
 func pass(params map[string]interface{}) Response {
 	log.Info().Msg("Running PASS...")
 
-	server_password := helpers.GetEnv("IRC_SERVER_PASSWORD", "")
-	if len(server_password) == 0 {
-		// ignore the PASS command when no password is configured
-		return EMPTY_RESPONSE()
-	}
-
-	log.Info().Msg("before client...")
 	_client, ok := params["client"]
 	if !ok {
 		log.Error().Msg("Client not passed to PASS command!!")
@@ -30,6 +24,35 @@ func pass(params map[string]interface{}) Response {
 	if client.GetState("server_password") == "accepted" {
 		return ERR_ALREADYREGISTRED("")
 	}
+
+	// TODO
+	// check server whitelist
+	// if connection is from valid server ip
+
+	conn := client.ClientConn
+	remoteAddr := (*conn).RemoteAddr().String()
+	_, port, err := net.SplitHostPort(remoteAddr)
+	if err != nil {
+		log.Error().Msgf("PASS: Error extracting IP: %s", err)
+		return ERR_UNKNOWNERROR("")
+	}
+
+	if port == "7000" {
+
+	}
+
+	if !g_Server._ServerManager.whiteListedServerIp((*conn).RemoteAddr().String()) {
+		// if this isn't a whitelisted server
+		// pass back a terminate msg to terminate the connection
+		return TERMINATE()
+	}
+
+	server_password := helpers.GetEnv("IRC_SERVER_PASSWORD", "")
+	if len(server_password) == 0 {
+		// ignore the PASS command when no password is configured
+		return EMPTY_RESPONSE()
+	}
+
 	log.Info().Msg("before params...")
 
 	password, ok := params["params"]

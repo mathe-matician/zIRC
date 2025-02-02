@@ -27,6 +27,10 @@ func NewRoutingTable() *RoutingTable {
 // to this server
 // worst case o(n)
 // best o(1)
+// TODO
+// get other features to determine whether to send along a specific path
+// e.g. hop count
+// e.g. latency etc
 func (rt *RoutingTable) GetServer(server string) (string, error) {
 	next := server
 	var ok bool

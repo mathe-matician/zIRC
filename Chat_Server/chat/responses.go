@@ -60,6 +60,13 @@ func EMPTY_RESPONSE() Response {
 	}
 }
 
+func TERMINATE() Response {
+	return &Reply{
+		code: "666",
+		msg:  "TERMINATE",
+	}
+}
+
 func RPL_WELCOME(msg_override, nick string) Response {
 	return &Reply{
 		code:           "001",

@@ -87,7 +87,7 @@ func who(params map[string]interface{}) Response {
 				}
 
 				res := RPL_WHOREPLY("", c.Nick(), user_channel, c.User(), c.Ip(), c.Host, c.Nick(), away_status, operator_status, chan_operator, hopcount, c.RealName)
-				task := NewTask(UNICAST, res.Msg(), 0.0, client.ClientConn, nil, false)
+				task := NewTask(UNICAST, res.Msg(), 0.0, client.ClientConn, nil, false, "")
 				list_all_users_tasks = append(list_all_users_tasks, task)
 			}
 		}
@@ -154,7 +154,7 @@ func who(params map[string]interface{}) Response {
 			}
 
 			cwho := RPL_WHOREPLY("", c.Nick(), channel.Name, c.User(), c.Ip(), c.Host, c.Nick(), away_status, operator_status, chan_operator, hopcount, c.RealName)
-			task := NewTask(UNICAST, cwho.Msg(), 0.0, client.ClientConn, nil, false)
+			task := NewTask(UNICAST, cwho.Msg(), 0.0, client.ClientConn, nil, false, "")
 			g_Server._MessageManager.Task_runner <- []*Task{task}
 		}
 	} else {
@@ -195,7 +195,7 @@ func who(params map[string]interface{}) Response {
 					away_status = "G"
 				}
 				cwho := RPL_WHOREPLY("", client.Nick(), "*", searchedClient.User(), searchedClient.Ip(), searchedClient.Host, searchedClient.Nick(), away_status, "", "", hopcount, searchedClient.RealName)
-				task := NewTask(UNICAST, cwho.Msg(), 0.0, client.ClientConn, nil, false)
+				task := NewTask(UNICAST, cwho.Msg(), 0.0, client.ClientConn, nil, false, "")
 				client_who_tasks = append(client_who_tasks, task)
 			} else {
 				for _, ch := range searchedClient.Channels {
@@ -219,7 +219,7 @@ func who(params map[string]interface{}) Response {
 					hopcount := "0"
 
 					cwho := RPL_WHOREPLY("", client.Nick(), ch.Name, searchedClient.User(), searchedClient.Ip(), searchedClient.Host, searchedClient.Nick(), away_status, operator_status, chan_operator, hopcount, searchedClient.RealName)
-					task := NewTask(UNICAST, cwho.Msg(), 0.0, client.ClientConn, nil, false)
+					task := NewTask(UNICAST, cwho.Msg(), 0.0, client.ClientConn, nil, false, "")
 					client_who_tasks = append(client_who_tasks, task)
 				}
 			}
@@ -242,7 +242,7 @@ func who(params map[string]interface{}) Response {
 							away_status = "G"
 						}
 						cwho := RPL_WHOREPLY("", client.Nick(), "*", cli.User(), cli.Ip(), cli.Host, cli.Nick(), away_status, "", "", hopcount, cli.RealName)
-						task := NewTask(UNICAST, cwho.Msg(), 0.0, client.ClientConn, nil, false)
+						task := NewTask(UNICAST, cwho.Msg(), 0.0, client.ClientConn, nil, false, "")
 						client_who_tasks = append(client_who_tasks, task)
 					} else {
 						log.Debug().Msgf("Client has JOINed channels, looping through them...")
@@ -267,7 +267,7 @@ func who(params map[string]interface{}) Response {
 							hopcount := "0"
 
 							cwho := RPL_WHOREPLY("", client.Nick(), ch.Name, cli.User(), cli.Ip(), cli.Host, cli.Nick(), away_status, operator_status, chan_operator, hopcount, cli.RealName)
-							task := NewTask(UNICAST, cwho.Msg(), 0.0, client.ClientConn, nil, false)
+							task := NewTask(UNICAST, cwho.Msg(), 0.0, client.ClientConn, nil, false, "")
 							client_who_tasks = append(client_who_tasks, task)
 						}
 					}

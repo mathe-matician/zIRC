@@ -177,7 +177,7 @@ func (sm *MessageManager) Debug() {
 	log.Info().Msgf("MessageManager Debug!")
 }
 
-func (sm *MessageManager) Route() {
+func (sm *MessageManager) Route(msg string) {
 	// route msg across spanning tree irc network
 
 }

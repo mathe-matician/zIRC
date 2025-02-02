@@ -287,6 +287,7 @@ func (sm *ServerManager) Run() {
 
 // Checks to see if the connected IP is an expected server IP
 // i.e. do we expect this IP to be communicating with the ServerManager
+// Note: arg ip is expected to be ip:port actually.
 func (sm *ServerManager) whiteListedServerIp(ip string) bool {
 	server_ip, _, err := net.SplitHostPort(ip)
 	if err != nil {
@@ -343,4 +344,12 @@ func (sm *ServerManager) handleConnection(conn *net.Conn) {
 			break
 		}
 	}
+}
+
+func (sm *ServerManager) Route(msg []byte, server string) {
+	log.Debug().Msgf("ServerManager::Route::msg: %s", msg)
+	// TODO
+	// we already have a connection to all direct servers
+	// we need to now send these details via some channel
+	// since those connections are running in their own go routines.
 }

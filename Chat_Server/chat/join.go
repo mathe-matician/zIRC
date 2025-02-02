@@ -94,10 +94,10 @@ func join(params map[string]interface{}) Response {
 		_rpl_endofnames := RPL_ENDOFNAMES("", client.Nick(), channel.Name)
 		_rpl_endofnames_msg := helpers.FormatResponse(server_name, _rpl_endofnames.Code(), _rpl_endofnames.Msg())
 
-		join_msg := NewTask(MULTICAST, msg, 0.0, client.ClientConn, channel, true)
-		rpl_topic := NewTask(UNICAST, string(_rpl_topic_msg), 0.0, client.ClientConn, channel, false)
-		rpl_namreply := NewTask(UNICAST, string(_rpl_namreply_msg), 0.0, client.ClientConn, channel, false)
-		rpl_endofnames := NewTask(UNICAST, string(_rpl_endofnames_msg), 0.0, client.ClientConn, channel, false)
+		join_msg := NewTask(MULTICAST, msg, 0.0, client.ClientConn, channel, true, "")
+		rpl_topic := NewTask(UNICAST, string(_rpl_topic_msg), 0.0, client.ClientConn, channel, false, "")
+		rpl_namreply := NewTask(UNICAST, string(_rpl_namreply_msg), 0.0, client.ClientConn, channel, false, "")
+		rpl_endofnames := NewTask(UNICAST, string(_rpl_endofnames_msg), 0.0, client.ClientConn, channel, false, "")
 
 		task_runner <- []*Task{
 			join_msg,
