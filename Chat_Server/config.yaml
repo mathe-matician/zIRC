@@ -1,0 +1,62 @@
+server:
+  server_version: "v1.0.0"
+  super_admin_password_file: ""
+  super_admin_password: "$2a$10$7w82iJDU7941avC65WYLJuJL0p7hIaGVye8pq95farNt7DD5dDGga"
+  default_server_name: "Z.IRC"
+  dns_name: "zzirc.com"
+  capabilities: "sasl account-registration"
+  supported_auth_types: "PLAIN,SCRAM-SHA-256,OAUTHBEARER,EXTERNAL"
+  # o: IRC operator
+  # i: Invisible (user won't appear in channel user lists unless they are in the same channel)
+  # w: Receive wallops (messages sent to all IRC operators)
+  # s: Receive server notices
+  # Note: Just because a mode is listed here doesn't mean the user currently has it; it just indicates that the mode is available on the server.
+  user_modes: "oiws"
+  # see mode.go for full list of channel modes
+  channel_modes: "beiklmnopPst"
+  # password should be generated and hashed then entered here
+  # **NOTE** you must escape `$` characters otherwise they are interpolated as variables
+  # Use the below hash as a test password - the password is 1235
+  # IRC_SERVER_PASSWORD="\$2a\$10\$RFRaJiN40EzL9.nvfq4uy.w6UHs7WuF3EkBpxj.xUPjNd8tUs7sfi"
+  password: ""
+  password_file: ""
+  init_worker_count: "3"
+  max_buffer_size: "8192"
+  max_user_channels: "20"
+  server_manager_port: "7000"
+  host: "0.0.0.0"
+  port: "6667"
+  tls_port: "6697"
+  tls_cert_path: "./.tls/server.crt"
+  tls_key_path: "./.tls/server.key"
+  enable_tls: "false"
+  irc_verison: "302"
+  use_user_pass: "true" # When true, will not ask the user to authenticate again to use chat, but will log them in via their password automatically
+  chat_server_log_level: "3" # info https://pkg.go.dev/github.com/phuslu/log@v1.0.110#Level
+
+  ping_pong_timeout: "2"
+  ping_pong_timeout_duration: "minute"
+
+db:
+  host: "zirc_db"
+  port: "5432"
+  user: "postgres"
+  password: "password"
+  password_file: "password"
+  database: "postgres"
+  application_name: "zirc_server"
+  enable_tls: "false"
+  tls_cert_path: "./.tls/db.crt"
+  tls_key_path: "./.tls/db.key"
+  healthcheck_interval: "2"
+
+s2s:
+  password: "$2a$10$7w82iJDU7941avC65WYLJuJL0p7hIaGVye8pq95farNt7DD5dDGga"
+  password_file: ""
+  port: "7000"
+  tls_port: "7001"
+  enable_tls: "false"
+  tls_cert_path: "./.tls/s2s.crt"
+  tls_key_path: "./.tls/s2s.crt"
+  max_buffer_size: "262144" # 256KB
+  config: []
