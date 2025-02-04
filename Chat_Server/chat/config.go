@@ -43,7 +43,7 @@ type Config struct {
 	}
 
 	DB struct {
-		Enabled              bool   `yaml:"host" default:"false"`
+		Enabled              bool   `yaml:"enabled" default:"false"`
 		Host                 string `yaml:"host" default:"zirc_db"`
 		Port                 string `yaml:"port" default:"5432"`
 		User                 string `yaml:"user" default:"postgres"`

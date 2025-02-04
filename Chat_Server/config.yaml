@@ -21,7 +21,7 @@ server:
   password_file: "/run/secrets/server_password"
   init_worker_count: 3
   max_buffer_size: 8192
-  max_user_channels: "20"
+  max_user_channels: 20
   server_manager_port: "7000"
   host: "0.0.0.0"
   port: "6667"
