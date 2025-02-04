@@ -27,7 +27,7 @@ func ProcessMessage(trimmed_msg string, client *Client) []byte {
 	// trimmed_msg := string(bytes.Trim(bytes.TrimLeft(*recv_buf, " "), "\x00"))
 	// log.Info().Msgf("Raw Client msg: %s", trimmed_msg)
 
-	server := helpers.GetEnv("IRC_SERVER_DNS_NAME", "localhost")
+	server := G_Config.Server.Dns_name
 	target := "*"
 
 	split_msg := re.FindAllStringSubmatch(trimmed_msg, -1)[0]

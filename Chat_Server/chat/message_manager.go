@@ -2,8 +2,6 @@ package chat
 
 import (
 	"fmt"
-	"strconv"
-	"zirc/helpers"
 
 	"github.com/phuslu/log"
 )
@@ -22,10 +20,7 @@ type MessageManager struct {
 }
 
 func NewMessageManager(client_list *[]*Client, server_list *[]*IrcServer) *MessageManager {
-	init_worker_count, err := strconv.Atoi(helpers.GetEnv("IRC_SERVER_INIT_WORKER_COUNT", "3"))
-	if err != nil {
-		panic("can't init workers...")
-	}
+	init_worker_count := G_Config.Server.Init_worker_count
 
 	if client_list == nil || server_list == nil {
 		// the app's functionality requires the server manager being setup correctly

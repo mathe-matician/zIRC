@@ -1,5 +1,6 @@
 server:
   server_version: "v1.0.0"
+  server_role: "leaf" # one of leaf, hub, hybrid
   super_admin_password_file: "/run/secets/super_admin_password"
   default_server_name: "Z.IRC"
   dns_name: "zzirc.com"
@@ -31,10 +32,11 @@ server:
   irc_verison: "302"
   use_user_pass: "true" # When true, will not ask the user to authenticate again to use chat, but will log them in via their password automatically
   chat_server_log_level: "3" # info https://pkg.go.dev/github.com/phuslu/log@v1.0.110#Level
-  ping_pong_timeout: "2"
+  ping_pong_timeout: 2
   ping_pong_timeout_duration: "minute"
 
 db:
+  enabled: false
   host: "zirc_db"
   port: "5432"
   user: "postgres"
@@ -44,7 +46,7 @@ db:
   enable_tls: false
   tls_cert_path: "./.tls/db.crt"
   tls_key_path: "./.tls/db.key"
-  healthcheck_interval: "2"
+  healthcheck_interval: 2
 
 s2s:
   password_file: "/run/secets/s2s_password"
@@ -54,4 +56,3 @@ s2s:
   tls_cert_path: "./.tls/s2s.crt"
   tls_key_path: "./.tls/s2s.crt"
   max_buffer_size: 262144 # 256KB
-  config: []

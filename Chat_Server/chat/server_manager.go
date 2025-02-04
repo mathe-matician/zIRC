@@ -7,7 +7,6 @@ import (
 	"io"
 	"net"
 	"os"
-	"strconv"
 	"zirc/helpers"
 
 	"github.com/phuslu/log"
@@ -79,7 +78,7 @@ func NewServerManager() *ServerManager {
 	}
 
 	return &ServerManager{
-		Addr:   helpers.GetEnv("IRC_SERVER_MANAGER_PORT", "7000"),
+		Addr:   G_Config.S2S.Port,
 		Config: sm_config,
 	}
 }
@@ -241,7 +240,7 @@ func (sm *ServerManager) ValidS2SPassword(password string) bool {
 	// if all fails, then don't let join
 
 	// last fallback is env var
-	return helpers.GetEnv("IRC_S2S_PASSWORD", "") == password
+	return G_Config.S2S.Password_file == password
 }
 
 func (sm *ServerManager) Run() {
@@ -252,12 +251,12 @@ func (sm *ServerManager) Run() {
 		}
 	}()
 	ln := GetTCPListener(
-		helpers.GetEnv("IRC_S2S_ENABLE_TLS", "false"),
-		helpers.GetEnv("IRC_S2S_TLS_CERT_PATH", "./.tls/s2s.crt"),
-		helpers.GetEnv("IRC_S2S_TLS_KEY_PATH", "./.tls/s2s.key"),
-		helpers.GetEnv("IRC_S2S_TLS_PORT", "7001"),
-		helpers.GetEnv("IRC_HOST", "0.0.0.0"),
-		helpers.GetEnv("IRC_S2S_PORT", "7000"),
+		G_Config.S2S.Enable_tls,
+		G_Config.S2S.Tls_cert_path,
+		G_Config.S2S.Tls_key_path,
+		G_Config.S2S.Tls_port,
+		G_Config.Server.Host,
+		G_Config.S2S.Port,
 	)
 
 	log.Info().Msgf("ServerManager listening: %s", sm.Addr)
@@ -312,15 +311,9 @@ func (sm *ServerManager) handleConnection(conn *net.Conn) {
 	remote_addr := (*conn).RemoteAddr()
 	log.Info().Msgf("Handling ServerManager connection: %s", remote_addr)
 
-	var max_buffer_size int
-	var err error
 	// TODO
 	// does this size differ for S2S?
-	max_buffer_size, err = strconv.Atoi(helpers.GetEnv("IRC_S2S_MAX_BUFFER_SIZE", "262144"))
-	if err != nil {
-		log.Error().Msgf(err.Error())
-		max_buffer_size = 262144
-	}
+	max_buffer_size := G_Config.S2S.Max_buffer_size
 
 	for {
 		if !sm.whiteListedServerIp((*conn).RemoteAddr().String()) {

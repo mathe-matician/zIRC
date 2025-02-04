@@ -56,15 +56,15 @@ type IrcServer struct {
 
 func NewIrcServer(dns_name string, version string, addr string, server_role string, server_list *[]*IrcServer, client_list *[]*Client, config *map[string]string) *IrcServer {
 	if len(dns_name) == 0 {
-		dns_name = helpers.GetEnv("IRC_SERVER_DNS_NAME", "localhost")
+		dns_name = G_Config.Server.Dns_name
 	}
 
 	if len(version) == 0 {
-		version = helpers.GetEnv("IRC_SERVER_VERSION", "v99.99.99+default")
+		version = G_Config.Server.Server_version
 	}
 
 	if len(server_role) == 0 {
-		server_role = helpers.GetEnv("IRC_SERVER_ROLE", "leaf")
+		server_role = G_Config.Server.Server_role
 	}
 	err := helpers.VerifyServerMode(server_role)
 	if err != nil {
@@ -82,26 +82,24 @@ func NewIrcServer(dns_name string, version string, addr string, server_role stri
 		client_list = &cl
 	}
 
-	enable_tls, err := strconv.ParseBool(helpers.GetEnv("IRC_ENABLE_TLS", "false"))
-	if err != nil {
-		log.Error().Msg(err.Error())
-	}
-	port := helpers.GetEnv("IRC_PORT", "6667")
+	enable_tls := G_Config.Server.Enable_tls
+
+	port := G_Config.Server.Port
 	if enable_tls {
-		port = helpers.GetEnv("IRC_TLS_PORT", "6697")
+		port = G_Config.Server.Tls_port
 	}
 
 	if len(addr) == 0 {
-		addr = helpers.GetEnv("IRC_HOST", "0.0.0.0") + ":" + port
+		addr = G_Config.Server.Host + ":" + port
 	}
 
 	if config == nil {
 		conf := map[string]string{
-			"MAX_BUFFER_SIZE":       helpers.GetEnv("IRC_MAX_BUFFER_SIZE", "8192"),
-			"IRC_MAX_USER_CHANNELS": helpers.GetEnv("IRC_MAX_USER_CHANNELS", "20"),
-			"IRC_USER_MODES":        helpers.GetEnv("IRC_USER_MODES", "oiws"),
-			"IRC_CHANNEL_MODES":     helpers.GetEnv("IRC_CHANNEL_MODES", "opsmt"),
-			"CAPABILITIES":          helpers.GetEnv("IRC_SERVER_CAPABILITIES", ""),
+			"MAX_BUFFER_SIZE":       strconv.Itoa(G_Config.Server.Max_buffer_size),
+			"IRC_MAX_USER_CHANNELS": strconv.Itoa(G_Config.Server.Max_user_channels),
+			"IRC_USER_MODES":        G_Config.Server.User_modes,
+			"IRC_CHANNEL_MODES":     G_Config.Server.Channel_modes,
+			"CAPABILITIES":          G_Config.Server.Capabilities,
 		}
 		config = &conf
 	}
@@ -165,13 +163,9 @@ func NewIrcServer(dns_name string, version string, addr string, server_role stri
 // GetTCPListener checks to see if TLS is enabled for the particular listener
 // if it is, it creates a TLS Listener with the provided TLS env vars
 // else it returns a normal Listener
-func GetTCPListener(enableTls, tls_cert_path, tls_key_path, tls_port, irc_host, port string) net.Listener {
+func GetTCPListener(enable_tls bool, tls_cert_path, tls_key_path, tls_port, irc_host, port string) net.Listener {
 	var ln net.Listener
 	var err error
-	enable_tls, err1 := strconv.ParseBool(enableTls)
-	if err1 != nil {
-		log.Error().Msg(err1.Error())
-	}
 
 	if enable_tls {
 		config := helpers.CreateTLSConfig(tls_cert_path, tls_key_path)
@@ -209,18 +203,18 @@ func (is *IrcServer) GetClientMap() *map[string]*Client {
 }
 
 func (is *IrcServer) Run() {
-	enabled_tls := helpers.GetEnv("IRC_ENABLE_TLS", "false")
-	tls_port := helpers.GetEnv("IRC_TLS_PORT", "6697")
+	enabled_tls := G_Config.Server.Enable_tls
+	tls_port := G_Config.Server.Tls_port
 	addr_split := strings.Split(is.Addr, ":")
 	ln := GetTCPListener(
 		enabled_tls,
-		helpers.GetEnv("IRC_TLS_CERT_PATH", "./.tls/server.crt"),
-		helpers.GetEnv("IRC_TLS_KEY_PATH", "./.tls/server.key"),
+		G_Config.Server.Tls_cert_path,
+		G_Config.Server.Tls_key_path,
 		tls_port,
 		addr_split[0],
 		addr_split[1],
 	)
-	if enabled_tls == "true" {
+	if enabled_tls {
 		is.Addr = tls_port
 	}
 	is.Listener = &ln

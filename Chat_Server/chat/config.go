@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 	"reflect"
+	"strconv"
 	"strings"
 	"zirc/helpers"
 
@@ -15,43 +16,44 @@ import (
 
 type Config struct {
 	Server struct {
-		Server_version             string `yaml:"server_version"`
-		Super_admin_password_file  string `yaml:"super_admin_password" validate:"secret"`
-		Default_server_name        string `yaml:"default_server_name"`
+		Server_version             string `yaml:"server_version" default:"v99.99.99+default"`
+		Server_role                string `yaml:"server_role" default:"leaf"`
+		Super_admin_password_file  string `yaml:"super_admin_password" validate:"secret" default:"password"`
+		Default_server_name        string `yaml:"default_server_name" default:"Z.IRC"`
 		Dns_name                   string `yaml:"dns_name" default:"localhost"`
-		Capabilities               string `yaml:"capabilities"`
-		Supported_auth_types       string `yaml:"supported_auth_types"`
-		User_modes                 string `yaml:"user_modes"`
-		Channel_modes              string `yaml:"channel_modes"`
-		Password_file              string `yaml:"password" validate:"secret"`
-		Init_worker_count          uint64 `yaml:"init_worker_count"`
-		Max_buffer_size            int    `yaml:"max_buffer_size"`
-		Max_user_channels          string `yaml:"max_user_channels"`
-		Server_manager_port        string `yaml:"server_manager_port"`
-		Host                       string `yaml:"host"`
-		Port                       string `yaml:"port"`
-		Tls_port                   string `yaml:"tls_port"`
-		Tls_cert_path              string `yaml:"tls_cert_path"`
-		Tls_key_path               string `yaml:"tls_key_path"`
-		Enable_tls                 bool   `yaml:"enable_tls"`
-		Irc_verison                string `yaml:"irc_verison"`
-		Use_user_pass              string `yaml:"use_user_pass"`
-		Chat_server_log_level      string `yaml:"chat_server_log_level"`
-		Ping_pong_timeout          string `yaml:"ping_pong_timeout"`
-		Ping_pong_timeout_duration string `yaml:"ping_pong_timeout_duration"`
+		Capabilities               string `yaml:"capabilities" default:"sasl account-registration"`
+		Supported_auth_types       string `yaml:"supported_auth_types" default:"PLAIN,SCRAM-SHA-256,OAUTHBEARER,EXTERNAL"`
+		User_modes                 string `yaml:"user_modes" default:"oiws"`
+		Channel_modes              string `yaml:"channel_modes" default:"beiklmnopPst"`
+		Password_file              string `yaml:"password" validate:"secret" default:""`
+		Init_worker_count          uint64 `yaml:"init_worker_count" default:"3"`
+		Max_buffer_size            int    `yaml:"max_buffer_size" default:"8192"`
+		Max_user_channels          int    `yaml:"max_user_channels" default:"20"`
+		Host                       string `yaml:"host" default:"0.0.0.0"`
+		Port                       string `yaml:"port" default:"6667"`
+		Tls_port                   string `yaml:"tls_port" default:"6677"`
+		Tls_cert_path              string `yaml:"tls_cert_path" default:"./.tls/server.crt"`
+		Tls_key_path               string `yaml:"tls_key_path" default:"./.tls/server.key"`
+		Enable_tls                 bool   `yaml:"enable_tls" default:"false"`
+		Irc_verison                string `yaml:"irc_verison" default:"302"`
+		Use_user_pass              string `yaml:"use_user_pass" default:"true"`      // When true, will not ask the user to authenticate again to use chat, but will log them in via their password automatically
+		Chat_server_log_level      string `yaml:"chat_server_log_level" default:"3"` // info https://pkg.go.dev/github.com/phuslu/log@v1.0.110#Level
+		Ping_pong_timeout          int    `yaml:"ping_pong_timeout" default:"2"`
+		Ping_pong_timeout_duration string `yaml:"ping_pong_timeout_duration" default:"minute"`
 	}
 
 	DB struct {
-		Host                 string `yaml:"host" default:""`
-		Port                 string `yaml:"port" default:""`
-		User                 string `yaml:"user" default:""`
-		Password_file        string `yaml:"password" validate:"secret"`
-		Database             string `yaml:"database" default:""`
-		Application_name     string `yaml:"application_name" default:""`
-		Enable_tls           bool   `yaml:"enable_tls" default:""`
-		Tls_cert_path        string `yaml:"tls_cert_path" default:""`
-		Tls_key_path         string `yaml:"tls_key_path" default:""`
-		Healthcheck_interval string `yaml:"healthcheck_interval" default:""`
+		Enabled              bool   `yaml:"host" default:"false"`
+		Host                 string `yaml:"host" default:"zirc_db"`
+		Port                 string `yaml:"port" default:"5432"`
+		User                 string `yaml:"user" default:"postgres"`
+		Password_file        string `yaml:"password" validate:"secret" default:""`
+		Database             string `yaml:"database" default:"postgres"`
+		Application_name     string `yaml:"application_name" default:"zirc_server"`
+		Enable_tls           bool   `yaml:"enable_tls" default:"false"`
+		Tls_cert_path        string `yaml:"tls_cert_path" default:"./.tls/db.crt"`
+		Tls_key_path         string `yaml:"tls_key_path" default:"./.tls/db.key"`
+		Healthcheck_interval int    `yaml:"healthcheck_interval" default:"2"`
 	}
 
 	S2S struct {
@@ -62,11 +64,15 @@ type Config struct {
 		Tls_cert_path   string `yaml:"tls_cert_path" default:"./.tls/s2s.crt"`
 		Tls_key_path    string `yaml:"tls_key_path"  default:"./.tls/s2s.crt"`
 		Max_buffer_size int    `yaml:"max_buffer_size" default:"262144"`
-		Config          []struct {
-			Host          string `yaml:"host,flow"`
-			Port          string `yaml:"port,flow"`
-			Password_file string `yaml:"password,flow" validate:"secret"`
-		} `yaml:"config,flow,omitempty"`
+		// Config          []struct {
+		// 	Host          string `yaml:"host,flow"`
+		// 	Port          string `yaml:"port,flow"`
+		// 	Password_file string `yaml:"password,flow" validate:"secret"`
+		// } `yaml:"config,flow,omitempty"`
+		// shouldn't have Config here
+		// if we can dynamically reload the config
+		// this is because init servers may not be good to reload mid execution
+		// if they have been removed or etc
 	}
 }
 
@@ -82,11 +88,11 @@ func parseTags(v interface{}) error {
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
 		tag := field.Tag.Get("validate")
-		// defaultTag := field.Tag.Get("default")
+		defaultTagValue := field.Tag.Get("default")
+
+		fieldValue := value.Field(i)
 
 		if tag == "secret" && strings.Contains(field.Name, "_file") {
-			fieldValue := value.Field(i)
-
 			// Check if the field is a settable string
 			if fieldValue.Kind() != reflect.String || !fieldValue.CanSet() {
 				return fmt.Errorf("%s field must be a settable string", field.Name)
@@ -97,6 +103,7 @@ func parseTags(v interface{}) error {
 
 			secret_dir := helpers.GetEnv("SECRET_BASE_PATH", "/run/secrets")
 			secret_path := path.Join(secret_dir, strValue)
+			log.Info().Msgf("Searching for secret at path: %s", secret_path)
 			_secret, err := os.ReadFile(secret_path)
 			secret := strings.TrimSuffix(string(_secret), "\n")
 
@@ -120,17 +127,42 @@ func parseTags(v interface{}) error {
 				fieldValue.SetString(secret)
 			}
 		}
+
+		if value.Field(i).String() == "" && defaultTagValue != "" && fieldValue.CanSet() {
+			switch fieldValue.Kind() {
+			case reflect.String:
+				fieldValue.SetString(defaultTagValue)
+			case reflect.Bool:
+				boolValue, err := strconv.ParseBool(defaultTagValue)
+				if err != nil {
+					log.Error().Msgf("CONFIG: Error parsing bool default value: %s", err.Error())
+					boolValue = false
+				}
+				fieldValue.SetBool(boolValue)
+			case reflect.Int:
+				intValue, err := strconv.ParseInt(defaultTagValue, 10, 64)
+				if err != nil {
+					log.Error().Msgf("CONFIG: Error parsing int64 default value: %s", err.Error())
+					// since we don't have any way of knowing what a sane default
+					// for any int typed field is
+					// we just panic.
+					panic(err)
+				}
+				fieldValue.SetInt(intValue)
+				// case reflect.Struct:
+			}
+		}
 	}
 	return nil
 }
 
 // Reload reloads the the Config struct dynamically
 // by calling load_config again
-func (c *Config) Reload() {
+func (c Config) Reload() {
 	load_config()
 }
 
-var G_Config *Config
+var G_Config Config
 
 // load_config reads a config file from disk
 // and populates the Config struct
@@ -148,7 +180,7 @@ func load_config() {
 		panic(err)
 	}
 
-	err = parseTags(G_Config)
+	err = parseTags(&G_Config)
 	if err != nil {
 		log.Error().Msg(err.Error())
 		panic(err)

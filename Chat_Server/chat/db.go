@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"strconv"
 	"time"
 	"zirc/helpers"
 
@@ -19,25 +18,23 @@ var g_DB *pg.DB
 
 func db_init() {
 	var tls_config *tls.Config
-	enable_tls, err := strconv.ParseBool(helpers.GetEnv("IRC_DB_ENABLE_TLS", "false"))
-	if err != nil {
-		log.Error().Msg(err.Error())
-	}
+	enable_tls := G_Config.DB.Enable_tls
+
 	if enable_tls {
-		crt_path := helpers.GetEnv("IRC_DB_TLS_CERT_PATH", "")
-		key_path := helpers.GetEnv("IRC_DB_TLS_KEY_PATH", "")
+		crt_path := G_Config.DB.Tls_cert_path
+		key_path := G_Config.DB.Tls_key_path
 		tls_config = helpers.CreateTLSConfig(crt_path, key_path)
 	}
 
-	db_user := helpers.GetEnv("IRC_DB_USER", "postgres")
-	db_database := helpers.GetEnv("IRC_DB_DATABASE", "postgres")
-	db_app_name := helpers.GetEnv("IRC_DB_APPLICATION_NAME", "zirc_server")
-	db_host := fmt.Sprintf("%s:%s", helpers.GetEnv("IRC_DB_HOST", "zirc_db"), helpers.GetEnv("IRC_DB_PORT", "5432"))
+	db_user := G_Config.DB.User
+	db_database := G_Config.DB.Database
+	db_app_name := G_Config.DB.Application_name
+	db_host := fmt.Sprintf("%s:%s", G_Config.DB.Host, G_Config.DB.Port)
 
 	g_DB = pg.Connect(&pg.Options{
 		Addr:            db_host,
 		User:            db_user,
-		Password:        helpers.GetEnv("IRC_DB_PASSWORD", "password"),
+		Password:        G_Config.DB.Password_file,
 		Database:        db_database,
 		ApplicationName: db_app_name,
 		TLSConfig:       tls_config,
@@ -53,10 +50,7 @@ func db_init() {
 
 func reconnect_db_listener() {
 	log.Info().Msgf("DB Reconnect Listener started")
-	reconnect_wait_interval, err := strconv.Atoi(helpers.GetEnv("IRC_DB_HEALTHCHECK_INTERVAL", "3"))
-	if err != nil {
-		log.Error().Msgf(err.Error())
-	}
+	reconnect_wait_interval := G_Config.DB.Healthcheck_interval
 
 	ctx := context.Background()
 	for {
@@ -71,11 +65,7 @@ func reconnect_db_listener() {
 }
 
 func init() {
-	enableDB, err := strconv.ParseBool(helpers.GetEnv("ZIRC_DB_ENABLED", "false"))
-	if err != nil {
-		log.Error().Msgf("Error parsing bool: %s", err.Error())
-		enableDB = false
-	}
+	enableDB := G_Config.DB.Enabled
 
 	if enableDB {
 		db_init()

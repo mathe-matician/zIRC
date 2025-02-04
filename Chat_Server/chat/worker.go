@@ -26,7 +26,7 @@ func NewWorker() *Worker {
 	}
 
 	config := map[string]string{
-		"server": helpers.GetEnv("IRC_SERVER_DNS_NAME", "localhost"),
+		"server": G_Config.Server.Dns_name,
 	}
 
 	return &Worker{

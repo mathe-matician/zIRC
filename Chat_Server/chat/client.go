@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"strings"
 
-	"zirc/helpers"
 	rc "zirc/remote_conn"
 
 	"github.com/google/uuid"
@@ -95,11 +94,7 @@ func NewClient(nick string, user string, conn *rc.RemoteConn, Conn *net.Conn, is
 	caps := make(map[string]string)
 	// authState := make(map[string]int)
 
-	// maxUserChans, err := strconv.Atoi(helpers.GetEnv("IRC_MAX_USER_CHANNELS", "20"))
-	// if err != nil {
-	// 	log.Error().Msgf(err.Error())
-	// 	maxUserChans = 20
-	// }
+	// maxUserChans := G_Config.Server.Max_user_channels
 
 	// TODO
 	// clients need to hold state of joined channels
@@ -112,7 +107,7 @@ func NewClient(nick string, user string, conn *rc.RemoteConn, Conn *net.Conn, is
 		nick:         nick,
 		user:         user,
 		Registered:   false,
-		server:       helpers.GetEnv("IRC_SERVER_DNS_NAME", "localhost"),
+		server:       G_Config.Server.Dns_name,
 		session:      *s,
 		ClientConn:   Conn,
 		conn:         conn,

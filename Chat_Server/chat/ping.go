@@ -2,42 +2,11 @@ package chat
 
 import (
 	"fmt"
-	"strconv"
 	"time"
-	"zirc/helpers"
 
 	"github.com/google/uuid"
 	"github.com/phuslu/log"
 )
-
-// TODO
-// probably don't have to pass the entire client object here
-// just the connection and the chan
-// func ping_response_waiter(c *Client, ping_token string) {
-// 	timeout, err := strconv.Atoi(helpers.GetEnv("IRC_PING_PONG_TIMEOUT", "10"))
-// 	if err != nil {
-// 		log.Error().Msgf("Error converting ping/pong timeout to int: %s", err)
-// 		timeout = 15
-// 	}
-
-// 	for timeout != 0 {
-// 		time.Sleep(1 * time.Second)
-// 		timeout--
-
-// 		pong_token := <-c.PingPongChan
-// 		log.Debug().EmbedObject(c).Msgf("PONG token: %s", pong_token)
-// 		if pong_token != ping_token {
-// 			log.Debug().EmbedObject(c).Msgf("%s != %s", pong_token, ping_token)
-// 			// if we get the wrong ping token then close the connection
-// 			break
-// 		}
-// 	}
-
-// 	log.Debug().EmbedObject(c).Msgf("Closing client connection")
-// 	// If we get here the timeout was reached so close the client connection
-// 	client_conn := c.ClientConn
-// 	(*client_conn).Close()
-// }
 
 func ping(c *Client) {
 	// log.Debug().EmbedObject(c).Msgf("Running PING keepalive...")
@@ -68,12 +37,9 @@ func ping(c *Client) {
 		// 	return
 		// }
 
-		timeout, err := strconv.Atoi(helpers.GetEnv("IRC_PING_PONG_TIMEOUT", "2"))
-		if err != nil {
-			timeout = 2
-		}
+		timeout := G_Config.Server.Ping_pong_timeout
 
-		_duration := helpers.GetEnv("IRC_PING_PONG_TIMEOUT_DURATION", "minute")
+		_duration := G_Config.Server.Ping_pong_timeout_duration
 		var duration time.Duration
 		if _duration == "minute" {
 			duration = time.Minute
