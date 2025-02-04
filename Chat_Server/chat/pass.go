@@ -2,7 +2,6 @@ package chat
 
 import (
 	"net"
-	"zirc/helpers"
 
 	"github.com/phuslu/log"
 	"golang.org/x/crypto/bcrypt"
@@ -31,23 +30,39 @@ func pass(params map[string]interface{}) Response {
 
 	conn := client.ClientConn
 	remoteAddr := (*conn).RemoteAddr().String()
-	_, port, err := net.SplitHostPort(remoteAddr)
+	addr, port, err := net.SplitHostPort(remoteAddr)
 	if err != nil {
 		log.Error().Msgf("PASS: Error extracting IP: %s", err)
 		return ERR_UNKNOWNERROR("")
 	}
 
-	if port == "7000" {
+	// TODO
+	// use config it makes it easier
 
+	if (G_Config.S2S.Enable_tls && port == G_Config.S2S.Tls_port) || port == G_Config.S2S.Port {
+		log.Info().Msgf("Server connection attempted by %s:%s", addr, port)
+		// if the client that is connecting is communicating on the S2S port, 7000
+		// we need to check whether it is valid to do so
+		if !g_Server._ServerManager.whiteListedServerIp(addr) {
+			// if this isn't a whitelisted server
+			// pass back a terminate msg to terminate the connection
+			return TERMINATE()
+		}
+
+		s2s_password := G_Config.S2S.Password_file
+		if len(s2s_password) == 0 {
+			// ignore the PASS command when no password is configured
+			return TERMINATE()
+		}
+	} else if (G_Config.Server.Enable_tls && port == G_Config.Server.Tls_port) || port == G_Config.Server.Port {
+		log.Info().Msgf("Client connection attempted by %s:%s", addr, port)
+		// TODO
+		// make sure this is the port we want it to be
+		//
+		// else this is a normal client trying to communicate on the normal client port
 	}
 
-	if !g_Server._ServerManager.whiteListedServerIp((*conn).RemoteAddr().String()) {
-		// if this isn't a whitelisted server
-		// pass back a terminate msg to terminate the connection
-		return TERMINATE()
-	}
-
-	server_password := helpers.GetEnv("IRC_SERVER_PASSWORD", "")
+	server_password := G_Config.Server.Password_file
 	if len(server_password) == 0 {
 		// ignore the PASS command when no password is configured
 		return EMPTY_RESPONSE()
@@ -62,7 +77,7 @@ func pass(params map[string]interface{}) Response {
 	}
 
 	log.Info().Msg("before password...")
-	err := bcrypt.CompareHashAndPassword([]byte(server_password), []byte(password.(string)))
+	err = bcrypt.CompareHashAndPassword([]byte(server_password), []byte(password.(string)))
 	if err != nil {
 		log.Error().Msg(err.Error())
 		return ERR_PASSWDMISMATCH("")

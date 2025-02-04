@@ -4,12 +4,11 @@ import (
 	"encoding/base64"
 	"fmt"
 	"strings"
-	"zirc/helpers"
 
 	"github.com/phuslu/log"
 )
 
-var SUPPORTED_AUTH_TYPES = helpers.GetEnv("IRC_SERVER_SUPPORTED_AUTH_TYPES", "")
+var SUPPORTED_AUTH_TYPES = G_Config.Server.Supported_auth_types
 
 func ValidAuthNType(authType string) bool {
 	authTypes := strings.Split(SUPPORTED_AUTH_TYPES, ",")

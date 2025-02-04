@@ -1,7 +1,6 @@
 server:
   server_version: "v1.0.0"
-  super_admin_password_file: ""
-  super_admin_password: "$2a$10$7w82iJDU7941avC65WYLJuJL0p7hIaGVye8pq95farNt7DD5dDGga"
+  super_admin_password_file: "/run/secets/super_admin_password"
   default_server_name: "Z.IRC"
   dns_name: "zzirc.com"
   capabilities: "sasl account-registration"
@@ -18,10 +17,9 @@ server:
   # **NOTE** you must escape `$` characters otherwise they are interpolated as variables
   # Use the below hash as a test password - the password is 1235
   # IRC_SERVER_PASSWORD="\$2a\$10\$RFRaJiN40EzL9.nvfq4uy.w6UHs7WuF3EkBpxj.xUPjNd8tUs7sfi"
-  password: ""
-  password_file: ""
-  init_worker_count: "3"
-  max_buffer_size: "8192"
+  password_file: "/run/secrets/server_password"
+  init_worker_count: 3
+  max_buffer_size: 8192
   max_user_channels: "20"
   server_manager_port: "7000"
   host: "0.0.0.0"
@@ -29,11 +27,10 @@ server:
   tls_port: "6697"
   tls_cert_path: "./.tls/server.crt"
   tls_key_path: "./.tls/server.key"
-  enable_tls: "false"
+  enable_tls: false
   irc_verison: "302"
   use_user_pass: "true" # When true, will not ask the user to authenticate again to use chat, but will log them in via their password automatically
   chat_server_log_level: "3" # info https://pkg.go.dev/github.com/phuslu/log@v1.0.110#Level
-
   ping_pong_timeout: "2"
   ping_pong_timeout_duration: "minute"
 
@@ -41,22 +38,20 @@ db:
   host: "zirc_db"
   port: "5432"
   user: "postgres"
-  password: "password"
-  password_file: "password"
+  password_file: "/run/secrets/db_password"
   database: "postgres"
   application_name: "zirc_server"
-  enable_tls: "false"
+  enable_tls: false
   tls_cert_path: "./.tls/db.crt"
   tls_key_path: "./.tls/db.key"
   healthcheck_interval: "2"
 
 s2s:
-  password: "$2a$10$7w82iJDU7941avC65WYLJuJL0p7hIaGVye8pq95farNt7DD5dDGga"
-  password_file: ""
+  password_file: "/run/secets/s2s_password"
   port: "7000"
   tls_port: "7001"
-  enable_tls: "false"
+  enable_tls: false
   tls_cert_path: "./.tls/s2s.crt"
   tls_key_path: "./.tls/s2s.crt"
-  max_buffer_size: "262144" # 256KB
+  max_buffer_size: 262144 # 256KB
   config: []
