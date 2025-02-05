@@ -20,30 +20,31 @@ const (
 
 type Config struct {
 	Server struct {
-		Server_version             string `yaml:"server_version" default:"v99.99.99+default"`
-		Server_role                string `yaml:"server_role" default:"leaf"`
-		Super_admin_password_file  string `yaml:"super_admin_password_file" validate:"secret" default:"password"`
-		Default_server_name        string `yaml:"default_server_name" default:"Z.IRC"`
-		Dns_name                   string `yaml:"dns_name" default:"localhost"`
-		Capabilities               string `yaml:"capabilities" default:"sasl account-registration"`
-		Supported_auth_types       string `yaml:"supported_auth_types" default:"PLAIN,SCRAM-SHA-256,OAUTHBEARER,EXTERNAL"`
-		User_modes                 string `yaml:"user_modes" default:"oiws"`
-		Channel_modes              string `yaml:"channel_modes" default:"beiklmnopPst"`
-		Password_file              string `yaml:"password_file" validate:"secret" default:""`
-		Init_worker_count          uint64 `yaml:"init_worker_count" default:"3"`
-		Max_buffer_size            int    `yaml:"max_buffer_size" default:"8192"`
-		Max_user_channels          int    `yaml:"max_user_channels" default:"20"`
-		Host                       string `yaml:"host" default:"0.0.0.0"`
-		Port                       string `yaml:"port" default:"6667"`
-		Tls_port                   string `yaml:"tls_port" default:"6677"`
-		Tls_cert_path              string `yaml:"tls_cert_path" default:"./.tls/server.crt"`
-		Tls_key_path               string `yaml:"tls_key_path" default:"./.tls/server.key"`
-		Enable_tls                 bool   `yaml:"enable_tls" default:"false"`
-		Irc_verison                string `yaml:"irc_verison" default:"302"`
-		Use_user_pass              string `yaml:"use_user_pass" default:"true"`      // When true, will not ask the user to authenticate again to use chat, but will log them in via their password automatically
-		Chat_server_log_level      string `yaml:"chat_server_log_level" default:"3"` // info https://pkg.go.dev/github.com/phuslu/log@v1.0.110#Level
-		Ping_pong_timeout          int    `yaml:"ping_pong_timeout" default:"2"`
-		Ping_pong_timeout_duration string `yaml:"ping_pong_timeout_duration" default:"minute"`
+		Server_version              string `yaml:"server_version" default:"v99.99.99+default"`
+		Server_role                 string `yaml:"server_role" default:"leaf"`
+		Super_admin_password_file   string `yaml:"super_admin_password_file" validate:"secret" default:"password"`
+		Default_server_name         string `yaml:"default_server_name" default:"Z.IRC"`
+		Dns_name                    string `yaml:"dns_name" default:"localhost"`
+		Capabilities                string `yaml:"capabilities" default:"sasl account-registration"`
+		Supported_auth_types        string `yaml:"supported_auth_types" default:"PLAIN,SCRAM-SHA-256,OAUTHBEARER,EXTERNAL"`
+		User_modes                  string `yaml:"user_modes" default:"oiws"`
+		Channel_modes               string `yaml:"channel_modes" default:"beiklmnopPst"`
+		Password_file               string `yaml:"password_file" validate:"secret" default:""`
+		Init_worker_count           uint64 `yaml:"init_worker_count" default:"3"`
+		Max_buffer_size             int    `yaml:"max_buffer_size" default:"8192"`
+		Max_user_channels           int    `yaml:"max_user_channels" default:"20"`
+		Host                        string `yaml:"host" default:"0.0.0.0"`
+		Port                        string `yaml:"port" default:"6667"`
+		Tls_port                    string `yaml:"tls_port" default:"6677"`
+		Tls_cert_path               string `yaml:"tls_cert_path" default:"./.tls/server.crt"`
+		Tls_key_path                string `yaml:"tls_key_path" default:"./.tls/server.key"`
+		Enable_tls                  bool   `yaml:"enable_tls" default:"false"`
+		Irc_verison                 string `yaml:"irc_verison" default:"302"`
+		Supported_protocol_versions string `yaml:"supported_protocol_versions" default:"302"`
+		Use_user_pass               string `yaml:"use_user_pass" default:"true"`      // When true, will not ask the user to authenticate again to use chat, but will log them in via their password automatically
+		Chat_server_log_level       string `yaml:"chat_server_log_level" default:"3"` // info https://pkg.go.dev/github.com/phuslu/log@v1.0.110#Level
+		Ping_pong_timeout           int    `yaml:"ping_pong_timeout" default:"2"`
+		Ping_pong_timeout_duration  string `yaml:"ping_pong_timeout_duration" default:"minute"`
 	}
 
 	DB struct {

@@ -30,6 +30,7 @@ server:
   tls_key_path: "./.tls/server.key"
   enable_tls: false
   irc_verison: "302"
+  supported_protocol_versions: "302"
   use_user_pass: "true" # When true, will not ask the user to authenticate again to use chat, but will log them in via their password automatically
   chat_server_log_level: "3" # info https://pkg.go.dev/github.com/phuslu/log@v1.0.110#Level
   ping_pong_timeout: 2
