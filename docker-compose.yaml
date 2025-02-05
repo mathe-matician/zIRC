@@ -1,5 +1,5 @@
 services:
-  zirc_chat_server:
+  zirc_chat_server: &server_base
     container_name: zirc_chat_server
     # image: zirc_chat_server
     env_file: ./Chat_Server/.env
@@ -14,28 +14,24 @@ services:
     networks:
       zirc_subnet:
         ipv4_address: 172.20.0.4
-    secrets:
-      - s2s_password
+    volumes:
+      - ./Chat_Server/secrets/s2s_password:/run/secrets/s2s_password
+      - ./Chat_Server/secrets/db_password:/run/secrets/db_password
+      - ./Chat_Server/secrets/server_password:/run/secrets/server_password
+      - ./Chat_Server/secrets/super_admin_password:/run/secrets/super_admin_password
 
   # Used as an additional server to test multi-server setup
   zirc_animalhouse:
+    <<: *server_base
     container_name: zirc_animalhouse
-    env_file: ./Chat_Server/.env
     environment:
       - IRC_SERVER_DNS_NAME=animal-houseIRC.io
-    build:
-      context: ./Chat_Server
-      dockerfile: Dockerfile
     ports:
       - "6600:6667" # irc server
       - "7070:7000" # server manager
-    depends_on:
-      - zirc_db
     networks:
       zirc_subnet:
         ipv4_address: 172.20.0.6
-    secrets:
-      - s2s_password
     profiles:
       - multi
 
@@ -63,6 +59,7 @@ services:
       - ./db/postgres/pgdump.sql:/pgdump.sql
       - ./db/postgres/restore.sh:/docker-entrypoint-initdb.d/restore.sh
       - ./db/pg_hba.conf:/var/lib/postgresql/data/pg_hba.conf
+      - ./Chat_Server/secrets/db_password:/run/secrets/db_password
     networks:
       zirc_subnet:
         ipv4_address: 172.20.0.3
@@ -82,7 +79,3 @@ networks:
     ipam:
       config:
         - subnet: 172.20.0.0/16
-
-secrets:
-  s2s_password:
-    file: ./Chat_Server/secrets/s2s_password
