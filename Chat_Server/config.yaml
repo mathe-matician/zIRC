@@ -1,7 +1,7 @@
 server:
   server_version: "v1.0.0"
   server_role: "leaf" # one of leaf, hub, hybrid
-  super_admin_password_file: "/run/secets/super_admin_password"
+  super_admin_password_file: "/run/secrets/super_admin_password"
   default_server_name: "Z.IRC"
   dns_name: "zzirc.com"
   capabilities: "sasl account-registration"
