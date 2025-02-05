@@ -2,6 +2,7 @@ package chat
 
 import (
 	// "github.com/phuslu/log"
+
 	"fmt"
 	"os"
 	"reflect"
@@ -306,6 +307,9 @@ func load_config() {
 		panic(err)
 	}
 
+	// TODO
+	// redact sensitive configurations
+	// overriding String() doesn't seem to work for whatever reason
 	log.Info().Msgf("Successfully loaded config: %+v", G_Config)
 }
 
