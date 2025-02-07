@@ -83,7 +83,7 @@ func ProcessMessage(trimmed_msg string, client *Client) []byte {
 			return []byte(err.Error())
 		}
 
-		_, err := g_Server.RoutingTable.GetServer(split_server_prefix[1])
+		_, _, err := g_Server.RoutingTable.GetServer(split_server_prefix[1])
 		if err != nil {
 			// if the server doesn't exist in the routing table, this isn't a valid server
 			// TODO
@@ -115,7 +115,17 @@ func ProcessMessage(trimmed_msg string, client *Client) []byte {
 	//		  S2S communication uses cmds like PING/PONG, SYNCHRONIZE
 
 	log.Debug().Msgf("Validating command %s", split_msg[0])
-	cmd, _validation_res := commandValidation(strings.Trim(split_msg[0], " "), client.session.state["server_password"], client.Registered, client.Capabilities)
+	var cmd *Command
+	var _validation_res Response
+
+	strCmd := strings.Trim(split_msg[0], " ")
+
+	if client.IsServer {
+		cmd, _validation_res = serverCommandValidation(strCmd)
+	} else {
+		cmd, _validation_res = commandValidation(strCmd, client.session.state["server_password"], client.Registered, client.Capabilities)
+	}
+
 	if reflect.TypeOf(_validation_res).Name() == "ErrorResponse" || cmd == nil {
 		log.Error().Msgf("Error during command validation")
 		return helpers.FormatResponse(server, _validation_res.Code(), target, _validation_res.Msg())

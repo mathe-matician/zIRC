@@ -1,10 +1,9 @@
-package commands_tests
+package chat
 
 import (
 	"strings"
 	"testing"
 
-	zc "zirc/chat"
 	zt "zirc/tests"
 )
 
@@ -14,7 +13,7 @@ func TestWHO_NickQuery(t *testing.T) {
 	t.Setenv("IRC_S2S_PORT", "7001")
 	serverAddr := "127.0.0.1:6677"
 
-	is := zc.NewIrcServer(
+	is := NewIrcServer(
 		"zirc-test.com",
 		"vtest",
 		serverAddr,

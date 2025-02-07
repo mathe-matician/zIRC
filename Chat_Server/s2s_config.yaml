@@ -1,4 +1,3 @@
 # - host: "zirc_animalhouse"
 #   port: "7000"
 #   password_file: "/run/secrets/s2s_password"
-#   password: ""

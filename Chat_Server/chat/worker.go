@@ -60,7 +60,7 @@ func (w *Worker) unicast(message_manager *MessageManager, task *Task) {
 	switch target := task.Target.(type) {
 	case *RemoteTask:
 		log.Debug().Msgf("UNICAST task is for remote target: %s, %s", target.DNS, target.ClientNick)
-		directRootServer, err := g_Server.RoutingTable.GetServer(target.DNS)
+		directRootServer, hopcount, err := g_Server.RoutingTable.GetServer(target.DNS)
 		if err != nil {
 			// server doesn't exist in map
 			log.Error().Msgf("Server '%s' doesn't exist in RoutingTable: %v", target.DNS, err)
@@ -70,7 +70,7 @@ func (w *Worker) unicast(message_manager *MessageManager, task *Task) {
 		log.Debug().Msgf("Sending msg, \"%s\" to server: %s", task.Task, directRootServer)
 
 		formatMsg := helpers.FormatResponse(task.SenderPrefix, task.Task)
-		g_Server._ServerManager.Route(formatMsg, directRootServer)
+		g_Server._ServerManager.Route(formatMsg, directRootServer, hopcount)
 	default:
 		c := (*task.ClientConn)
 		log.Debug().Msgf("UNICAST writing task to client(%s): %s", c.RemoteAddr(), task.Task)

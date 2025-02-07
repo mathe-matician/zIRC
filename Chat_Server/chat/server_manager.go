@@ -1,8 +1,6 @@
 package chat
 
 import (
-	"bytes"
-	"encoding/gob"
 	"fmt"
 	"io"
 	"net"
@@ -13,18 +11,20 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-var server_manager_commands = map[string]string{
-	"PASS":    "",
-	"CAPAB":   "",
-	"SERVER":  "",
-	"CAP":     "",
-	"SJOIN":   "",
-	"PING":    "",
-	"PONG":    "",
-	"SQUIT":   "",
-	"CONNECT": "",
-	"BURST":   "",
-	"EUID":    "",
+var server_manager_commands = map[string]Command{
+	"PASS":     *NewCommand(pass, map[string]string{"cap_req": "sasl"}, true),
+	"NETINFO":  *NewCommand(netinfo, map[string]string{"cap_req": "sasl"}, true),
+	"CAPAB":    *NewCommand(not_implemented, map[string]string{"cap_req": "sasl"}, true),
+	"SERVER":   *NewCommand(server, map[string]string{"cap_req": "sasl"}, true),
+	"CAP":      *NewCommand(not_implemented, map[string]string{"cap_req": "sasl"}, true),
+	"SJOIN":    *NewCommand(not_implemented, map[string]string{"cap_req": "sasl"}, true),
+	"PING":     *NewCommand(not_implemented, map[string]string{"cap_req": "sasl"}, true),
+	"PONG":     *NewCommand(not_implemented, map[string]string{"cap_req": "sasl"}, true),
+	"SQUIT":    *NewCommand(not_implemented, map[string]string{"cap_req": "sasl"}, true),
+	"CONNECT":  *NewCommand(not_implemented, map[string]string{"cap_req": "sasl"}, true),
+	"BURST":    *NewCommand(not_implemented, map[string]string{"cap_req": "sasl"}, true),
+	"ENDBURST": *NewCommand(not_implemented, map[string]string{"cap_req": "sasl"}, true),
+	"EUID":     *NewCommand(not_implemented, map[string]string{"cap_req": "sasl"}, true),
 	//	b. BURST / EUID (IRCv3)
 	//
 	// Purpose: Synchronize state after a netsplit or during initial connection.
@@ -32,11 +32,29 @@ var server_manager_commands = map[string]string{
 	// The server ensures that its routing table is updated with the correct paths for users and channels.
 }
 
+func serverCommandValidation(cmd string) (*Command, Response) {
+	// TODO
+	// should we check for s2s password again?
+	// probably not since we could only get here if we had a valid s2s connection
+	// i.e. we already authenticated in Connect
+
+	return_cmd, ok := server_manager_commands[cmd]
+	if !ok {
+		return nil, ERR_UNKNOWNCOMMAND("")
+	}
+
+	res := Reply{
+		code: "-1",
+		msg:  "hi",
+	}
+	return &return_cmd, &res
+}
+
 type ServerConnection struct {
 	Host         string `yaml:"host"`
 	Port         string `yaml:"port"`
-	Password     string `yaml:"password"`
-	Passwordfile string `yaml:"password_file"`
+	PasswordFile string `yaml:"password_file"`
+	Password     string
 	Conn         net.Conn
 }
 
@@ -92,15 +110,6 @@ type ServerConnectionPkg struct {
 
 // connect to another server
 func Connect(connection ServerConnection) {
-
-	// initial server handshake
-	var buf bytes.Buffer
-	enc := gob.NewEncoder(&buf)
-	err := enc.Encode(p)
-	if err != nil {
-		fmt.Println("Error:", err)
-		return
-	}
 	// - server name
 	// - directly connected servers
 	// - user and channel lists it manages
@@ -121,6 +130,51 @@ func Connect(connection ServerConnection) {
 	//
 	// routing table updates
 	//
+
+	// Final Command Sequence (Summary)
+	// PASS <password> <protocol_version> <flags>
+	// SERVER <servername> <hopcount> :<description>
+	// NETINFO (If used)
+	// BURST (If TS6 is used)
+	// NICK (For every active user)
+	// JOIN (For every active channel)
+	// MODE (Sync channel modes)
+	// TOPIC (Sync channel topics)
+	// SJOIN (If using TS6)
+	// ENDBURST (If required)
+
+	addr := connection.Host + ":" + connection.Port
+	conn, err := net.Dial("tcp", addr)
+	if err != nil {
+		log.Error().Msgf("Failed to connect to server: %s", addr)
+		return
+	}
+	defer conn.Close()
+
+	CRLF := "\r\n"
+	passFlags := " "
+	pass := fmt.Sprintf("PASS %s %s%s%s", connection.Password, G_Config.Server.Irc_verison, passFlags, CRLF)
+
+	// TODO
+	// abstract this into its own command
+	// see server_cmd.go
+	hopcount := 1 // hopcount 1 since Connect will always be a direct connection to another server
+	server := fmt.Sprintf("SERVER %s %s :A test server %s", G_Config.Server.Dns_name, hopcount, CRLF)
+	// netinfo := ""
+
+	msg := fmt.Sprintf("%s%s", pass, server)
+	// burst := ""
+	// sync commands
+	// nick
+	//
+
+	_, err = conn.Write([]byte(msg))
+	if err != nil {
+		log.Error().Msgf("Error writing: %s", err.Error())
+		return
+	}
+
+	log.Debug().Msg("Server handshake successful")
 }
 
 func NewServerConnection() *ServerConnection {
@@ -162,11 +216,11 @@ func NewServerManagerConfig() ServerManagerConfig {
 	// TODO
 	// should we connect to the servers here?
 	for _, server := range server_list {
-		if server.Passwordfile == "" {
+		if server.PasswordFile == "" {
 			continue
 		}
 
-		server_password, err := os.ReadFile(server.Passwordfile)
+		server_password, err := os.ReadFile(server.PasswordFile)
 		if err != nil {
 			log.Error().Msgf("Error reading %s password file: %v", server.Host, err)
 			continue
@@ -339,7 +393,7 @@ func (sm *ServerManager) handleConnection(conn *net.Conn) {
 	}
 }
 
-func (sm *ServerManager) Route(msg []byte, server string) {
+func (sm *ServerManager) Route(msg []byte, server string, hopcount int) {
 	log.Debug().Msgf("ServerManager::Route::msg: %s", msg)
 	// TODO
 	// we already have a connection to all direct servers
