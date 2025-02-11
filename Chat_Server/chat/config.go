@@ -25,6 +25,7 @@ type Config struct {
 		Super_admin_password_file   string `yaml:"super_admin_password_file" validate:"secret" default:"password"`
 		Default_server_name         string `yaml:"default_server_name" default:"Z.IRC"`
 		Dns_name                    string `yaml:"dns_name" default:"localhost"`
+		Ts6_enabled                 bool   `yaml:"ts6_enabled" default:"false"`
 		Capabilities                string `yaml:"capabilities" default:"sasl account-registration"`
 		Supported_auth_types        string `yaml:"supported_auth_types" default:"PLAIN,SCRAM-SHA-256,OAUTHBEARER,EXTERNAL"`
 		User_modes                  string `yaml:"user_modes" default:"oiws"`
@@ -281,39 +282,46 @@ func parseTags(v interface{}) error {
 // Reload reloads the the Config struct dynamically
 // by calling load_config again
 func (c Config) Reload() {
-	load_config()
+	err := load_config()
+	if err != nil {
+		panic(err)
+	}
 }
 
 var G_Config Config
 
 // load_config reads a config file from disk
 // and populates the Config struct
-func load_config() {
+func load_config() error {
 	config_path := helpers.GetEnv("CONFIG_FILE", "/chat_server/config.yaml")
 	config_data, err := os.ReadFile(config_path)
 	if err != nil {
 		log.Error().Msgf("Error reading config file %v", err)
-		panic(err)
+		return err
 	}
 
 	err = yaml.Unmarshal([]byte(config_data), &G_Config)
 	if err != nil {
 		log.Error().Msgf("Couldn't unmarshal config: %v", err)
-		panic(err)
+		return err
 	}
 
 	err = parseTags(&G_Config)
 	if err != nil {
 		log.Error().Msg(err.Error())
-		panic(err)
+		return err
 	}
 
 	// TODO
 	// redact sensitive configurations
 	// overriding String() doesn't seem to work for whatever reason
 	log.Info().Msgf("Successfully loaded config: %+v", G_Config)
+	return nil
 }
 
 func init() {
-	load_config()
+	err := load_config()
+	if err != nil {
+		panic(err)
+	}
 }

@@ -4,6 +4,7 @@ server:
   super_admin_password_file: "/run/secrets/super_admin_password"
   default_server_name: "Z.IRC"
   dns_name: "zzirc.com"
+  ts6_enabled: false
   capabilities: "sasl account-registration"
   supported_auth_types: "PLAIN,SCRAM-SHA-256,OAUTHBEARER,EXTERNAL"
   # o: IRC operator

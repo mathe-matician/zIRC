@@ -106,7 +106,7 @@ func pass(params map[string]interface{}) Response {
 
 		// TODO
 		// what should be updated here for s2s state? if any?
-		// client.UpdateState("server_password", "accepted")
+		client.AddState("server_password", "accepted")
 		log.Info().Msg("S2S Server password accepted")
 	} else if (G_Config.Server.Enable_tls && port == G_Config.Server.Tls_port) || port == G_Config.Server.Port {
 		log.Info().Msgf("Client connection attempted by %s", remoteAddr)
@@ -126,7 +126,7 @@ func pass(params map[string]interface{}) Response {
 			return ERR_PASSWDMISMATCH("")
 		}
 
-		client.UpdateState("server_password", "accepted")
+		client.AddState("server_password", "accepted")
 		log.Info().Msg("Client Server password accepted")
 	}
 

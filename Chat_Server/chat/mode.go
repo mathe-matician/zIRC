@@ -150,7 +150,7 @@ func mode(params map[string]interface{}) Response {
 
 	task_runner := g_Server._MessageManager.Task_runner
 
-	supported_channel_modes := g_Server.Config["IRC_CHANNEL_MODES"]
+	supported_channel_modes := G_Config.Server.Channel_modes
 	mode_task := []*Task{}
 
 	current_offset := 1

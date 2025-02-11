@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	rc "zirc/remote_conn"
 
@@ -15,6 +16,11 @@ import (
 )
 
 const MAX_NICK_LEN = 32
+
+type StateItem struct {
+	Value interface{}
+	Res   Response
+}
 
 type Session struct {
 	id            uuid.UUID
@@ -34,6 +40,7 @@ type ClientAuth struct {
 
 type Client struct {
 	nick          string
+	NickTimestamp time.Time
 	user          string
 	RealName      string
 	Registered    bool
@@ -61,6 +68,12 @@ func NewClientAuth() ClientAuth {
 		IsAuthenticated:     false,
 		AuthenticationType:  "",
 		AuthorizationType:   "",
+	}
+}
+
+func NewStateItem(value interface{}) StateItem {
+	return StateItem{
+		Value: value,
 	}
 }
 
@@ -154,15 +167,19 @@ func (c *Client) SetSessionEndTimestamp() (*string, error) {
 	return &end_timestamp, nil
 }
 
-func (c *Client) GetState(key string) interface{} {
+func (c *Client) GetState(key string) string {
 	if val, ok := c.session.state[key]; ok {
 		return val
 	}
-	return nil
+	return ""
 }
 
-func (c *Client) UpdateState(key, value string) {
+func (c *Client) AddState(key, value string) {
 	c.session.state[string(key)] = string(value)
+}
+
+func (c *Client) RemoveState(key string) {
+	delete(c.session.state, key)
 }
 
 // target format :nickname!username@hostname

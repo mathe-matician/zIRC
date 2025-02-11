@@ -96,12 +96,21 @@ func user(params map[string]interface{}) Response {
 
 		client.Registered = true
 
+		nickState := client.GetState("NICK")
+		if nickState == "" {
+			log.Error().EmbedObject(client).Msgf("NICK state empty?!")
+			return ERR_UNKNOWNERROR("")
+		}
+
+		client.SetNick(nickState)
+		client.RemoveState("NICK")
+
 		client_nick := client.Nick()
 
 		server_name := g_Server._MessageManager.Name
 		server_version := g_Server.Version
-		server_usermodes := g_Server.Config["IRC_USER_MODES"]
-		server_channelmodes := g_Server.Config["IRC_CHANNEL_MODES"]
+		server_usermodes := G_Config.Server.User_modes
+		server_channelmodes := G_Config.Server.Channel_modes
 		server_creation_date := g_Server.CreationDate.String()
 
 		client_details := fmt.Sprintf("%s@%s!%s", client_nick, client.User(), client.Ip())

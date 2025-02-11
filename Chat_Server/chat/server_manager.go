@@ -5,6 +5,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"time"
 	"zirc/helpers"
 
 	"github.com/phuslu/log"
@@ -142,6 +143,7 @@ func Connect(connection ServerConnection) {
 	// TOPIC (Sync channel topics)
 	// SJOIN (If using TS6)
 	// ENDBURST (If required)
+	connect_start_time := time.Now()
 
 	addr := connection.Host + ":" + connection.Port
 	conn, err := net.Dial("tcp", addr)
@@ -158,9 +160,19 @@ func Connect(connection ServerConnection) {
 	// TODO
 	// abstract this into its own command
 	// see server_cmd.go
-	hopcount := 1 // hopcount 1 since Connect will always be a direct connection to another server
-	server := fmt.Sprintf("SERVER %s %s :A test server %s", G_Config.Server.Dns_name, hopcount, CRLF)
-	// netinfo := ""
+	hopcount := 1 // hopcount 1 since Connect() will always be a direct connection to another server
+	server := fmt.Sprintf("SERVER %s %d :A test server %s", G_Config.Server.Dns_name, hopcount, CRLF)
+	// netinfo := ":server1.example.com NETINFO 1707500000 1707500001 0 J10 TS6 6 :server1.example.com"
+	// Breakdown:
+	// 	:server1.example.com → The source server sending the NETINFO.
+	// 	NETINFO → The command name.
+	// 	1707500000 → The network's creation timestamp (typically a Unix timestamp).
+	// 	1707500001 → The current timestamp when the message is sent.
+	// 	0 → The protocol version (0 for TS6).
+	// 	J10 → The network's numeric version identifier (implementation-specific).
+	// 	TS6 → The timestamping protocol in use (TS6 in this case).
+	// 	6 → The number of additional parameters.
+	// 	:server1.example.com → The server name that originated the message.
 
 	msg := fmt.Sprintf("%s%s", pass, server)
 	// burst := ""
@@ -174,7 +186,9 @@ func Connect(connection ServerConnection) {
 		return
 	}
 
-	log.Debug().Msg("Server handshake successful")
+	connect_end_time := time.Now()
+
+	log.Debug().Msgf("Server handshake successful: %v", connect_start_time.Sub(connect_end_time))
 }
 
 func NewServerConnection() *ServerConnection {

@@ -30,6 +30,7 @@ func nick(params map[string]interface{}) Response {
 		return ERR_NEEDMOREPARAMS("")
 	}
 
+	// TODO - check if valid nickname
 	// TODO - check whether nick is already taken
 
 	// no response from NICK signals success
@@ -41,19 +42,43 @@ func nick(params map[string]interface{}) Response {
 	// this special update of their old nickname, and especially send it to other
 	if len(current_client_nick) != 0 && len(client.User()) != 0 {
 		// when modifying old nickname
-		res.MsgOverride(fmt.Sprintf(":%s!%s@%s NICK :%s\r\n", current_client_nick, client.User(), client.Ip(), nick))
-		// :oldnickname!username@hostname NICK :newnickname
+		new_nick := nick.(string)
+		nickExists := g_Server.NickExists(new_nick)
+		if nickExists {
+			return ERR_NICKNAMEINUSE("")
+		}
 
+		client.SetNick(new_nick)
+		res.MsgOverride(fmt.Sprintf(":%s!%s@%s NICK :%s\r\n", current_client_nick, client.User(), client.Ip(), new_nick))
+
+		delete(g_Server.ClientServerMap, client.nick)
+		g_Server.ClientServerMap[new_nick] = g_Server.DnsName
+
+		// TODO
+		// :oldnickname!username@hostname NICK :newnickname
 		// server then broadcasts :Alice!alice@192.0.2.1 NICK :Alicia
 		// to any channel this client is part of
 		// it is broadcasted to all private converstaions this client is in
 		// as well as all channels this client is in
-	}
 
-	client.SetNick(nick.(string))
+	} else {
+		// add NICK to state
+		// so that when registration is complete
+		// the NICK will be committed to user
+		client.AddState("NICK", nick.(string))
+	}
 
 	if len(client.User()) != 0 && !client.Registered {
 		client.Registered = true
+
+		nickState := client.GetState("NICK")
+		if nickState == "" {
+			log.Error().EmbedObject(client).Msgf("NICK state empty?!")
+			return ERR_UNKNOWNERROR("")
+		}
+
+		client.SetNick(nickState)
+		client.RemoveState("NICK")
 
 		// TODO - need to have access to the server manager to get info
 		// 		  for these messages...
@@ -71,15 +96,15 @@ func nick(params map[string]interface{}) Response {
 
 		server_name := g_Server.DnsName
 		server_version := g_Server.Version
-		server_usermodes := g_Server.Config["IRC_USER_MODES"]
-		server_channelmodes := g_Server.Config["IRC_CHANNEL_MODES"]
+		server_usermodes := G_Config.Server.User_modes
+		server_channelmodes := G_Config.Server.Channel_modes
 		server_creation_date := g_Server.CreationDate.String()
 
 		client_details := fmt.Sprintf("%s@%s!%s", client_nick, client.User(), client.Ip())
 
 		// add the now registered client to the Server's client map
-		svr_mang := g_Server._MessageManager
-		clint_map := svr_mang.ClientMap
+		msg_mang := g_Server._MessageManager
+		clint_map := msg_mang.ClientMap
 		(*clint_map)[client_nick] = client
 
 		responses := WELCOME_WRAPPER(

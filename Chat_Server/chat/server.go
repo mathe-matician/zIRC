@@ -202,6 +202,14 @@ func (is *IrcServer) GetClientMap() *map[string]*Client {
 	return is._MessageManager.ClientMap
 }
 
+func (is *IrcServer) NickExists(nick string) bool {
+	_, ok := is.ClientServerMap[nick]
+	if !ok {
+		return false
+	}
+	return true
+}
+
 func (is *IrcServer) Run() {
 	enabled_tls := G_Config.Server.Enable_tls
 	tls_port := G_Config.Server.Tls_port
@@ -336,6 +344,8 @@ func handleConnection(conn *net.Conn, isServer bool) {
 			return
 		}
 
+		client_msg_start := time.Now()
+
 		trimmed_msg := string(bytes.Trim(bytes.TrimLeft(recv_buf, " "), "\x00"))
 
 		split_trimmed_msg := strings.Split(trimmed_msg, "\r\n")
@@ -355,16 +365,14 @@ func handleConnection(conn *net.Conn, isServer bool) {
 			response = ProcessMessage(msg+"\r\n", client)
 		}
 
+		client_msg_end := time.Now()
+		log.Info().Msgf("Client msg processing time: %v", client_msg_end.Sub(client_msg_start))
+
 		if len(response) == 0 {
 			// e.g. sometimes the server doesn't send anything back to the client
 			// 		as in the case of correct password via PASS
 			// reset the buffer
 			continue
-		}
-
-		if _, err := (*conn).Write(response); err != nil {
-			log.Error().EmbedObject(client).Msgf("Error writing to client: %s", err.Error())
-			break
 		}
 
 		if strings.Contains(string(response), "ERROR") {
@@ -374,8 +382,13 @@ func handleConnection(conn *net.Conn, isServer bool) {
 		}
 
 		if strings.Contains(string(response), "TERMINATE") {
-			log.Warn().EmbedObject(client).Msgf("Terminating connection with %s:%s as they aren't whitelisted", client.conn.Ip, client.conn.Port)
+			log.Warn().EmbedObject(client).Msg("Terminating connection as they aren't whitelisted")
 			// conn closed via defer (*conn).Close() at top of func
+			break
+		}
+
+		if _, err := (*conn).Write(response); err != nil {
+			log.Error().EmbedObject(client).Msgf("Error writing to client: %s", err.Error())
 			break
 		}
 	}
