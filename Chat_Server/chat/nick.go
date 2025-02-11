@@ -2,6 +2,7 @@ package chat
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/phuslu/log"
 )
@@ -78,6 +79,7 @@ func nick(params map[string]interface{}) Response {
 		}
 
 		client.SetNick(nickState)
+		client.NickTimestamp = time.Now()
 		client.RemoveState("NICK")
 
 		// TODO - need to have access to the server manager to get info

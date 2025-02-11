@@ -174,6 +174,17 @@ func Connect(connection ServerConnection) {
 	// 	6 → The number of additional parameters.
 	// 	:server1.example.com → The server name that originated the message.
 
+	if len(*g_Server._MessageManager.ClientList) != 0 {
+		for _, c := range *g_Server._MessageManager.ClientList {
+			msg := fmt.Sprintf("NICK %s %v %s %s %s %s :%s %s", c.Nick(), c.NickTimestamp, g_Server.DnsName, c.User(), c.Host, g_Server.DnsName, c.RealName, CRLF)
+			_, err = conn.Write([]byte(msg))
+			if err != nil {
+				log.Error().Msgf("Error writing nicks to server: %s", err.Error())
+				return
+			}
+		}
+	}
+
 	msg := fmt.Sprintf("%s%s", pass, server)
 	// burst := ""
 	// sync commands
@@ -187,7 +198,6 @@ func Connect(connection ServerConnection) {
 	}
 
 	connect_end_time := time.Now()
-
 	log.Debug().Msgf("Server handshake successful: %v", connect_start_time.Sub(connect_end_time))
 }
 
