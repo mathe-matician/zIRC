@@ -69,7 +69,6 @@ func nick(params map[string]interface{}) Response {
 		// so that when registration is complete
 		// the NICK will be committed to user
 		client.AddState("NICK", nick.(string))
-		client.LogState()
 	}
 
 	if len(client.User()) != 0 && !client.Registered {
