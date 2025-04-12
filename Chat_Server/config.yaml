@@ -4,7 +4,7 @@ server:
   super_admin_password_file: "/run/secrets/super_admin_password"
   default_server_name: "Z.IRC"
   dns_name: "zzirc.com"
-  ts6_enabled: false
+  ts6_enabled: true
   capabilities: "sasl account-registration"
   supported_auth_types: "PLAIN,SCRAM-SHA-256,OAUTHBEARER,EXTERNAL"
   # o: IRC operator
@@ -19,7 +19,7 @@ server:
   # **NOTE** you must escape `$` characters otherwise they are interpolated as variables
   # Use the below hash as a test password - the password is 1235
   # IRC_SERVER_PASSWORD="\$2a\$10\$RFRaJiN40EzL9.nvfq4uy.w6UHs7WuF3EkBpxj.xUPjNd8tUs7sfi"
-  password_file: "/run/secrets/server_password"
+  # password_file: "/run/secrets/server_password"
   init_worker_count: 3
   max_buffer_size: 8192
   max_user_channels: 20
@@ -36,13 +36,14 @@ server:
   chat_server_log_level: "3" # info https://pkg.go.dev/github.com/phuslu/log@v1.0.110#Level
   ping_pong_timeout: 2
   ping_pong_timeout_duration: "minute"
+  ping_pong_enabled: false
 
 db:
   enabled: false
   host: "zirc_db"
   port: "5432"
   user: "postgres"
-  password_file: "/run/secrets/db_password"
+  # password_file: "/run/secrets/db_password"
   database: "postgres"
   application_name: "zirc_server"
   enable_tls: false
@@ -51,7 +52,7 @@ db:
   healthcheck_interval: 2
 
 s2s:
-  password_file: "/run/secets/s2s_password"
+  # password_file: "/run/secets/s2s_password"
   port: "7000"
   tls_port: "7001"
   enable_tls: false

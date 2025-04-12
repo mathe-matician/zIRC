@@ -124,10 +124,11 @@ func ProcessMessage(trimmed_msg string, client *Client) []byte {
 		cmd, _validation_res = serverCommandValidation(strCmd)
 	} else {
 		cmd, _validation_res = commandValidation(strCmd, client.session.state["server_password"], client.Registered, client.Capabilities)
+		// log.Debug().Msgf("Command validation res: %s", _validation_res.Msg())
 	}
 
 	if reflect.TypeOf(_validation_res).Name() == "ErrorResponse" || cmd == nil {
-		log.Error().Msgf("Error during command validation")
+		log.Error().Msgf("Error during command validation: %s", _validation_res.Msg())
 		return helpers.FormatResponse(server, _validation_res.Code(), target, _validation_res.Msg())
 	}
 

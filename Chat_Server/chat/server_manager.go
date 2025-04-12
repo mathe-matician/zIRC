@@ -15,6 +15,7 @@ import (
 var server_manager_commands = map[string]Command{
 	"PASS":     *NewCommand(pass, map[string]string{"cap_req": "sasl"}, true),
 	"NETINFO":  *NewCommand(netinfo, map[string]string{"cap_req": "sasl"}, true),
+	"UID":      *NewCommand(not_implemented, map[string]string{"cap_req": "sasl"}, true),
 	"CAPAB":    *NewCommand(not_implemented, map[string]string{"cap_req": "sasl"}, true),
 	"SERVER":   *NewCommand(server, map[string]string{"cap_req": "sasl"}, true),
 	"CAP":      *NewCommand(not_implemented, map[string]string{"cap_req": "sasl"}, true),

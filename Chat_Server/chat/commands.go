@@ -76,6 +76,8 @@ func (c *Command) DeleteMetadata(cmd, key, value string) {
 // - checks whether the client is a server or a client and limits more commands based on that
 func commandValidation(cmd, client_password_state string, client_registered bool, capabilities map[string]string) (*Command, Response) {
 	server_password := G_Config.Server.Password_file
+	// TODO
+	// needs to determine whether to apply for both server && password
 	if len(server_password) != 0 && cmd != "PASS" && client_password_state != "accepted" {
 		return nil, ERR_PASSWDMISMATCH(":You need to send your password before registering")
 	}

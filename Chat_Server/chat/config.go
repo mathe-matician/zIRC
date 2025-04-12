@@ -46,6 +46,7 @@ type Config struct {
 		Chat_server_log_level       string `yaml:"chat_server_log_level" default:"3"` // info https://pkg.go.dev/github.com/phuslu/log@v1.0.110#Level
 		Ping_pong_timeout           int    `yaml:"ping_pong_timeout" default:"2"`
 		Ping_pong_timeout_duration  string `yaml:"ping_pong_timeout_duration" default:"minute"`
+		Ping_pong_enabled           bool   `yaml:"ping_pong_enabled" default:"true"`
 	}
 
 	DB struct {

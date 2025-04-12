@@ -3,6 +3,7 @@ package chat
 import (
 	"bytes"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -40,6 +41,8 @@ type IrcServer struct {
 	Servers         []*IrcServer
 	Clients         []*Client
 	ClientServerMap map[string]string
+	ClientMap       map[string]*Client  // TODO possibly move ClientMap into the Server itself?
+	ChannelMap      map[string]*Channel // TODO possibly move ChannelMap into the Server itself?
 	Config          map[string]string
 }
 
@@ -202,12 +205,24 @@ func (is *IrcServer) GetClientMap() *map[string]*Client {
 	return is._MessageManager.ClientMap
 }
 
+func (is *IrcServer) ClientMapInsert(client *Client) error {
+	mm := is._MessageManager
+	if mm == nil {
+		err := errors.New("MessageManager is nil")
+		panic(err)
+	}
+
+	err := mm.ClientMapInsert(client)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (is *IrcServer) NickExists(nick string) bool {
 	_, ok := is.ClientServerMap[nick]
-	if !ok {
-		return false
-	}
-	return true
+	return ok
 }
 
 func (is *IrcServer) Run() {

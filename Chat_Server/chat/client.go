@@ -39,6 +39,7 @@ type ClientAuth struct {
 }
 
 type Client struct {
+	UID           uuid.UUID
 	nick          string
 	NickTimestamp time.Time
 	user          string
@@ -116,7 +117,14 @@ func NewClient(nick string, user string, conn *rc.RemoteConn, Conn *net.Conn, is
 	/// EDIT/
 	// this already exists below - client.Channels
 
+	uuid, err := uuid.NewV7()
+	if err != nil {
+		log.Error().Msgf("NewClient: Error generating uuid %s", err.Error())
+		return nil, nil, err
+	}
+
 	return &Client{
+		UID:          uuid,
 		nick:         nick,
 		user:         user,
 		Registered:   false,
@@ -176,6 +184,14 @@ func (c *Client) GetState(key string) string {
 
 func (c *Client) AddState(key, value string) {
 	c.session.state[string(key)] = string(value)
+}
+
+func (c *Client) LogState() {
+	state := ""
+	for key, value := range c.session.state {
+		state += fmt.Sprintf("key: %s, value: %s\n", key, value)
+	}
+	log.Debug().EmbedObject(c).Msgf("STATE: %s", state)
 }
 
 func (c *Client) RemoveState(key string) {

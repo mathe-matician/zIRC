@@ -43,6 +43,7 @@ func nick(params map[string]interface{}) Response {
 	// this special update of their old nickname, and especially send it to other
 	if len(current_client_nick) != 0 && len(client.User()) != 0 {
 		// when modifying old nickname
+		log.Debug().Msg("NICK: len(current_client_nick) != 0 && len(client.User()) != 0")
 		new_nick := nick.(string)
 		nickExists := g_Server.NickExists(new_nick)
 		if nickExists {
@@ -63,10 +64,12 @@ func nick(params map[string]interface{}) Response {
 		// as well as all channels this client is in
 
 	} else {
+		log.Debug().Msg("NICK: adding nick to state")
 		// add NICK to state
 		// so that when registration is complete
 		// the NICK will be committed to user
 		client.AddState("NICK", nick.(string))
+		client.LogState()
 	}
 
 	if len(client.User()) != 0 && !client.Registered {
@@ -125,7 +128,9 @@ func nick(params map[string]interface{}) Response {
 
 		g_Server.ClientServerMap[client.nick] = g_Server.DnsName
 
-		go ping(client)
+		if G_Config.Server.Ping_pong_enabled {
+			go ping(client)
+		}
 	}
 
 	return res

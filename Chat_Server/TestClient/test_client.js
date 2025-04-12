@@ -112,6 +112,8 @@ const Connect = () => {
         const pongrply = `PONG :${rmtraildata[1]}`
         // console.log(`Sending: ${pongrply}`)
         client.write(pongrply)
+      } else {
+        console.log(split_data[i]);
       }
     }
   });

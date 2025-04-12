@@ -91,7 +91,7 @@ func user(params map[string]interface{}) Response {
 
 	res := EMPTY_RESPONSE()
 
-	if len(client.Nick()) != 0 && !client.Registered {
+	if !client.Registered && client.GetState("NICK") != "" {
 		log.Info().Msg("Registering the USER...")
 
 		client.Registered = true
@@ -136,7 +136,9 @@ func user(params map[string]interface{}) Response {
 
 		g_Server.ClientServerMap[client.nick] = g_Server.DnsName
 
-		go ping(client)
+		if G_Config.Server.Ping_pong_enabled {
+			go ping(client)
+		}
 	}
 
 	return res

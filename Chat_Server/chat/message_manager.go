@@ -1,6 +1,7 @@
 package chat
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/phuslu/log"
@@ -166,6 +167,30 @@ func (sm *MessageManager) GetClientByNick(nick string) *Client {
 	}
 
 	return client
+}
+
+func (mm *MessageManager) ClientMapInsert(client *Client) error {
+	cm := mm.ClientMap
+	client_uid := client.UID.String()
+	if _, ok := (*cm)[client_uid]; ok {
+		errmsg := fmt.Sprintf("client %s already exists in client map", client_uid)
+		log.Info().Msg(errmsg)
+		return errors.New(errmsg)
+	}
+
+	return nil
+}
+
+func (mm *MessageManager) ClientMapPatch(client *Client) error {
+	cm := mm.ClientMap
+	client_uid := client.UID.String()
+	if _, ok := (*cm)[client_uid]; !ok {
+		errmsg := fmt.Sprintf("client %s doesnt exists in client map", client_uid)
+		log.Info().Msg(errmsg)
+		return errors.New(errmsg)
+	}
+
+	return nil
 }
 
 func (sm *MessageManager) Debug() {
