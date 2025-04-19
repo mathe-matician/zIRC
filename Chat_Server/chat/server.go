@@ -303,24 +303,23 @@ func handleConnection(conn *net.Conn, isServer bool) {
 		log.Error().Str("remote_addr", remote_addr.String()).Msgf("Error splitting remote addr: %s", err.Error())
 	}
 
+	var dns_name string
 	if isServer {
-		log.Debug().Msgf("Message is from server.")
-		// TODO
-		// check if valid server whitelisted connection? ip etc
+		dns_names, err := net.LookupAddr(remote_ip)
+		if err != nil {
+			log.Warn().Msgf("Error performing reverse DNS lookup: %v\n", err)
+		}
 
-	} else {
-		log.Debug().Msgf("Message is from client.")
+		log.Info().Msgf("DNS names: %v", dns_names)
+
+		if len(dns_names) != 0 {
+			// TODO
+			// get all dns names?
+			dns_name = dns_names[0]
+		}
 	}
 
-	// TODO
-	// create two paths here - one if a client is connecting
-	// and one if a server is connecting via s2s
-	// you can then use NewClient and NewServer (if needed) respectively
-
-	// TODO - resolve DNS name here for additional checks / verification
-	// e.g. w/ servers and compare to server list
-
-	remote_conn := rc.NewRemoteConn("", remote_ip, remote_port)
+	remote_conn := rc.NewRemoteConn(dns_name, remote_ip, remote_port)
 	client, session_timestamp, err := NewClient("", "", remote_conn, conn, isServer)
 	if err != nil {
 		log.Error().EmbedObject(client).Msg(err.Error())

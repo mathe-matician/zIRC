@@ -44,7 +44,6 @@ func pass(params map[string]interface{}) Response {
 	}
 
 	if client.IsServer {
-		// if (G_Config.S2S.Enable_tls && port == G_Config.S2S.Tls_port) || port == G_Config.S2S.Port {
 		log.Info().Msgf("Server connection attempted by %s:%s", addr, port)
 		// if the client that is connecting is communicating on the S2S port, 7000
 		// we need to check whether it is valid to do so
@@ -56,7 +55,9 @@ func pass(params map[string]interface{}) Response {
 		}
 
 		s2s_password := G_Config.S2S.Password_file
-		log.Debug().Msgf("SERVER: s2s_password: %s", s2s_password)
+		// TODO
+		// even if no password
+		// we should still do something with the extra args?
 		if len(s2s_password) == 0 {
 			// ignore the PASS command when no password is configured
 			// this SHOULDNT happen with s2s, but possible when testing
