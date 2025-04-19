@@ -18,5 +18,6 @@ func main() {
 	if err != nil {
 		return
 	}
+	fmt.Printf("Password: %s", password)
 	fmt.Printf("Hash: %s", string(hash))
 }

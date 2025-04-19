@@ -26,9 +26,16 @@ services:
     container_name: zirc_animalhouse
     environment:
       - IRC_SERVER_DNS_NAME=animal-houseIRC.io
+      - IRC_S2S_CONFIG_FILE=/chat_server/animalhouse_s2s_config.yaml
     ports:
       - "6600:6667" # irc server
       - "7070:7000" # server manager
+    volumes:
+      - ./Chat_Server/secrets/s2s_password:/run/secrets/s2s_password
+      - ./Chat_Server/secrets/db_password:/run/secrets/db_password
+      - ./Chat_Server/secrets/server_password:/run/secrets/server_password
+      - ./Chat_Server/secrets/super_admin_password:/run/secrets/super_admin_password
+      - ./Chat_Server/animalhouse_s2s_config.yaml:/chat_server/animalhouse_s2s_config.yaml
     networks:
       zirc_subnet:
         ipv4_address: 172.20.0.6
@@ -73,6 +80,8 @@ services:
     networks:
       zirc_subnet:
         ipv4_address: 172.20.0.5
+    profiles:
+      - test_client
 
 networks:
   zirc_subnet:

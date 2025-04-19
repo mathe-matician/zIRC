@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	S2S_PASS_ARG_COUNT = 2
+	S2S_PASS_ARG_COUNT = 1
 )
 
 // pass - Used to set a connection password before registration.
@@ -43,7 +43,8 @@ func pass(params map[string]interface{}) Response {
 		return ERR_UNKNOWNERROR("")
 	}
 
-	if (G_Config.S2S.Enable_tls && port == G_Config.S2S.Tls_port) || port == G_Config.S2S.Port {
+	if client.IsServer {
+		// if (G_Config.S2S.Enable_tls && port == G_Config.S2S.Tls_port) || port == G_Config.S2S.Port {
 		log.Info().Msgf("Server connection attempted by %s:%s", addr, port)
 		// if the client that is connecting is communicating on the S2S port, 7000
 		// we need to check whether it is valid to do so
@@ -55,9 +56,10 @@ func pass(params map[string]interface{}) Response {
 		}
 
 		s2s_password := G_Config.S2S.Password_file
+		log.Debug().Msgf("SERVER: s2s_password: %s", s2s_password)
 		if len(s2s_password) == 0 {
 			// ignore the PASS command when no password is configured
-			// this SHOULDNT happen with s2s!!!!
+			// this SHOULDNT happen with s2s, but possible when testing
 			log.Warn().Msgf("PASS(s2s): S2S password not set! This is highly irregular!!")
 			return EMPTY_RESPONSE()
 		}

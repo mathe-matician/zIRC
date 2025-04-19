@@ -5,6 +5,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"strings"
 	"time"
 	"zirc/helpers"
 
@@ -39,7 +40,7 @@ func serverCommandValidation(cmd string) (*Command, Response) {
 	// should we check for s2s password again?
 	// probably not since we could only get here if we had a valid s2s connection
 	// i.e. we already authenticated in Connect
-
+	log.Debug().Msgf("Server CMD: %s", cmd)
 	return_cmd, ok := server_manager_commands[cmd]
 	if !ok {
 		return nil, ERR_UNKNOWNCOMMAND("")
@@ -54,30 +55,45 @@ func serverCommandValidation(cmd string) (*Command, Response) {
 
 type ServerConnection struct {
 	Host         string `yaml:"host"`
+	Ip           string `yaml:"ip"`
 	Port         string `yaml:"port"`
+	AutoConnect  bool   `yaml:"auto_connect"`
 	PasswordFile string `yaml:"password_file"`
 	Password     string
-	Conn         net.Conn
+	// Conn         net.Conn
 }
 
 type ServerManagerConfig struct {
-	ServerList map[string]ServerConnection
+	ServerList *map[string]ServerConnection
 }
 
 type ServerManager struct {
 	Addr              string
-	serverIpWhitelist map[string]string
-	Config            ServerManagerConfig
+	serverIpWhitelist map[string]string // TODO, what should the value be here?
+	Config            *ServerManagerConfig
+	ready             bool
 }
 
 func NewServerManager() *ServerManager {
 	sm_config := NewServerManagerConfig()
-	if len(sm_config.ServerList) != 0 {
-		// do connections
-		for _, server := range sm_config.ServerList {
-			// TODO
-			// try to connect to these servers
-			go Connect(server)
+	log.Debug().Msgf("Serverlist: %v", sm_config.ServerList)
+	sm := ServerManager{
+		Addr:              G_Config.S2S.Port,
+		Config:            sm_config,
+		serverIpWhitelist: make(map[string]string),
+	}
+
+	if len(*sm.Config.ServerList) != 0 {
+		for _, server := range *sm.Config.ServerList {
+			// tmp because idk why the value is a string
+			sm.serverIpWhitelist[server.Ip] = "whitelisted"
+
+			if server.AutoConnect {
+				// TODO
+				// need to account for race condition here
+				// g_Server.WaitForComponentsReady()
+				go Connect(server)
+			}
 		}
 
 		// wait for any failures or successful connections?
@@ -97,10 +113,7 @@ func NewServerManager() *ServerManager {
 		// }
 	}
 
-	return &ServerManager{
-		Addr:   G_Config.S2S.Port,
-		Config: sm_config,
-	}
+	return &sm
 }
 
 type ServerConnectionPkg struct {
@@ -145,6 +158,7 @@ func Connect(connection ServerConnection) {
 	// SJOIN (If using TS6)
 	// ENDBURST (If required)
 	connect_start_time := time.Now()
+	log.Debug().Msg("Connect start")
 
 	addr := connection.Host + ":" + connection.Port
 	conn, err := net.Dial("tcp", addr)
@@ -175,16 +189,19 @@ func Connect(connection ServerConnection) {
 	// 	6 → The number of additional parameters.
 	// 	:server1.example.com → The server name that originated the message.
 
-	if len(*g_Server._MessageManager.ClientList) != 0 {
-		for _, c := range *g_Server._MessageManager.ClientList {
-			msg := fmt.Sprintf("NICK %s %v %s %s %s %s :%s %s", c.Nick(), c.NickTimestamp, g_Server.DnsName, c.User(), c.Host, g_Server.DnsName, c.RealName, CRLF)
-			_, err = conn.Write([]byte(msg))
-			if err != nil {
-				log.Error().Msgf("Error writing nicks to server: %s", err.Error())
-				return
-			}
-		}
-	}
+	// TODO
+	// how to handle admin user brockrockjaw?
+	// they should be excluded as they will exist across all servers
+	// if len(*g_Server._MessageManager.ClientList) != 0 {
+	// 	for _, c := range *g_Server._MessageManager.ClientList {
+	// 		msg := fmt.Sprintf("NICK %s %v %s %s %s %s :%s %s", c.Nick(), c.NickTimestamp, g_Server.DnsName, c.User(), c.Host, g_Server.DnsName, c.RealName, CRLF)
+	// 		_, err = conn.Write([]byte(msg))
+	// 		if err != nil {
+	// 			log.Error().Msgf("Error writing nicks to server: %s", err.Error())
+	// 			return
+	// 		}
+	// 	}
+	// }
 
 	msg := fmt.Sprintf("%s%s", pass, server)
 	// burst := ""
@@ -199,15 +216,25 @@ func Connect(connection ServerConnection) {
 	}
 
 	connect_end_time := time.Now()
-	log.Debug().Msgf("Server handshake successful: %v", connect_start_time.Sub(connect_end_time))
+	log.Debug().Msgf("Server handshake successful. Took: %v", connect_start_time.Sub(connect_end_time))
+
+	// need to whitelist the IP upon connection for our server connecting to the other
+	// wl := *whiteList
+	// ip, _, err := net.SplitHostPort(conn.RemoteAddr().String())
+	// if err != nil {
+	// 	log.Error().Msgf("error when connecting to remote server: %s", err.Error())
+	// 	return
+	// }
+	// wl[ip] = connection
 }
 
 func NewServerConnection() *ServerConnection {
 	return &ServerConnection{}
 }
 
-func NewServerManagerConfig() ServerManagerConfig {
-	var server_list map[string]ServerConnection
+func NewServerManagerConfig() *ServerManagerConfig {
+	server_list := make([]ServerConnection, 0)
+	server_map := make(map[string]ServerConnection)
 	config_path := helpers.GetEnv("IRC_S2S_CONFIG_FILE", "/chat_server/s2s_config.yaml")
 	config_data, err := os.ReadFile(config_path)
 	if err != nil {
@@ -215,8 +242,8 @@ func NewServerManagerConfig() ServerManagerConfig {
 		// as of right now it only loads connected servers
 		// _could_ support more in the future, though
 		log.Error().Msgf("Error reading config file %v", err)
-		return ServerManagerConfig{
-			ServerList: server_list,
+		return &ServerManagerConfig{
+			ServerList: &server_map,
 		}
 	}
 
@@ -225,22 +252,22 @@ func NewServerManagerConfig() ServerManagerConfig {
 	// no need to unmarshal then as no additional servers exist
 	if len(config_data) == 0 {
 		log.Info().Msgf("No data in server manager config")
-		return ServerManagerConfig{
-			ServerList: server_list,
+		return &ServerManagerConfig{
+			ServerList: &server_map,
 		}
 	}
 
 	err = yaml.Unmarshal([]byte(config_data), &server_list)
 	if err != nil {
-		log.Error().Msgf("ServerManagerConfig couldn't unmarshal config: %v", err)
+		log.Error().Msgf("ServerManagerConfig couldnt unmarshal config: %v", err)
 		panic(err)
 	}
 
-	log.Debug().Msgf("Server config list: %v", server_list)
-
-	// TODO
-	// should we connect to the servers here?
 	for _, server := range server_list {
+		if server.Ip != "" {
+			server_map[server.Ip] = server
+		}
+		server_map[server.Ip] = server
 		if server.PasswordFile == "" {
 			continue
 		}
@@ -254,8 +281,8 @@ func NewServerManagerConfig() ServerManagerConfig {
 		server.Password = string(server_password)
 	}
 
-	return ServerManagerConfig{
-		ServerList: server_list,
+	return &ServerManagerConfig{
+		ServerList: &server_map,
 	}
 }
 
@@ -339,6 +366,7 @@ func (sm *ServerManager) Run() {
 	)
 
 	log.Info().Msgf("ServerManager listening: %s", sm.Addr)
+	sm.ready = true
 
 	for {
 		conn, err := ln.Accept()
@@ -367,10 +395,14 @@ func (sm *ServerManager) Run() {
 // i.e. do we expect this IP to be communicating with the ServerManager
 // Note: arg ip is expected to be ip:port actually.
 func (sm *ServerManager) whiteListedServerIp(ip string) bool {
-	server_ip, _, err := net.SplitHostPort(ip)
-	if err != nil {
-		log.Error().Msgf("ServerManager Error extracting IP: %s", err)
-		return false
+	server_ip := ip
+	var err error
+	if strings.Contains(server_ip, ":") {
+		server_ip, _, err = net.SplitHostPort(ip)
+		if err != nil {
+			log.Error().Msgf("ServerManager Error extracting IP: %s", err)
+			return false
+		}
 	}
 
 	if _, ok := sm.serverIpWhitelist[server_ip]; !ok {

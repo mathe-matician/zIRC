@@ -1,0 +1,5 @@
+- host: "zirc_chat_server"
+  port: "7000"
+  ip: "172.20.0.4"
+  auto_connect: true
+  # password: ""

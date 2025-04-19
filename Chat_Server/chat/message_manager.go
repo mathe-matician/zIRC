@@ -18,6 +18,7 @@ type MessageManager struct {
 	Task_runner        chan []*Task
 	results            chan string
 	decreasing_workers bool
+	ready              bool
 }
 
 func NewMessageManager(client_list *[]*Client, server_list *[]*IrcServer) *MessageManager {
@@ -56,6 +57,7 @@ func NewMessageManager(client_list *[]*Client, server_list *[]*IrcServer) *Messa
 // Run starts the MessageManager which manages the Worker pool
 func (sm *MessageManager) Run() {
 	log.Info().Msg("MessageManager started")
+	sm.ready = true
 	defer func() {
 		if r := recover(); r != nil {
 			fmt.Println("Recovered from panic:", r)
@@ -187,6 +189,16 @@ func (mm *MessageManager) ClientMapPatch(client *Client) error {
 	if _, ok := (*cm)[client_uid]; !ok {
 		errmsg := fmt.Sprintf("client %s doesnt exists in client map", client_uid)
 		log.Info().Msg(errmsg)
+		return errors.New(errmsg)
+	}
+
+	return nil
+}
+
+func (mm *MessageManager) ClientMapDrop(client_uid string) error {
+	cm := mm.ClientMap
+	if _, ok := (*cm)[client_uid]; !ok {
+		errmsg := fmt.Sprintf("client %s doesnt exists in client map", client_uid)
 		return errors.New(errmsg)
 	}
 

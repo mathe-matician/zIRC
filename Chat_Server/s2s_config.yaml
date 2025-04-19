@@ -1,3 +1,6 @@
-# - host: "zirc_animalhouse"
-#   port: "7000"
-#   password_file: "/run/secrets/s2s_password"
+- host: "zirc_animalhouse"
+  port: "7000"
+  ip: "172.20.0.6"
+  auto_connect: false
+  # password_file: "/run/secrets/s2s_password"
+  # password: ""

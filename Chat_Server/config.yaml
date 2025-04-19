@@ -15,6 +15,7 @@ server:
   user_modes: "oiws"
   # see mode.go for full list of channel modes
   channel_modes: "beiklmnopPst"
+  # NOTE DONT FORGET: this password is intended for CLIENT access to the server, NOT S2S!
   # password should be generated and hashed then entered here
   # **NOTE** you must escape `$` characters otherwise they are interpolated as variables
   # Use the below hash as a test password - the password is 1235
@@ -52,7 +53,7 @@ db:
   healthcheck_interval: 2
 
 s2s:
-  # password_file: "/run/secets/s2s_password"
+  password_file: ""
   port: "7000"
   tls_port: "7001"
   enable_tls: false

@@ -1,7 +1,7 @@
 package chat
 
 import (
-	"bytes"
+	"bufio"
 	"crypto/tls"
 	"errors"
 	"fmt"
@@ -26,6 +26,10 @@ type Server interface {
 }
 
 type ServerConfig interface {
+}
+
+type Status struct {
+	Ready bool
 }
 
 type IrcServer struct {
@@ -187,6 +191,20 @@ func GetTCPListener(enable_tls bool, tls_cert_path, tls_key_path, tls_port, irc_
 	return ln
 }
 
+func (is *IrcServer) ComponentsReady() bool {
+	if !is._MessageManager.ready || !is._ServerManager.ready {
+		return false
+	}
+	return true
+}
+
+func (is *IrcServer) WaitForComponentsReady() {
+	for !is.ComponentsReady() {
+		log.Info().Msg("Waiting for components to be ready...")
+		time.Sleep(100 * time.Millisecond)
+	}
+}
+
 func (is *IrcServer) HasCapability(cap string) bool {
 	caps := strings.Split(is.Config["CAPABILITIES"], " ")
 	for _, c := range caps {
@@ -328,18 +346,17 @@ func handleConnection(conn *net.Conn, isServer bool) {
 		// TODO - send periodic PING commands
 		//		  if no PONG is received, terminate the connection
 		//		  used to determine dead connections
+		connBuffReader := bufio.NewReaderSize((*conn), max_buffer_size)
+		// technically not correct as the end seq is \r\n
+		// TODO
+		// what happens when a client sends newlines? how to differentiate between that and the end of the message?
+		recv_buf, err := connBuffReader.ReadString('\n')
 
-		// TODO P1 - this io.ReadAtLeast is NOT how you should handle it
-		// 			it _should_ use:
-		//			bufReader := bufio.NewReader(mc.Connection)
-		//			response, _ := bufReader.ReadString('\n')
-		//			and then timeout if no \n\r is received in some amount of time
-
+		// OLD
 		// block on read until the buffer has at least 1 byte.
 		// just a hacky way for this to block as Read() doesn't block on its own
-		recv_buf := make([]byte, max_buffer_size)
-		_, err := io.ReadAtLeast((*conn), recv_buf, 1)
-		// _, err := (*conn).Read(recv_buf)
+		// recv_buf := make([]byte, max_buffer_size)
+		// _, err := io.ReadAtLeast((*conn), recv_buf, 1)
 		if err != nil {
 			if err == io.EOF {
 				end_timestamp, err := client.SetSessionEndTimestamp()
@@ -347,7 +364,12 @@ func handleConnection(conn *net.Conn, isServer bool) {
 					log.Error().EmbedObject(client).Msg(err.Error())
 				}
 				log.Info().EmbedObject(client).Msgf("Client disconnected: %s", *end_timestamp)
-				// TODO - remove client state from MessageManager!!!
+
+				// TODO
+				// make these individual clean up steps a single function
+
+				// rm client state from message manager
+				g_Server._MessageManager.ClientMapDrop(client.UID.String())
 				// TODO - write session duration as a metric / possible analysis
 
 				// TODO - remove client from all channels they are on
@@ -355,13 +377,13 @@ func handleConnection(conn *net.Conn, isServer bool) {
 				log.Error().EmbedObject(client).Msgf("Error reading data from connection: %s", err.Error())
 			}
 
-			//if err == io.ErrShortBuffer
 			return
 		}
 
 		client_msg_start := time.Now()
-
-		trimmed_msg := string(bytes.Trim(bytes.TrimLeft(recv_buf, " "), "\x00"))
+		trimmed_msg := strings.Trim(strings.TrimLeft(recv_buf, " "), "\x00")
+		// OLD w/ buffer
+		// trimmed_msg := string(bytes.Trim(bytes.TrimLeft(recv_buf, " "), "\x00"))
 
 		split_trimmed_msg := strings.Split(trimmed_msg, "\r\n")
 		log.Debug().Msgf("split_trimmed_msg: %s", split_trimmed_msg)

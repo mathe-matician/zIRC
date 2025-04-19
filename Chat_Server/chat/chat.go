@@ -121,10 +121,11 @@ func ProcessMessage(trimmed_msg string, client *Client) []byte {
 	strCmd := strings.Trim(split_msg[0], " ")
 
 	if client.IsServer {
+		log.Debug().Msg("Command Validation: Is Server")
 		cmd, _validation_res = serverCommandValidation(strCmd)
 	} else {
+		log.Debug().Msg("Command Validation: Is Client")
 		cmd, _validation_res = commandValidation(strCmd, client.session.state["server_password"], client.Registered, client.Capabilities)
-		// log.Debug().Msgf("Command validation res: %s", _validation_res.Msg())
 	}
 
 	if reflect.TypeOf(_validation_res).Name() == "ErrorResponse" || cmd == nil {
