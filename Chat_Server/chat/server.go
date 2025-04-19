@@ -2,6 +2,7 @@ package chat
 
 import (
 	"bufio"
+	"bytes"
 	"crypto/tls"
 	"errors"
 	"fmt"
@@ -341,20 +342,13 @@ func handleConnection(conn *net.Conn, isServer bool) {
 	}
 
 	for {
-		// TODO - clear buffers so no extra data is sent?
-		// TODO - send periodic PING commands
-		//		  if no PONG is received, terminate the connection
-		//		  used to determine dead connections
 		connBuffReader := bufio.NewReaderSize((*conn), max_buffer_size)
-		// technically not correct as the end seq is \r\n
-		// TODO
-		// what happens when a client sends newlines? how to differentiate between that and the end of the message?
-		recv_buf, err := connBuffReader.ReadString('\n')
+		recv_buf := make([]byte, max_buffer_size)
+		_, err := connBuffReader.Read(recv_buf) // also ReadString('\n') but has too many edge cases
 
 		// OLD
 		// block on read until the buffer has at least 1 byte.
 		// just a hacky way for this to block as Read() doesn't block on its own
-		// recv_buf := make([]byte, max_buffer_size)
 		// _, err := io.ReadAtLeast((*conn), recv_buf, 1)
 		if err != nil {
 			if err == io.EOF {
@@ -380,9 +374,9 @@ func handleConnection(conn *net.Conn, isServer bool) {
 		}
 
 		client_msg_start := time.Now()
-		trimmed_msg := strings.Trim(strings.TrimLeft(recv_buf, " "), "\x00")
+		// trimmed_msg := strings.Trim(strings.TrimLeft(recv_buf, " "), "\x00")
 		// OLD w/ buffer
-		// trimmed_msg := string(bytes.Trim(bytes.TrimLeft(recv_buf, " "), "\x00"))
+		trimmed_msg := string(bytes.Trim(bytes.TrimLeft(recv_buf, " "), "\x00"))
 
 		split_trimmed_msg := strings.Split(trimmed_msg, "\r\n")
 		log.Debug().Msgf("split_trimmed_msg: %s", split_trimmed_msg)
