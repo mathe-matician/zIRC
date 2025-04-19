@@ -54,11 +54,12 @@ func serverCommandValidation(cmd string) (*Command, Response) {
 }
 
 type ServerConnection struct {
-	Host         string `yaml:"host"`
-	Ip           string `yaml:"ip"`
+	Name         string `yaml:"name"` // IRC server name used as index in routing table
+	Host         string `yaml:"host"` // generally used as DNS name for preconfigured servers
+	Ip           string `yaml:"ip"`   // the ip address of the server
 	Port         string `yaml:"port"`
-	AutoConnect  bool   `yaml:"auto_connect"`
-	PasswordFile string `yaml:"password_file"`
+	AutoConnect  bool   `yaml:"auto_connect"`  // for preconfigured servers, if true auto connect to this server on startup
+	PasswordFile string `yaml:"password_file"` // the path on the server to read a password file from
 	Password     string
 	// Conn         net.Conn
 }
@@ -85,8 +86,14 @@ func NewServerManager() *ServerManager {
 
 	if len(*sm.Config.ServerList) != 0 {
 		for _, server := range *sm.Config.ServerList {
-			// tmp because idk why the value is a string
-			sm.serverIpWhitelist[server.Ip] = "whitelisted"
+			// prefer mapping by IP, but that may not always be the case
+			// there may be better ways to do this.
+			if server.Ip != "" {
+				// tmp because idk why the value is a string
+				sm.serverIpWhitelist[server.Ip] = "whitelisted"
+			} else if server.Host != "" {
+				sm.serverIpWhitelist[server.Host] = "whitelisted"
+			}
 
 			if server.AutoConnect {
 				// TODO
@@ -176,7 +183,7 @@ func Connect(connection ServerConnection) {
 	// abstract this into its own command
 	// see server_cmd.go
 	hopcount := 1 // hopcount 1 since Connect() will always be a direct connection to another server
-	server := fmt.Sprintf("SERVER %s %d :A test server %s", G_Config.Server.Dns_name, hopcount, CRLF)
+	server := fmt.Sprintf("SERVER %s %d :A test server %s", G_Config.Server.Server_name, hopcount, CRLF)
 	// netinfo := ":server1.example.com NETINFO 1707500000 1707500001 0 J10 TS6 6 :server1.example.com"
 	// Breakdown:
 	// 	:server1.example.com → The source server sending the NETINFO.
@@ -192,6 +199,7 @@ func Connect(connection ServerConnection) {
 	// TODO
 	// how to handle admin user brockrockjaw?
 	// they should be excluded as they will exist across all servers
+	// SYNC all clients on this server
 	// if len(*g_Server._MessageManager.ClientList) != 0 {
 	// 	for _, c := range *g_Server._MessageManager.ClientList {
 	// 		msg := fmt.Sprintf("NICK %s %v %s %s %s %s :%s %s", c.Nick(), c.NickTimestamp, g_Server.DnsName, c.User(), c.Host, g_Server.DnsName, c.RealName, CRLF)

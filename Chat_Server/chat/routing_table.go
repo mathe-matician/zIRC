@@ -6,11 +6,16 @@ type RoutingAction struct {
 }
 
 // e.g.
+//    D - B - C
+//        |
+//    this_server
+//
 // Destination	Next Hop
 // B			Direct
 // C			B
 // D			B
 
+// Servers map contains the name of the server which maps to its next hop
 type RoutingTable struct {
 	Servers map[string]string
 	Recv    chan RoutingAction
