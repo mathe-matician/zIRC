@@ -123,12 +123,17 @@ func NewClient(nick string, user string, conn *rc.RemoteConn, Conn *net.Conn, is
 		return nil, nil, err
 	}
 
+	serverName := G_Config.Server.Server_name
+	if isServer {
+		serverName = ""
+	}
+
 	return &Client{
 		UID:          uuid,
 		nick:         nick,
 		user:         user,
 		Registered:   false,
-		server:       G_Config.Server.Dns_name,
+		server:       serverName,
 		session:      *s,
 		ClientConn:   Conn,
 		conn:         conn,

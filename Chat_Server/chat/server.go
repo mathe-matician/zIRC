@@ -305,6 +305,8 @@ func handleConnection(conn *net.Conn, isServer bool) {
 	}
 
 	var dns_name string
+	// TODO
+	// not always true
 	if isServer {
 		dns_names, err := net.LookupAddr(remote_ip)
 		if err != nil {

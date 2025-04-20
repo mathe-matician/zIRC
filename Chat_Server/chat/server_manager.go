@@ -183,7 +183,7 @@ func Connect(connection ServerConnection) {
 	// abstract this into its own command
 	// see server_cmd.go
 	hopcount := 1 // hopcount 1 since Connect() will always be a direct connection to another server
-	server := fmt.Sprintf("SERVER %s %d :A test server %s", G_Config.Server.Server_name, hopcount, CRLF)
+	server := fmt.Sprintf("SERVER %s %d :%s %s", G_Config.Server.Server_name, hopcount, G_Config.Server.Server_description, CRLF)
 	// netinfo := ":server1.example.com NETINFO 1707500000 1707500001 0 J10 TS6 6 :server1.example.com"
 	// Breakdown:
 	// 	:server1.example.com → The source server sending the NETINFO.
@@ -394,8 +394,6 @@ func (sm *ServerManager) Run() {
 		}
 
 		go handleConnection(&conn, true)
-
-		// go sm.handleConnection(&conn)
 	}
 }
 

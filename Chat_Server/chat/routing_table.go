@@ -1,6 +1,10 @@
 package chat
 
-import "errors"
+import (
+	"errors"
+
+	"github.com/phuslu/log"
+)
 
 type RoutingAction struct {
 }
@@ -46,6 +50,7 @@ func (rt *RoutingTable) GetServer(server string) (string, int, error) {
 	// this doesn't account for situations where
 	// you can't reach the server, but it is still part of the network
 	// or does it?
+	log.Debug().Msgf("Routing Table: getting server: %s", server)
 	for next != "direct" {
 		next, ok = rt.Servers[next]
 		if !ok {

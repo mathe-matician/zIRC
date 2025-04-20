@@ -3,6 +3,7 @@ server:
   server_role: "leaf" # one of leaf, hub, hybrid
   super_admin_password_file: "/run/secrets/super_admin_password"
   server_name: "ZZ.IRC"
+  server_description: "super fun zzirc server"
   dns_name: "zzirc.com"
   ts6_enabled: true
   capabilities: "sasl account-registration"

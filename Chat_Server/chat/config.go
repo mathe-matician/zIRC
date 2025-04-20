@@ -24,6 +24,7 @@ type Config struct {
 		Server_role                 string `yaml:"server_role" default:"leaf"`
 		Super_admin_password_file   string `yaml:"super_admin_password_file" validate:"secret" default:"password"`
 		Server_name                 string `yaml:"server_name" default:"Z.IRC"`
+		Server_description          string `yaml:"server_description" default:"Default server description"`
 		Dns_name                    string `yaml:"dns_name" default:"localhost"`
 		Ts6_enabled                 bool   `yaml:"ts6_enabled" default:"false"`
 		Capabilities                string `yaml:"capabilities" default:"sasl account-registration"`

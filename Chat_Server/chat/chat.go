@@ -149,6 +149,8 @@ func ProcessMessage(trimmed_msg string, client *Client) []byte {
 		// 		Also check that the client hasn't exceeded 8192 bytes (8 KB) which is the max message size
 		// note we already define the max buffer in main.go - but double check the actualy max size 4k or 8k?
 		log.Info().Msgf("TODO: Message has no CRLF... wait for rest of message!")
+		// TODO
+		// should this even be supported?
 	}
 
 	cmd_params = strings.TrimSuffix(cmd_params, "\r\n")
