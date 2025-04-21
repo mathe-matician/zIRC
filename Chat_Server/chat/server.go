@@ -146,7 +146,7 @@ func NewIrcServer(dns_name string, version string, addr string, server_role stri
 	s_manager.Name = dns_name
 	g_Server._MessageManager = s_manager
 
-	server_manager := NewServerManager()
+	server_manager := NewServerManager(nil)
 	g_Server._ServerManager = server_manager
 
 	// TODO - how do you connect to become brock_rockjaw? probably need the NickServ for this

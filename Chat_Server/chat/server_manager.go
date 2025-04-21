@@ -75,12 +75,16 @@ type ServerManager struct {
 	ready             bool
 }
 
-func NewServerManager() *ServerManager {
-	sm_config := NewServerManagerConfig()
-	log.Debug().Msgf("Serverlist: %v", sm_config.ServerList)
+func NewServerManager(server_manager_config *ServerManagerConfig) *ServerManager {
+	if server_manager_config == nil {
+		log.Debug().Msgf("server_manager_config == nil, creating one")
+		config_path := helpers.GetEnv("IRC_S2S_CONFIG_FILE", "/chat_server/s2s_config.yaml")
+		server_manager_config = NewServerManagerConfig(config_path)
+	}
+	log.Debug().Msgf("Serverlist: %v", server_manager_config.ServerList)
 	sm := ServerManager{
 		Addr:              G_Config.S2S.Port,
-		Config:            sm_config,
+		Config:            server_manager_config,
 		serverIpWhitelist: make(map[string]string),
 	}
 
@@ -240,62 +244,63 @@ func NewServerConnection() *ServerConnection {
 	return &ServerConnection{}
 }
 
-func NewServerManagerConfig() *ServerManagerConfig {
+func NewServerManagerConfig(config_path string) *ServerManagerConfig {
 	server_list := make([]ServerConnection, 0)
 	server_map := make(map[string]ServerConnection)
-	config_path := helpers.GetEnv("IRC_S2S_CONFIG_FILE", "/chat_server/s2s_config.yaml")
-	config_data, err := os.ReadFile(config_path)
-	if err != nil {
-		// probaby doens't have to be an error since we don't _have_ to have a config here
-		// as of right now it only loads connected servers
-		// _could_ support more in the future, though
-		log.Error().Msgf("Error reading config file %v", err)
-		return &ServerManagerConfig{
-			ServerList: &server_map,
-		}
-	}
-
-	// TODO
-	// check for zero length config_data
-	// no need to unmarshal then as no additional servers exist
-	if len(config_data) == 0 {
-		log.Info().Msgf("No data in server manager config")
-		return &ServerManagerConfig{
-			ServerList: &server_map,
-		}
-	}
-
-	err = yaml.Unmarshal([]byte(config_data), &server_list)
-	if err != nil {
-		log.Error().Msgf("ServerManagerConfig couldnt unmarshal config: %v", err)
-		panic(err)
-	}
-
-	for _, server := range server_list {
-		if server.Ip != "" {
-			server_map[server.Ip] = server
-		}
-		server_map[server.Ip] = server
-		if server.PasswordFile == "" {
-			continue
-		}
-
-		server_password, err := os.ReadFile(server.PasswordFile)
+	// we don't necessarily NEED a config as it could be a single node server
+	if config_path != "" {
+		log.Debug().Msgf("Loading server manager config from %s", config_path)
+		config_data, err := os.ReadFile(config_path)
 		if err != nil {
-			log.Error().Msgf("Error reading %s password file: %v", server.Host, err)
-			continue
+			// probaby doens't have to be an error since we don't _have_ to have a config here
+			// as of right now it only loads connected servers
+			// _could_ support more in the future, though
+			log.Error().Msgf("Error reading config file %v", err)
+			return &ServerManagerConfig{
+				ServerList: &server_map,
+			}
 		}
 
-		server.Password = string(server_password)
+		// TODO
+		// check for zero length config_data
+		// no need to unmarshal then as no additional servers exist
+		if len(config_data) == 0 {
+			log.Info().Msgf("No data in server manager config")
+			return &ServerManagerConfig{
+				ServerList: &server_map,
+			}
+		}
+
+		err = yaml.Unmarshal([]byte(config_data), &server_list)
+		if err != nil {
+			log.Error().Msgf("ServerManagerConfig couldnt unmarshal config: %v", err)
+			panic(err)
+		}
+
+		for _, server := range server_list {
+			if server.Ip != "" {
+				server_map[server.Ip] = server
+			}
+			server_map[server.Ip] = server
+			if server.PasswordFile == "" {
+				continue
+			}
+
+			server_password, err := os.ReadFile(server.PasswordFile)
+			if err != nil {
+				log.Error().Msgf("Error reading %s password file: %v", server.Host, err)
+				continue
+			}
+
+			server.Password = string(server_password)
+		}
+	} else {
+		log.Debug().Msg("No server manager config used")
 	}
 
 	return &ServerManagerConfig{
 		ServerList: &server_map,
 	}
-}
-
-func (sm *ServerManager) init() {
-
 }
 
 func (sm *ServerManager) AddToServerIpWhiteList(ip, args string) {
