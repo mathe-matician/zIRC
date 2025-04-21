@@ -65,12 +65,12 @@ func reconnect_db_listener() {
 }
 
 func init() {
-	enableDB := G_Config.DB.Enabled
+	// enableDB := G_Config.DB.Enabled
 
-	if enableDB {
-		db_init()
-		go reconnect_db_listener()
-	}
+	// if enableDB {
+	// 	db_init()
+	// 	go reconnect_db_listener()
+	// }
 
 	// var err error
 	// plain_auth_stmt, err = g_DB.Prepare(`SELECT email, credentials from auth where username = $1::text`)

@@ -139,7 +139,7 @@ func NewClient(nick string, user string, conn *rc.RemoteConn, Conn *net.Conn, is
 		conn:         conn,
 		send:         s_chan,
 		UserModes:    user_modes,
-		Host:         g_Server.DnsName,
+		Host:         serverName,
 		AwayMessage:  "",
 		Capabilities: caps,
 		Channels:     make([]*Channel, 0),

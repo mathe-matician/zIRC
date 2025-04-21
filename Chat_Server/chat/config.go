@@ -284,7 +284,7 @@ func parseTags(v interface{}) error {
 // Reload reloads the the Config struct dynamically
 // by calling load_config again
 func (c Config) Reload() {
-	err := load_config()
+	err := LoadConfig()
 	if err != nil {
 		panic(err)
 	}
@@ -294,7 +294,7 @@ var G_Config Config
 
 // load_config reads a config file from disk
 // and populates the Config struct
-func load_config() error {
+func LoadConfig() error {
 	config_path := helpers.GetEnv("CONFIG_FILE", "/chat_server/config.yaml")
 	config_data, err := os.ReadFile(config_path)
 	if err != nil {
@@ -319,11 +319,4 @@ func load_config() error {
 	// overriding String() doesn't seem to work for whatever reason
 	log.Info().Msgf("Successfully loaded config: %+v", G_Config)
 	return nil
-}
-
-func init() {
-	err := load_config()
-	if err != nil {
-		panic(err)
-	}
 }
