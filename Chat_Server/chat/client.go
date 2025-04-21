@@ -48,7 +48,7 @@ type Client struct {
 	server        string
 	session       Session
 	conn          *rc.RemoteConn
-	ClientConn    *net.Conn
+	ClientConn    net.Conn
 	send          chan string
 	UserModes     []Mode
 	Channels      []*Channel
@@ -87,7 +87,7 @@ func stringTimeFromUnixTimestamp(time uuid.Time) string {
 // NewClient creats a new client struct
 // This is run on the current server, so IRC_SERVER_DNS_NAME
 // will be set to the server's name
-func NewClient(nick string, user string, conn *rc.RemoteConn, Conn *net.Conn, isServer bool) (*Client, *string, error) {
+func NewClient(nick string, user string, conn *rc.RemoteConn, Conn net.Conn, isServer bool) (*Client, *string, error) {
 	s, err := NewSession()
 	if err != nil {
 		log.Error().Msgf("Error creating new client %s", err.Error())

@@ -281,7 +281,7 @@ func (is *IrcServer) Run() {
 			continue
 		}
 
-		go handleConnection(&conn, false)
+		go handleConnection(conn, false)
 	}
 }
 
@@ -290,15 +290,15 @@ func (is *IrcServer) Stop() {
 	(*is.Listener).Close()
 }
 
-func handleConnection(conn *net.Conn, isServer bool) {
-	defer (*conn).Close()
+func handleConnection(conn net.Conn, isServer bool) {
+	defer conn.Close()
 	defer func() {
 		if r := recover(); r != nil {
 			fmt.Println("Recovered from panic:", r)
 		}
 	}()
 
-	remote_addr := (*conn).RemoteAddr()
+	remote_addr := conn.RemoteAddr()
 	remote_ip, remote_port, err := net.SplitHostPort(remote_addr.String())
 	if err != nil {
 		log.Error().Str("remote_addr", remote_addr.String()).Msgf("Error splitting remote addr: %s", err.Error())
@@ -344,7 +344,7 @@ func handleConnection(conn *net.Conn, isServer bool) {
 	}
 
 	for {
-		connBuffReader := bufio.NewReaderSize((*conn), max_buffer_size)
+		connBuffReader := bufio.NewReaderSize(conn, max_buffer_size)
 		recv_buf := make([]byte, max_buffer_size)
 		_, err := connBuffReader.Read(recv_buf) // also ReadString('\n') but has too many edge cases
 
@@ -419,7 +419,7 @@ func handleConnection(conn *net.Conn, isServer bool) {
 			break
 		}
 
-		if _, err := (*conn).Write(response); err != nil {
+		if _, err := conn.Write(response); err != nil {
 			log.Error().EmbedObject(client).Msgf("Error writing to client: %s", err.Error())
 			break
 		}

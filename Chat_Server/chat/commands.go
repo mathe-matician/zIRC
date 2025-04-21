@@ -102,7 +102,7 @@ func commandValidation(cmd, client_password_state string, client_registered bool
 	return &return_cmd, EMPTY_RESPONSE()
 }
 
-func WELCOME_WRAPPER(client_conn *net.Conn, server_name, server_version, server_creation_date, server_usermodes, server_channelmodes, client_nick, client_details string) []*Task {
+func WELCOME_WRAPPER(client_conn net.Conn, server_name, server_version, server_creation_date, server_usermodes, server_channelmodes, client_nick, client_details string) []*Task {
 	_001 := string(helpers.FormatResponse(server_name, "001", client_nick, RPL_WELCOME("", client_nick).Msg(), client_details))
 	_002 := string(helpers.FormatResponse(server_name, "002", client_nick, RPL_YOURHOST("", server_name, server_version).Msg()))
 	_003 := string(helpers.FormatResponse(server_name, "003", client_nick, RPL_CREATED("", server_creation_date).Msg()))

@@ -52,12 +52,12 @@ func ping(c *Client) {
 			pongToken := pong_token[1:]
 			if pongToken != pingToken {
 				log.Warn().EmbedObject(c).Msgf("%s != %s", pongToken, pingToken)
-				(*conn).Close()
+				conn.Close()
 			}
 			// log.Debug().EmbedObject(c).Msgf("PONG successful")
 		case <-time.After(time.Duration(timeout) * duration):
 			log.Info().EmbedObject(c).Msgf("Server never received PONG, closing connection")
-			(*conn).Close()
+			conn.Close()
 		}
 
 		time.Sleep(duration)

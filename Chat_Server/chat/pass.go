@@ -36,7 +36,7 @@ func pass(params map[string]interface{}) Response {
 	}
 
 	conn := client.ClientConn
-	remoteAddr := (*conn).RemoteAddr().String()
+	remoteAddr := conn.RemoteAddr().String()
 	addr, port, err := net.SplitHostPort(remoteAddr)
 	if err != nil {
 		log.Error().Msgf("PASS: Error extracting IP: %s", err)

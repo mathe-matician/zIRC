@@ -393,7 +393,7 @@ func (sm *ServerManager) Run() {
 			continue
 		}
 
-		go handleConnection(&conn, true)
+		go handleConnection(conn, true)
 	}
 }
 

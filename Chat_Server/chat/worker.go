@@ -72,7 +72,7 @@ func (w *Worker) unicast(message_manager *MessageManager, task *Task) {
 		formatMsg := helpers.FormatResponse(task.SenderPrefix, task.Task)
 		g_Server._ServerManager.Route(formatMsg, directRootServer, hopcount)
 	default:
-		c := (*task.ClientConn)
+		c := task.ClientConn
 		log.Debug().Msgf("UNICAST writing task to client(%s): %s", c.RemoteAddr(), task.Task)
 		_, err := c.Write([]byte(task.Task))
 		if helpers.IsNetConnClosedErr(err) {
@@ -114,9 +114,9 @@ func (w *Worker) multicast(message_manager *MessageManager, task *Task) {
 			}
 
 			_src := task.ClientConn
-			src := (*_src).RemoteAddr()
+			src := _src.RemoteAddr()
 			_dest := c.ClientConn
-			dest := (*_dest).RemoteAddr()
+			dest := _dest.RemoteAddr()
 
 			if !(*task).MultiCastSendToSelf && src == dest {
 				log.Debug().EmbedObject(w).Msgf("Not sending to self! src: %s, dest: %s", src, dest)
@@ -130,7 +130,7 @@ func (w *Worker) multicast(message_manager *MessageManager, task *Task) {
 					log.Error().EmbedObject(w).Msg("Client connection is nil!!")
 					continue
 				}
-				conn := *(c.ClientConn)
+				conn := c.ClientConn
 				// TODO
 				// 0 in the command below should be the COMMAND that was sent
 				// e.g. PRIVMSG, JOIN, PING
@@ -158,7 +158,7 @@ func (w *Worker) multicast(message_manager *MessageManager, task *Task) {
 
 		if target.server == g_Server.DnsName {
 			// target is on this server so write directly to this client
-			conn := *(target.ClientConn)
+			conn := target.ClientConn
 			_, err := conn.Write([]byte(task.Task))
 			if helpers.IsNetConnClosedErr(err) {
 				// TODO

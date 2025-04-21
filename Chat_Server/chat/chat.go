@@ -88,7 +88,7 @@ func ProcessMessage(trimmed_msg string, client *Client) []byte {
 			// if the server doesn't exist in the routing table, this isn't a valid server
 			// TODO
 			// is there a race condition here?
-			(*client.ClientConn).Close()
+			client.ClientConn.Close()
 			return []byte("")
 		}
 

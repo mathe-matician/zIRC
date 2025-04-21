@@ -42,8 +42,8 @@ type MockAddr struct {
 	Port string
 }
 
-func (ma *MockAddr) Network() {}
-func (ma *MockAddr) String() string {
+func (ma MockAddr) Network() string { return "" }
+func (ma MockAddr) String() string {
 	return ma.Ip + ":" + ma.Port
 }
 
@@ -51,14 +51,14 @@ type MockConn struct {
 }
 
 // ensure the MockConn implements the Conn interface
-func (mc *MockConn) Read(b []byte) (n int, err error)   { return 0, nil }
-func (mc *MockConn) Write(b []byte) (n int, err error)  { return 0, nil }
-func (mc *MockConn) Close() error                       { return nil }
-func (mc *MockConn) SetDeadline(t time.Time) error      { return nil }
-func (mc *MockConn) SetReadDeadline(t time.Time) error  { return nil }
-func (mc *MockConn) SetWriteDeadline(t time.Time) error { return nil }
-func (mc *MockConn) LocalAddr() MockAddr                { return MockAddr{} }
-func (mc *MockConn) RemoteAddr() MockAddr {
+func (mc MockConn) Read(b []byte) (n int, err error)   { return 0, nil }
+func (mc MockConn) Write(b []byte) (n int, err error)  { return 0, nil }
+func (mc MockConn) Close() error                       { return nil }
+func (mc MockConn) SetDeadline(t time.Time) error      { return nil }
+func (mc MockConn) SetReadDeadline(t time.Time) error  { return nil }
+func (mc MockConn) SetWriteDeadline(t time.Time) error { return nil }
+func (mc MockConn) LocalAddr() net.Addr                { return MockAddr{} }
+func (mc MockConn) RemoteAddr() net.Addr {
 	return MockAddr{
 		"127.0.0.1",
 		"666",
