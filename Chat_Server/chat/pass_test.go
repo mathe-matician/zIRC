@@ -89,4 +89,25 @@ func TestPASS_Server(t *testing.T) {
 			t.Errorf("unexpected code:\nwant: '%s'\ngot: '%s'", wantCode, got)
 		}
 	})
+
+	g_Server._ServerManager.AddToServerIpWhiteList("127.0.0.1", "")
+
+	t.Run("Test 2: default s2s password", func(t *testing.T) {
+		got := cmd.Fn(cmd_param_slice)
+		want := "" // empty response
+
+		if want != got.Msg() {
+			t.Errorf("unexpected response:\nwant: '%s'\ngot: '%s'", want, got)
+		}
+	})
+
+	t.Run("Test 3: s2s password config doesn't exist", func(t *testing.T) {
+		G_Config.S2S.Password_file = ""
+		got := cmd.Fn(cmd_param_slice)
+		want := "" // empty response
+
+		if want != got.Msg() {
+			t.Errorf("unexpected response:\nwant: '%s'\ngot: '%s'", want, got)
+		}
+	})
 }
