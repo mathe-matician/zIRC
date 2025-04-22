@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	S2S_PASS_ARG_COUNT = 1
+	S2S_PASS_ARG_COUNT = 2
 )
 
 // pass - Used to set a connection password before registration.
