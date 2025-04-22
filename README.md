@@ -37,6 +37,12 @@ There are two ways to test against the zirc server:
 
 Both are useful for various reasons. The only existing IRC client zirc has been tested with is [Halloy](https://halloy.squidowl.org/index.html).
 
+Another useful way to test is to use both clients. For example:
+1. Start the chat server
+2. Start the "Test cli client". Register and join a channel, e.g. `JOIN #general`
+3. Start the "Halloy" client and see that `#general` exists. Join it and start chatting with the existing user
+4. Send `PRIVMSG` between both clients and see that it works
+
 ### Halloy
 
 To [configure](https://halloy.squidowl.org/configuration/index.html) Halloy to work locally with zirc, set this in your Halloy configuration `config.toml`: 

@@ -174,5 +174,11 @@ func TestPASS_Server(t *testing.T) {
 		if want != got.Msg() {
 			t.Errorf("unexpected response:\nwant: '%s'\ngot: '%s'", want, got)
 		}
+
+		gotState := client.GetState("server_password")
+		wantState := "accepted"
+		if wantState != gotState {
+			t.Errorf("unexpected response:\nwant: '%s'\ngot: '%s'", want, got)
+		}
 	})
 }
