@@ -1,0 +1,10 @@
+services:
+  zirc_chat_server:
+    build:
+      target: dev
+    ports:
+      - 4000:4000 # debugger port
+
+  zirc_animalhouse:
+    build:
+      target: dev

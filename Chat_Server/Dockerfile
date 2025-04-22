@@ -1,4 +1,4 @@
-FROM golang:1.22.5-bookworm AS builder
+FROM golang:1.24.2 AS builder
 
 WORKDIR /chat_server
 
@@ -18,11 +18,21 @@ COPY config.yaml config.yaml
 
 RUN go build zirc
 
-FROM debian:bookworm-slim
+FROM golang:1.24.2 AS dev
 
 RUN set -x && apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
     ca-certificates && \
     rm -rf /var/lib/apt/lists/*
+
+RUN go install github.com/go-delve/delve/cmd/dlv@latest
+
+COPY --from=builder /chat_server/zirc /chat_server/zirc
+COPY --from=builder /chat_server/s2s_config.yaml /chat_server/s2s_config.yaml
+COPY --from=builder /chat_server/config.yaml /chat_server/config.yaml
+
+CMD [ "/go/bin/dlv", "--listen=:4000", "--headless=true", "--log=true", "--accept-multiclient", "--api-version=2", "exec", "/chat_server/zirc" ]
+
+FROM scratch AS prod
 
 COPY --from=builder /chat_server/zirc /chat_server/zirc
 COPY --from=builder /chat_server/s2s_config.yaml /chat_server/s2s_config.yaml
