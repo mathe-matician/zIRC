@@ -116,8 +116,8 @@ func user(params map[string]interface{}) Response {
 		client_details := fmt.Sprintf("%s@%s!%s", client_nick, client.User(), client.Ip())
 
 		log.Info().Msg("Before accessing ClientMap...")
-		svr_mang := g_Server._MessageManager
-		clint_map := svr_mang.ClientMap
+		msg_mang := g_Server._MessageManager
+		clint_map := msg_mang.ClientMap
 		(*clint_map)[client_nick] = client
 
 		responses := WELCOME_WRAPPER(
