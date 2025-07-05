@@ -35,7 +35,7 @@ There are two ways to test against the zirc server:
 1. With an existing IRC client
 2. With the test client
 
-Both are useful for various reasons. The only existing IRC client zirc has been tested with is [Halloy](https://halloy.squidowl.org/index.html).
+Both are useful for various reasons. Using any existing client should work as the server is compliant with the protocol - but it may be worth mentioning I've only tested it with [Halloy](https://halloy.squidowl.org/index.html) and [Emacs IRC client](https://www.gnu.org/software/emacs/erc.html)
 
 Another useful way to test is to use both clients. For example:
 1. Start the chat server
