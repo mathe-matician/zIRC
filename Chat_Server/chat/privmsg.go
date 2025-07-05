@@ -126,7 +126,7 @@ func privmsg(params map[string]interface{}) Response {
 		var dest *Client
 		var remoteServerTask Target
 		if clientServer == g_Server.DnsName {
-			dest := g_Server._MessageManager.GetClientByNick(target)
+			dest = g_Server._MessageManager.GetClientByNick(target)
 			if dest == nil {
 				return ERR_NOSUCHNICK("")
 			}
