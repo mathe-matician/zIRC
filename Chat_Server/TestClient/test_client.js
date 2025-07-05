@@ -3,6 +3,28 @@ const net = require('node:net');
 const fs = require('node:fs');
 const readline = require("readline");
 
+const { parseArgs } = require('node:util');
+
+const { values, positionals } = parseArgs({
+  args: process.argv.slice(2),
+  options: {
+    connect: {
+      type: 'boolean',
+      short: 'c',
+      default: false,
+    },
+    nick: {
+      type: 'string',
+      short: 'n',
+    },
+    user: {
+      type: 'string',
+      short: 'u',
+    },
+  },
+  allowPositionals: true,
+});
+
 let nickname;
 let port = "6667";
 let host = "127.0.0.1";
@@ -31,7 +53,7 @@ console.log(`//// \tconnect: Connects to IRC server`);
 console.log(`/////////////////////////////////////////////////////////////////////////////////////\n\n`);
 const reader = readline.createInterface({ input: process.stdin });
   reader.on("line", (line) => {
-    if (line === "connect") {
+    if (line === "connect" && !values.connect) {
       Connect();
     } else if (line.includes("test_mode")) {
       // console.log(`Line includes test_mode: ${line}`)
@@ -120,4 +142,12 @@ const Connect = () => {
   client.on('end', (data) => {
     console.log(`Server terminated connection`);
   });
+}
+
+if (values.connect) {
+  Connect();
+  if (values.nick && values.user) {
+    client.write(`NICK ${values.nick} \r\n`)
+    client.write(`USER ${values.user} \r\n`)
+  }
 }
