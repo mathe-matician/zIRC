@@ -30,7 +30,8 @@ COPY --from=builder /chat_server/zirc /chat_server/zirc
 COPY --from=builder /chat_server/s2s_config.yaml /chat_server/s2s_config.yaml
 COPY --from=builder /chat_server/config.yaml /chat_server/config.yaml
 
-CMD [ "/go/bin/dlv", "--listen=:4000", "--headless=true", "--log=true", "--accept-multiclient", "--api-version=2", "exec", "/chat_server/zirc" ]
+# CMD [ "/go/bin/dlv", "--listen=:4000", "--headless=true", "--log=true", "--accept-multiclient", "--api-version=2", "exec", "/chat_server/zirc" ]
+CMD ["/chat_server/zirc"]
 
 FROM scratch AS prod
 
