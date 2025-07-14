@@ -1,14 +1,32 @@
 # Secrets
 
-All secrets are bcrypt hashes.
+All secrets are bcrypt hashes and generally can be read through the files in this directory.
 
-## S2S
+## Fallbacks
 
-1. Add file here with secret value
+File secrets are the default, but the config code will fall back to trying to find the secrets via env vars if the file doesn't exist via:
+- `IRC_S2S_PASSWORD`
+- `IRC_SERVER_PASSWORD`
+- `IRC_DB_PASSWORD`
 
-2. Open the server's S2S config file. E.g. the main server uses `s2s_config.yaml`, while the `animalhouse` test server uses `animalhouse_s2s_config.yaml`. This similar type of configuration can be replicated any number of times to be used with any arbitrary number of servers. The server finds this config file via the path set in the env var `IRC_S2S_CONFIG_FILE` or will default to the path `/chat_server/s2s_config.yaml`.
+## Types
 
-3. Add servers to the config file. The file consists of yaml array items found at the root indentation level.
+### S2S
+
+It is **highly recommended** that your server has a password for S2S communication. Otherwise any client would be able to send commands to the S2S port. There are additional layers of security which would probably prevent anything from happening (IP whitelisting, code that checks if `isServer` flag is set), but you should still add one in production.
+
+#### Steps
+
+1. Ensure the server you plan to connect to has its password set accordingly. This password can be set via:
+
+   - The `s2s.password_file` key in `config.yaml`. This is the path to the secret file. This is the default method.
+   - `IRC_S2S_PASSWORD` env variable.
+
+2. Add file here with secret value
+
+3. Open the server's S2S config file. E.g. the main server uses `s2s_config.yaml`, while the `animalhouse` test server uses `animalhouse_s2s_config.yaml`. This similar type of configuration can be replicated any number of times to be used with any arbitrary number of servers. The server finds this config file via the path set in the env var `IRC_S2S_CONFIG_FILE` or will default to the path `/chat_server/s2s_config.yaml`.
+
+4. Add servers to the config file. The file consists of yaml array items found at the root indentation level.
 
 ```yaml
 - host: "zirc_animalhouse"
