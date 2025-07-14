@@ -283,40 +283,40 @@ func parseTags(v interface{}) error {
 
 // Reload reloads the the Config struct dynamically
 // by calling load_config again
-func (c Config) Reload() {
-	err := LoadConfig()
-	if err != nil {
-		panic(err)
-	}
-}
+// func (c Config) Reload() {
+// 	_, err := LoadConfig()
+// 	if err != nil {
+// 		panic(err)
+// 	}
+// }
 
 var G_Config Config
 
 // load_config reads a config file from disk
 // and populates the Config struct
-func LoadConfig() error {
+func LoadConfig() (*Config, error) {
 	config_path := helpers.GetEnv("CONFIG_FILE", "/chat_server/config.yaml")
 	config_data, err := os.ReadFile(config_path)
 	if err != nil {
 		log.Error().Msgf("Error reading config file %v", err)
-		return err
+		return nil, err
 	}
 
 	err = yaml.Unmarshal([]byte(config_data), &G_Config)
 	if err != nil {
 		log.Error().Msgf("Couldn't unmarshal config: %v", err)
-		return err
+		return nil, err
 	}
 
 	err = parseTags(&G_Config)
 	if err != nil {
 		log.Error().Msg(err.Error())
-		return err
+		return nil, err
 	}
 
 	// TODO
-	// redact sensitive configurations
+	// redact sensitive configurations if loglevel needs to be Info
 	// overriding String() doesn't seem to work for whatever reason
-	log.Info().Msgf("Successfully loaded config: %+v", G_Config)
-	return nil
+	log.Debug().Msgf("Successfully loaded config: %+v", G_Config)
+	return &G_Config, nil
 }

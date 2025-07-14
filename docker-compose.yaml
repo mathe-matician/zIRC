@@ -56,6 +56,7 @@ services:
   zirc_db:
     image: postgres:17
     container_name: zirc_db
+    pull_policy: missing
     environment:
       - PGUSER=postgres
       - PGPASSWORD=password

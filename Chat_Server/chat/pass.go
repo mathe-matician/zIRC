@@ -60,8 +60,7 @@ func pass(params map[string]interface{}) Response {
 		// we should still do something with the extra args?
 		if len(s2s_password) == 0 {
 			// ignore the PASS command when no password is configured
-			// this SHOULDNT happen with s2s, but possible when testing
-			log.Warn().Msgf("PASS(s2s): S2S password not set! This is highly irregular!!")
+			log.Warn().Msgf("PASS(s2s): S2S password not set! Any server can connect to me if whitelisted.")
 			return EMPTY_RESPONSE()
 		}
 

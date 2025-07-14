@@ -54,7 +54,7 @@ db:
   healthcheck_interval: 2
 
 s2s:
-  password_file: ""
+  # password_file: "/run/secrets/s2s_password"
   port: "7000"
   tls_port: "7001"
   enable_tls: false

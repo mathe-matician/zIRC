@@ -42,9 +42,12 @@ func NewMessageManager(client_list *[]*Client, server_list *[]*IrcServer) *Messa
 		ClientMap:    &client_map,
 		ServerList:   server_list,
 		ChannelMap:   &channel_list,
-		WorkerPool:   make(map[string]*Worker), // TODO - do we even need to keep track of workers in the pool? !only if we want to scale them down by name - otherwise sending 'quit' to any arbitrary worker will kill it
+		WorkerPool:   make(map[string]*Worker), // TODO - do we even need to keep track of workers?
 	}
 
+	// TODO
+	// refactor this to not have a static go routine worker count, but just run tasks in go routines
+	// go routines are cheap
 	for range init_worker_count {
 		w := NewWorker()
 		sm.WorkerPool[w.id.String()] = w
@@ -73,6 +76,10 @@ func (sm *MessageManager) Run() {
 	}
 }
 
+func (sm *MessageManager) AddServer(server *IrcServer) {
+	*sm.ServerList = append(*sm.ServerList, server)
+}
+
 // TODO - is this fn even needed?
 func (sm *MessageManager) StartTask(task string, client_chan chan string) {
 	if len(task) == 0 {
@@ -99,65 +106,6 @@ func (sm *MessageManager) StartTask(task string, client_chan chan string) {
 	}
 
 	log.Debug().Msgf("Lowest worker: %s, count: %d", lowest_worker, lowest_count)
-}
-
-// TODO
-// this is NOT functional
-// ScaleWorkerPool allows the message_manager to increase or delete workers from the pool
-// if force is true, delete the workers immediately
-// MUST be run in a go routine
-func (sm *MessageManager) ScaleWorkerPool(by int, force bool) {
-	if sm.decreasing_workers {
-		log.Info().Msg("In the process of decreasing worker count")
-		return
-	}
-
-	if by == 0 {
-		log.Info().Msg("Must pass a number to increase or decrease by")
-		return
-	}
-
-	if by > 0 {
-		for range by {
-			w := NewWorker()
-			sm.WorkerPool[w.id.String()] = w
-		}
-	} else {
-		worker_pool_len := len(sm.WorkerPool)
-		if by > worker_pool_len {
-			by = worker_pool_len
-		}
-
-		// run decrease workers
-		sm.decreasing_workers = true
-		decrease_by := by
-		wrkrs := make([]string, 0)
-
-		// TODO - make this smarter instead of taking the first x
-		for _, v := range sm.WorkerPool {
-			if decrease_by == 0 {
-				break
-			}
-			v.frozen = true
-			wrkrs = append(wrkrs, v.id.String())
-		}
-
-		for {
-			// TODO - wait for these workers to terminate
-			for _, w := range wrkrs {
-				if force {
-					// TODO - check if this value is in the map
-					sm.WorkerPool[w] = nil
-				}
-
-				// else wait for work to decrease to 0 then "delete" the worker
-			}
-
-			break
-		}
-
-		sm.decreasing_workers = false
-	}
 }
 
 func (sm *MessageManager) GetClientByNick(nick string) *Client {

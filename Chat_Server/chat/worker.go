@@ -84,12 +84,16 @@ func (w *Worker) unicast(message_manager *MessageManager, task *Task) {
 }
 
 // broadcast is generally reserved for server to server communication
+// e.g. think of of broadcast as a broadcast message to clients
+//
+//	not s2s communication
 func (w *Worker) broadcast(message_manager *MessageManager, task *Task) {
 	// e.g. broadcast to all other servers that
 	// :ServerA NICK zach 1691000000
 
 }
 
+// multicast is used for sending multicast messages to clients
 func (w *Worker) multicast(message_manager *MessageManager, task *Task) {
 	if task == nil {
 		log.Debug().EmbedObject(w).Msgf("Multicast task is nil!")
@@ -177,9 +181,39 @@ func (w *Worker) multicast(message_manager *MessageManager, task *Task) {
 	}
 }
 
+func (w *Worker) s2s_comm(message_manager *MessageManager, task *Task) {
+	// _target := task.Target
+	// var target *IrcServer
+
+	// TODO
+	// this actually isn't a type IrcServer I don't think so during initial conneciton?
+	// I think it is a Client
+
+	// switch _target.(type) {
+	// case *IrcServer:
+	// 	target = _target.(*IrcServer)
+	// default:
+	// 	log.Error().Msgf("Invalid task target '%s' for s2s communication", _target)
+	// 	return
+	// }
+
+	// TODO
+	// I think we need to persist this connection? I don't think that is happening
+
+	c := task.ClientConn
+	log.Info().EmbedObject(w).Msgf("Tasks received")
+	_, err := c.Write([]byte(task.Task))
+	if helpers.IsNetConnClosedErr(err) {
+		// TODO
+		// clean up closed connection!!
+		log.Error().Msgf("SERVER(s2s_comm): trying to write to closed Client Conn %s", err.Error())
+		return
+	}
+}
+
 // Work
 //
-//	job: jobs received from the MessageManager
+//	tasks: tasks received from the MessageManager or any other ad-hoc task via certain commands or s2s communication
 //	results: any results that are returned back to the MessageManager can be sent back to the client if needed
 //
 // TODO - this func may only need the MessageManager's ClientList and ServerList
@@ -229,15 +263,16 @@ func (w *Worker) Work(tasks chan []*Task, results chan string, message_manager *
 					//			it broadcasts to all other servers that this client exists on this server
 					w.broadcast(message_manager, task)
 				} else if task.Type == SERVER {
+					// TODO
+					// there may be a requirement to differentiate between:
+					// CLIENT
+					//   UNICAST
+					//   MULTICAST
+					// SERVER
+					//   UNICAST
+					//   MULTICAST
 					log.Debug().Msgf("%s task", SERVER)
-					// split_task := strings.Split(task.Task, " ")
-
-					// _, ok := workerActionMap[split_task[0]][split_task[1]]
-					// if !ok {
-					// 	log.Debug().Msgf("Not a valid worker action")
-					// 	continue
-					// }
-
+					w.s2s_comm(message_manager, task)
 				} else {
 					log.Warn().Msgf("Unknown task type: %s", task.Type)
 

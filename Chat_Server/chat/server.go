@@ -15,6 +15,7 @@ import (
 	"zirc/helpers"
 	rc "zirc/remote_conn"
 
+	"github.com/google/uuid"
 	"github.com/phuslu/log"
 )
 
@@ -34,12 +35,16 @@ type Status struct {
 }
 
 type IrcServer struct {
+	SID             uuid.UUID
 	DnsName         string
 	Version         string
 	CreationDate    time.Time
 	Addr            string
 	Role            string
+	Description     string
+	HopCount        int
 	Listener        *net.Listener
+	Conn            net.Conn // conn is used to keep track of s2s connections mostly
 	_MessageManager *MessageManager
 	_ServerManager  *ServerManager
 	RoutingTable    *RoutingTable
@@ -62,19 +67,8 @@ type IrcServer struct {
 
 // }
 
-func NewIrcServer(dns_name string, version string, addr string, server_role string, server_list *[]*IrcServer, client_list *[]*Client, config *map[string]string) *IrcServer {
-	if len(dns_name) == 0 {
-		dns_name = G_Config.Server.Dns_name
-	}
-
-	if len(version) == 0 {
-		version = G_Config.Server.Server_version
-	}
-
-	if len(server_role) == 0 {
-		server_role = G_Config.Server.Server_role
-	}
-	err := helpers.VerifyServerMode(server_role)
+func NewIrcServer(cfg *Config, hop_count int, server_list *[]*IrcServer, client_list *[]*Client, config *map[string]string) *IrcServer {
+	err := helpers.VerifyServerMode(cfg.Server.Server_role)
 	if err != nil {
 		log.Error().Msg(err.Error())
 		panic(err.Error())
@@ -90,24 +84,22 @@ func NewIrcServer(dns_name string, version string, addr string, server_role stri
 		client_list = &cl
 	}
 
-	enable_tls := G_Config.Server.Enable_tls
+	enable_tls := cfg.Server.Enable_tls
 
-	port := G_Config.Server.Port
+	port := cfg.Server.Port
 	if enable_tls {
-		port = G_Config.Server.Tls_port
+		port = cfg.Server.Tls_port
 	}
 
-	if len(addr) == 0 {
-		addr = G_Config.Server.Host + ":" + port
-	}
+	addr := cfg.Server.Host + ":" + port
 
 	if config == nil {
 		conf := map[string]string{
-			"MAX_BUFFER_SIZE":       strconv.Itoa(G_Config.Server.Max_buffer_size),
-			"IRC_MAX_USER_CHANNELS": strconv.Itoa(G_Config.Server.Max_user_channels),
-			"IRC_USER_MODES":        G_Config.Server.User_modes,
-			"IRC_CHANNEL_MODES":     G_Config.Server.Channel_modes,
-			"CAPABILITIES":          G_Config.Server.Capabilities,
+			"MAX_BUFFER_SIZE":       strconv.Itoa(cfg.Server.Max_buffer_size),
+			"IRC_MAX_USER_CHANNELS": strconv.Itoa(cfg.Server.Max_user_channels),
+			"IRC_USER_MODES":        cfg.Server.User_modes,
+			"IRC_CHANNEL_MODES":     cfg.Server.Channel_modes,
+			"CAPABILITIES":          cfg.Server.Capabilities,
 		}
 		config = &conf
 	}
@@ -126,12 +118,21 @@ func NewIrcServer(dns_name string, version string, addr string, server_role stri
 		now.Location(),
 	)
 
+	uuid, err := uuid.NewV7()
+	if err != nil {
+		log.Error().Msgf("NewClient: Error generating uuid %s", err.Error())
+		return nil
+	}
+
 	g_Server = &IrcServer{
-		DnsName:         dns_name,
-		Version:         version,
+		SID:             uuid,
+		DnsName:         cfg.Server.Dns_name,
+		Version:         cfg.Server.Server_version,
 		CreationDate:    creation_date_time,
 		Addr:            addr,
-		Role:            server_role,
+		Role:            cfg.Server.Server_role,
+		Description:     cfg.Server.Server_description,
+		HopCount:        0, // hopcount for self always == 0
 		Listener:        nil,
 		_MessageManager: nil,
 		_ServerManager:  nil,
@@ -143,7 +144,7 @@ func NewIrcServer(dns_name string, version string, addr string, server_role stri
 	}
 
 	s_manager := NewMessageManager(&g_Server.Clients, &g_Server.Servers)
-	s_manager.Name = dns_name
+	s_manager.Name = cfg.Server.Dns_name
 	g_Server._MessageManager = s_manager
 
 	server_manager := NewServerManager(nil)
@@ -190,6 +191,25 @@ func GetTCPListener(enable_tls bool, tls_cert_path, tls_key_path, tls_port, irc_
 		}
 	}
 	return ln
+}
+
+// GetServerByConn finds a IrcServer in this server's server list by a net.Conn interface
+func (is *IrcServer) GetServerByConn(c net.Conn) *IrcServer {
+	for _, svr := range is.Servers {
+		if svr.Conn == c {
+			return svr
+		}
+	}
+
+	return nil
+}
+
+// satisfy the Target interface to be used to identify this struct type during
+// s2s communication in worker.go
+func (is *IrcServer) IsTarget() {}
+
+func (is *IrcServer) MarshalObject(e *log.Entry) {
+	e.Str("dns", is.DnsName).Str("version", is.Version).Str("addr", is.Addr)
 }
 
 func (is *IrcServer) ComponentsReady() bool {
@@ -343,16 +363,19 @@ func handleConnection(conn net.Conn, isServer bool) {
 		max_buffer_size = 8192
 	}
 
+	log.Debug().EmbedObject(client).Msg("Starting forever loop for client")
 	for {
 		connBuffReader := bufio.NewReaderSize(conn, max_buffer_size)
 		recv_buf := make([]byte, max_buffer_size)
-		_, err := connBuffReader.Read(recv_buf) // also ReadString('\n') but has too many edge cases
+		byteCount, err := connBuffReader.Read(recv_buf) // also ReadString('\n') but has too many edge cases
 
-		// OLD
+		log.Debug().EmbedObject(client).Msgf("After connBuffReader. Read %v bytes", byteCount)
+		// OLD (keeping around just in case i need it)
 		// block on read until the buffer has at least 1 byte.
 		// just a hacky way for this to block as Read() doesn't block on its own
 		// _, err := io.ReadAtLeast((*conn), recv_buf, 1)
 		if err != nil {
+			log.Error().EmbedObject(client).Msgf("ERR: %v", err.Error())
 			if err == io.EOF {
 				end_timestamp, err := client.SetSessionEndTimestamp()
 				if err != nil {

@@ -61,11 +61,29 @@ func TestPASS_Server(t *testing.T) {
 	t.Setenv("IRC_S2S_CONFIG_FILE", "")
 	// TODO
 	// servermanagerconfig throws an error here because it is trying to read the s2s config even though it _should_ be empty
+
+	// TODO
+	// was in the middle of refactoring NewIrcServer to get a *Config object
+	// then use that. how does that impact this test? what needs to change
+	// can we also make NewIrcServer work with:
+	//   1. real code (current server)
+	//   2. unittests
+	//   3. internal representation of conected servers
+	cfg, err := LoadConfig()
+	if err != nil {
+		t.Errorf("err loading config: %s", err.Error())
+	}
+
+	cfg.Server.Dns_name = "zirc-test.com"
+	cfg.Server.Server_version = "vtest"
+	cfg.Server.Host = "127.0.0.1"
+	cfg.Server.Port = "6677"
+	cfg.Server.Server_role = "leaf"
+	cfg.Server.Server_description = "a test irc server"
+
 	is := NewIrcServer(
-		"zirc-test.com",
-		"vtest",
-		"127.0.0.1:6677",
-		"leaf",
+		cfg,
+		0,
 		nil,
 		nil,
 		nil,

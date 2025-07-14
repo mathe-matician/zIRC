@@ -61,6 +61,21 @@ func (rt *RoutingTable) GetServer(server string) (string, int, error) {
 	return next, hopcount, nil
 }
 
+func HopCount(server string, routeTable *RoutingTable) (int, error) {
+	next := server
+	var ok bool
+	hopcount := 1
+	log.Debug().Msgf("Routing Table: getting server: %s", server)
+	for next != "direct" {
+		next, ok = routeTable.Servers[next]
+		if !ok {
+			return -1, errors.New("server not in routing table")
+		}
+		hopcount++
+	}
+	return hopcount, nil
+}
+
 // handles msgs
 func (rt *RoutingTable) EventListener() {
 

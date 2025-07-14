@@ -28,6 +28,7 @@ var server_manager_commands = map[string]Command{
 	"BURST":    *NewCommand(not_implemented, map[string]string{"cap_req": "sasl"}, true),
 	"ENDBURST": *NewCommand(not_implemented, map[string]string{"cap_req": "sasl"}, true),
 	"EUID":     *NewCommand(not_implemented, map[string]string{"cap_req": "sasl"}, true),
+	"SID":      *NewCommand(not_implemented, map[string]string{"cap_req": "sasl"}, true), // SID irc.example.com 1 ABC :Example IRC Server
 	//	b. BURST / EUID (IRCv3)
 	//
 	// Purpose: Synchronize state after a netsplit or during initial connection.
@@ -81,7 +82,7 @@ func NewServerManager(server_manager_config *ServerManagerConfig) *ServerManager
 		config_path := helpers.GetEnv("IRC_S2S_CONFIG_FILE", "/chat_server/s2s_config.yaml")
 		server_manager_config = NewServerManagerConfig(config_path)
 	}
-	log.Debug().Msgf("Serverlist: %v", server_manager_config.ServerList)
+	log.Debug().Msgf("Init Serverlist to connect to: %v", server_manager_config.ServerList)
 	sm := ServerManager{
 		Addr:              G_Config.S2S.Port,
 		Config:            server_manager_config,
@@ -103,6 +104,7 @@ func NewServerManager(server_manager_config *ServerManagerConfig) *ServerManager
 				// TODO
 				// need to account for race condition here
 				// g_Server.WaitForComponentsReady()
+
 				go Connect(server)
 			}
 		}
@@ -142,8 +144,8 @@ func Connect(connection ServerConnection) {
 	// - network paths to reach other servers
 	// e.g.
 	//       A -- B -- C
-	//			  |
-	//			  D
+	//	      |
+	//	      D
 	// When B connects to A, it says "I'm connced to C and D"
 	// A could then hold:
 	// []Servers{
@@ -168,6 +170,11 @@ func Connect(connection ServerConnection) {
 	// TOPIC (Sync channel topics)
 	// SJOIN (If using TS6)
 	// ENDBURST (If required)
+
+	// TODO
+	// test to
+	time.Sleep(3 * time.Second)
+
 	connect_start_time := time.Now()
 	log.Debug().Msg("Connect start")
 
@@ -177,17 +184,57 @@ func Connect(connection ServerConnection) {
 		log.Error().Msgf("Failed to connect to server: %s", addr)
 		return
 	}
-	defer conn.Close()
+	// DO NOT defer connection close as these server connections
+	// need to persist and are then stored in this server's server graph
+
+	tasksToDo := make([]*Task, 0)
+	task_runner := g_Server._MessageManager.Task_runner
 
 	CRLF := "\r\n"
 	passFlags := " "
-	pass := fmt.Sprintf("PASS %s %s%s%s", connection.Password, G_Config.Server.Irc_verison, passFlags, CRLF)
+	pass_cmd := fmt.Sprintf("PASS %s %s%s%s", connection.Password, G_Config.Server.Irc_verison, passFlags, CRLF)
+	pass_tsk := NewTask(SERVER, pass_cmd, 0.0, conn, g_Server, true, "")
+	tasksToDo = append(tasksToDo, pass_tsk)
 
-	// TODO
-	// abstract this into its own command
-	// see server_cmd.go
 	hopcount := 1 // hopcount 1 since Connect() will always be a direct connection to another server
-	server := fmt.Sprintf("SERVER %s %d :%s %s", G_Config.Server.Server_name, hopcount, G_Config.Server.Server_description, CRLF)
+	server_cmd := fmt.Sprintf("SERVER %s %d :%s %s", G_Config.Server.Server_name, hopcount, G_Config.Server.Server_description, CRLF)
+	server_cmd_tsk := NewTask(SERVER, server_cmd, 0.0, conn, nil, true, "")
+	log.Debug().Msgf("s2s(CONNECT): sending PASS and SERVER commands")
+	tasksToDo = append(tasksToDo, server_cmd_tsk)
+
+	// Then burst all _KNOWN_ servers via individual SERVER cmds
+	// given E-D-A and B-C
+	// if A connects to B, resulting in E-D-A-B-C
+	// A sends all known servers to B
+	// so A sends 3 SERVER commands:
+	//   - SERVER A 1 :description
+	//	 - SERVER D 2 :description
+	//	 - SERVER E 3 :description
+	// all filled out with their respective hop count
+	// where hopcount is 1-based (not zero)
+
+	if len(g_Server.Servers) != 0 {
+		log.Debug().Msg("BURST existing servers")
+		// race condition here
+		// need to ensure that this server's Server list doesn't contain the server it is trying to connect to
+		for _, server := range g_Server.Servers {
+			srvr_cmd := fmt.Sprintf("SERVER %s %d :%s %s", server.DnsName, server.HopCount+1, server.Description, CRLF)
+			tasksToDo = append(tasksToDo, NewTask(SERVER, srvr_cmd, 0.0, conn, server, true, ""))
+		}
+	}
+
+	// must send all commands together to the task runner as if sent separately
+	// they may be picked up in any order resulting in the receiving server receiving the commands out of order
+	task_runner <- tasksToDo
+
+	/////////////////////////
+	// STEP 3
+	/////////////////////////
+
+	// at this point IF using ts6 (ts6_enabled)
+	// the commands may vary that are sent
+	// e.g. SJOIN and UID via NETBURST
+
 	// netinfo := ":server1.example.com NETINFO 1707500000 1707500001 0 J10 TS6 6 :server1.example.com"
 	// Breakdown:
 	// 	:server1.example.com → The source server sending the NETINFO.
@@ -215,20 +262,20 @@ func Connect(connection ServerConnection) {
 	// 	}
 	// }
 
-	msg := fmt.Sprintf("%s%s", pass, server)
+	// msg := fmt.Sprintf("%s%s", pass_cmd, server_cmd)
 	// burst := ""
 	// sync commands
 	// nick
 	//
 
-	_, err = conn.Write([]byte(msg))
-	if err != nil {
-		log.Error().Msgf("Error writing: %s", err.Error())
-		return
-	}
+	// _, err = conn.Write([]byte(msg))
+	// if err != nil {
+	// 	log.Error().Msgf("Error writing: %s", err.Error())
+	// 	return
+	// }
 
 	connect_end_time := time.Now()
-	log.Debug().Msgf("Server handshake successful. Took: %v", connect_start_time.Sub(connect_end_time))
+	log.Debug().Msgf("Server handshake successful. Took: %v", connect_end_time.Sub(connect_start_time))
 
 	// need to whitelist the IP upon connection for our server connecting to the other
 	// wl := *whiteList

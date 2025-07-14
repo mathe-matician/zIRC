@@ -37,11 +37,11 @@ func main() {
 	// 	},
 	// }
 
-	err := chat.LoadConfig()
+	cfg, err := chat.LoadConfig()
 	if err != nil {
 		panic(err)
 	}
 
-	irc_server := chat.NewIrcServer("", "", "", "", nil, nil, nil)
+	irc_server := chat.NewIrcServer(cfg, 0, nil, nil, nil)
 	irc_server.Run()
 }
