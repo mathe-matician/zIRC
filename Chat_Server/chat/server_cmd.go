@@ -21,7 +21,6 @@ func server(params map[string]interface{}) Response {
 		log.Error().Msg("Client not passed to SERVER command!!")
 		return ERR_UNKNOWNERROR("")
 	}
-	log.Debug().Msg("CMD(SERVER): before client cast...")
 	client := _client.(*Client) // technically a client object, but this is a server connection
 
 	if !client.IsServer {
@@ -43,13 +42,6 @@ func server(params map[string]interface{}) Response {
 	log.Debug().EmbedObject(client).Msgf("CMD(SERVER): args: %v", args)
 
 	split_msg := cmd_re.FindStringSubmatch(args)
-	// something is messed up here with this regex
-	// THis command:
-	// SERVER ZZ.IRC 1 :super fun zzirc server
-	// shows up as this in this log:
-	// ZZ.IRC 1 :super fun zzirc server ZZ.IRC  1 :super fun zzirc server
-	// which then throws off the index parsing of Atoi below
-	log.Debug().EmbedObject(client).Msgf("CMD(SERVER): split_msg: %s", split_msg)
 
 	// required numb of args
 	if len(split_msg) != 3 {
@@ -58,14 +50,7 @@ func server(params map[string]interface{}) Response {
 	}
 
 	serverName := split_msg[1]
-	// STOPPED
-	// ZZ.IRC 1 :super fun zzirc server ZZ.IRC  1 :super fun zzirc server
-	// do I need to rerun FindStringSubmatch multiple times on this to wittle down the args?
-	// still hitting "{"time":"2025-07-13T22:13:03.802Z","level":"error","message":"error converting hopcount to int: strconv.Atoi: parsing \" 1 :super fun zzirc server\": invalid syntax"}"
-	// where strconv.Atoi(split_msg[2]) using index 2
-	// probably print out what each index is
 	_hopCount := cmd_re.FindStringSubmatch(strings.Trim(split_msg[2], " "))
-	log.Debug().EmbedObject(client).Msgf("CMD(SERVER): _hopCount: %s", _hopCount)
 
 	description := cmd_re.FindStringSubmatch(strings.Trim(_hopCount[2], " "))
 
@@ -93,6 +78,7 @@ func server(params map[string]interface{}) Response {
 		g_Server.Servers = append(g_Server.Servers, &newServer)
 	} else {
 		// otherwise this server already exists
+		log.Debug().EmbedObject(client).Msgf("CMD(SERVER): server already exists in list: %v", srvr.DnsName)
 	}
 
 	task_runner := g_Server._MessageManager.Task_runner
@@ -103,11 +89,21 @@ func server(params map[string]interface{}) Response {
 	msg := fmt.Sprintf("SERVER %s %d :%s \r\n", serverName, hopCount, serverDescription)
 
 	for _, server := range g_Server.Servers {
+		log.Debug().EmbedObject(client).Msg("CMD(SERVER): sending my servers!")
 		if server.Conn == client.ClientConn {
 			// do not send this server command back to the same server that just sent it to us to prevent SERVER loops in the graph
+			log.Debug().EmbedObject(client).Msg("CMD(SERVER): skipping server that initiated SERVER cmd...")
 			continue
 		}
 
+		log.Debug().Msgf("Sending: %s to %s", msg, server.DnsName)
+		if server.Conn == nil {
+			log.Error().Msgf("%s connection is nil", msg, server.DnsName)
+			// TODO
+			// clean up conn?
+			// reconnect? idk
+			continue
+		}
 		server_cmd_tsk := NewTask(SERVER, msg, 0.0, server.Conn, nil, true, "")
 		task_runner <- []*Task{
 			server_cmd_tsk,

@@ -29,6 +29,7 @@ var server_manager_commands = map[string]Command{
 	"ENDBURST": *NewCommand(not_implemented, map[string]string{"cap_req": "sasl"}, true),
 	"EUID":     *NewCommand(not_implemented, map[string]string{"cap_req": "sasl"}, true),
 	"SID":      *NewCommand(not_implemented, map[string]string{"cap_req": "sasl"}, true), // SID irc.example.com 1 ABC :Example IRC Server
+	"REHASH":   *NewCommand(not_implemented, map[string]string{"cap_req": "sasl"}, true), // reload config without server restart
 	//	b. BURST / EUID (IRCv3)
 	//
 	// Purpose: Synchronize state after a netsplit or during initial connection.

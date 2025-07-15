@@ -1,7 +1,6 @@
 package chat
 
 import (
-	"bufio"
 	"bytes"
 	"crypto/tls"
 	"errors"
@@ -351,7 +350,9 @@ func handleConnection(conn net.Conn, isServer bool) {
 
 	// add the client to the global client list
 	// log.Info().EmbedObject(client).Msgf("is.Client len before: %d", len(is.Clients))
-	g_Server.Clients = append(g_Server.Clients, client)
+	if !isServer {
+		g_Server.Clients = append(g_Server.Clients, client)
+	}
 	// log.Info().EmbedObject(client).Msgf("is.Client len after: %d", len(is.Clients))
 
 	log.Info().EmbedObject(client).Msgf("Client connected at %s", *session_timestamp)
@@ -365,17 +366,20 @@ func handleConnection(conn net.Conn, isServer bool) {
 
 	log.Debug().EmbedObject(client).Msg("Starting forever loop for client")
 	for {
-		connBuffReader := bufio.NewReaderSize(conn, max_buffer_size)
-		recv_buf := make([]byte, max_buffer_size)
-		byteCount, err := connBuffReader.Read(recv_buf) // also ReadString('\n') but has too many edge cases
+		// connBuffReader := bufio.NewReaderSize(conn, max_buffer_size)
+		// recv_buf := make([]byte, max_buffer_size)
+		// byteCount, err := connBuffReader.Read(recv_buf) // also ReadString('\n') but has too many edge cases
 
-		log.Debug().EmbedObject(client).Msgf("After connBuffReader. Read %v bytes", byteCount)
+		recv_buf := make([]byte, max_buffer_size)
+		byteCount, err := conn.Read(recv_buf) // should block until data comes in
+
+		log.Debug().EmbedObject(client).Msgf("After conn reader. Read %v bytes", byteCount)
 		// OLD (keeping around just in case i need it)
 		// block on read until the buffer has at least 1 byte.
 		// just a hacky way for this to block as Read() doesn't block on its own
 		// _, err := io.ReadAtLeast((*conn), recv_buf, 1)
 		if err != nil {
-			log.Error().EmbedObject(client).Msgf("ERR: %v", err.Error())
+			log.Error().EmbedObject(client).Msgf("handleConnection ERR: %v", err.Error())
 			if err == io.EOF {
 				end_timestamp, err := client.SetSessionEndTimestamp()
 				if err != nil {

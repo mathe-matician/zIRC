@@ -2,7 +2,7 @@ services:
   zirc_chat_server: &server_base
     container_name: zirc_chat_server
     # image: zirc_chat_server
-    env_file: ./Chat_Server/.env
+    # env_file: ./Chat_Server/.env
     build:
       context: ./Chat_Server
       dockerfile: Dockerfile
@@ -22,10 +22,13 @@ services:
 
   # Used as an additional server to test multi-server setup
   zirc_animalhouse:
-    <<: *server_base
     container_name: zirc_animalhouse
+    build:
+      context: ./Chat_Server
+      dockerfile: Dockerfile
     environment:
-      - IRC_SERVER_DNS_NAME=animal-houseIRC.io
+      - IRC_SERVER_DNS_NAME=animalhouseIRC.io
+      - IRC_SERVER_SERVER_NAME=AnimalHouse
       - IRC_S2S_CONFIG_FILE=/chat_server/animalhouse_s2s_config.yaml
     ports:
       - "6600:6667" # irc server
@@ -35,12 +38,38 @@ services:
       - ./Chat_Server/secrets/db_password:/run/secrets/db_password
       - ./Chat_Server/secrets/server_password:/run/secrets/server_password
       - ./Chat_Server/secrets/super_admin_password:/run/secrets/super_admin_password
-      - ./Chat_Server/animalhouse_s2s_config.yaml:/chat_server/animalhouse_s2s_config.yaml
+      - ./Chat_Server/configs/animalhouse_s2s_config.yaml:/chat_server/animalhouse_s2s_config.yaml
     networks:
       zirc_subnet:
         ipv4_address: 172.20.0.6
     profiles:
       - multi
+      - animalhouse
+
+  zirc_zoo:
+    container_name: zirc_zoo
+    build:
+      context: ./Chat_Server
+      dockerfile: Dockerfile
+    environment:
+      - IRC_SERVER_DNS_NAME=zooIRC.chat
+      - IRC_SERVER_SERVER_NAME=ZOO.irc
+      - IRC_S2S_CONFIG_FILE=/chat_server/zoo_s2s_config.yaml
+    ports:
+      - "6601:6667" # irc server
+      - "7071:7000" # server manager
+    volumes:
+      - ./Chat_Server/secrets/s2s_password:/run/secrets/s2s_password
+      - ./Chat_Server/secrets/db_password:/run/secrets/db_password
+      - ./Chat_Server/secrets/server_password:/run/secrets/server_password
+      - ./Chat_Server/secrets/super_admin_password:/run/secrets/super_admin_password
+      - ./Chat_Server/configs/zoo_s2s_config.yaml:/chat_server/zoo_s2s_config.yaml
+    networks:
+      zirc_subnet:
+        ipv4_address: 172.20.0.7
+    profiles:
+      - multi
+      - zoo
 
   zirc_nickserv:
     container_name: zirc_nickserv

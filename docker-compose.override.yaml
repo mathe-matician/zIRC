@@ -8,3 +8,7 @@ services:
   zirc_animalhouse:
     build:
       target: dev
+
+  zirc_zoo:
+    build:
+      target: dev

@@ -148,6 +148,7 @@ func parseTags(v interface{}) error {
 						// envVarName := strings.ToUpper(envVarPrefix + parentStructName + "_" + field.Name[:i])
 						log.Warn().Msgf("Config tried reading secret from file %s, but failed... attempting to get env var %s", strValue, envVarName)
 						envVar := os.Getenv(envVarName)
+						log.Debug().Msgf("Secret Env var %s == %s", envVarName, envVar)
 
 						if envVar == "" {
 							log.Error().Msgf("Config couldnt find value for %s", field.Name)
@@ -165,17 +166,27 @@ func parseTags(v interface{}) error {
 						fieldValue.SetString(secret)
 					}
 				} else {
-					if fieldValue.String() == "" {
-						envVarName := convertToEnvName(field.Name, parentStructName, false)
-						log.Warn().Msgf("Config tried reading %s from config, but failed... attempting to get env var", envVarName)
-						envVar := os.Getenv(envVarName)
+					// if fieldValue.String() == "" {
+					// 	envVarName := convertToEnvName(field.Name, parentStructName, false)
+					// 	log.Warn().Msgf("Config tried reading %s from config, but failed... attempting to get env var", envVarName)
+					// 	envVar := os.Getenv(envVarName)
+					// 	log.Debug().Msgf("Env var %s == %s", envVarName, envVar)
 
-						if envVar == "" {
-							log.Error().Msgf("Config couldn't find value for %s", field.Name)
-							// TODO
-							// check if it is required and fail if it is
-							// return fmt.Errorf("%s field is required", field.Name)
-						}
+					// 	if envVar == "" {
+					// 		log.Warn().Msgf("Config couldn't find value for %s", field.Name)
+					// 		// TODO
+					// 		// check if it is required and fail if it is
+					// 		// return fmt.Errorf("%s field is required", field.Name)
+					// 	}
+					// }
+					envVarName := convertToEnvName(field.Name, parentStructName, false)
+					envVar := os.Getenv(envVarName)
+					if envVar != "" {
+						// TODO
+						// set specific value type of fieldvalue.Kind()
+						// right now we only set type string
+						log.Debug().Msgf("Using envvar override %s = %s", envVarName, envVar)
+						fieldValue.SetString(envVar)
 					}
 				}
 
@@ -209,75 +220,6 @@ func parseTags(v interface{}) error {
 		// handle non struct config values
 		// i.e. top level keys that aren't structs (don't _have_ to, can just force it to be all nested)
 	}
-
-	// for i := 0; i < t.NumField(); i++ {
-	// 	field := t.Field(i)
-	// 	tag := field.Tag.Get("validate")
-	// 	defaultTagValue := field.Tag.Get("default")
-
-	// 	fieldValue := value.Field(i)
-
-	// 	if tag == "secret" && strings.Contains(field.Name, "_file") {
-	// 		// Check if the field is a settable string
-	// 		if fieldValue.Kind() != reflect.String || !fieldValue.CanSet() {
-	// 			return fmt.Errorf("%s field must be a settable string", field.Name)
-	// 		}
-
-	// 		strValue := fieldValue.String()
-	// 		log.Debug().Msgf("Reading secret from file %s", strValue)
-
-	// 		secret_dir := helpers.GetEnv("SECRET_BASE_PATH", "/run/secrets")
-	// 		secret_path := path.Join(secret_dir, strValue)
-	// 		log.Info().Msgf("Searching for secret at path: %s", secret_path)
-	// 		_secret, err := os.ReadFile(secret_path)
-	// 		secret := strings.TrimSuffix(string(_secret), "\n")
-
-	// 		if err != nil || len(secret) == 0 {
-	// 			log.Warn().Msgf("Config tried reading secret %s from file, but failed... attempting to get env var", field.Name)
-
-	// 			// Fallback: Try getting from env variable
-	// 			i := strings.Index(field.Name, "_file")
-	// 			envVar := os.Getenv(strings.ToUpper(field.Name[:i]))
-	// 			if envVar == "" {
-	// 				log.Error().Msgf("Config couldn't find value for %s", field.Name)
-	// 				// return fmt.Errorf("%s field is required", field.Name)
-	// 			}
-
-	// 			// TODO
-	// 			// can we just fall back to the default?
-	// 			// Assign environment variable to field
-	// 			fieldValue.SetString(envVar)
-	// 		} else {
-	// 			// Assign file content to field
-	// 			fieldValue.SetString(secret)
-	// 		}
-	// 	}
-
-	// 	if value.Field(i).String() == "" && defaultTagValue != "" && fieldValue.CanSet() {
-	// 		switch fieldValue.Kind() {
-	// 		case reflect.String:
-	// 			fieldValue.SetString(defaultTagValue)
-	// 		case reflect.Bool:
-	// 			boolValue, err := strconv.ParseBool(defaultTagValue)
-	// 			if err != nil {
-	// 				log.Error().Msgf("CONFIG: Error parsing bool default value: %s", err.Error())
-	// 				boolValue = false
-	// 			}
-	// 			fieldValue.SetBool(boolValue)
-	// 		case reflect.Int:
-	// 			intValue, err := strconv.ParseInt(defaultTagValue, 10, 64)
-	// 			if err != nil {
-	// 				log.Error().Msgf("CONFIG: Error parsing int64 default value: %s", err.Error())
-	// 				// since we don't have any way of knowing what a sane default
-	// 				// for any int typed field is
-	// 				// we just panic.
-	// 				panic(err)
-	// 			}
-	// 			fieldValue.SetInt(intValue)
-	// 			// case reflect.Struct:
-	// 		}
-	// 	}
-	// }
 	return nil
 }
 

@@ -1,7 +1,7 @@
-- host: "zirc_animalhouse"
+- host: "zirc_chat_server"
   port: "7000"
-  ip: "172.20.0.6"
-  auto_connect: false
+  ip: "172.20.0.4"
+  auto_connect: true
   # password_file: "/run/secrets/s2s_password"
   # password: "$2a$10$7w82iJDU7941avC65WYLJuJL0p7hIaGVye8pq95farNt7DD5dDGga"
 - host: "zirc_zoo"
