@@ -4,6 +4,7 @@ testclient:
 
 dev:
 	@echo "Starting dev build"
+	./Chat_Server/scripts/gen-self-signed-certs.sh
 	docker compose up -d --build --force-recreate
 
 dev_down:
