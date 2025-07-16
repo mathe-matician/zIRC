@@ -17,16 +17,14 @@ source $HOME/.bashrc
 
 ### Steps
 
+Prereqs:
+- Docker installed and running
+
 1. Navigate to the repo root
 
 ```bash
 cd $CHAT_ROOT
-```
-
-2. Start via docker compose
-
-```bash
-docker compose up --build -d
+make dev
 ```
 
 ## Testing with clients
@@ -70,26 +68,26 @@ There is a test client that is spun up as part of the docker compose build. The 
 
 #### Local use
 
+Prereqs:
+- Node must be installed
+
 1. Navigate to the test client dir
 
 ```bash
-cd $CHAT_ROOT/Chat_Server/TestClient
-```
-
-2. Run the test client
-
-```bash
-node test_client.js
+cd $CHAT_ROOT
+make testclient
 ```
 
 3. Enter `connect` to connect to the chat server running in docker
 4. Enter any valid commands for the chat server.
 
-For example:
+For example, enter each of these commands in order and press enter after them:
 
 ```bash
 NICK test-user
 USER test-user
+JOIN #general
+PRIVMSG #general :whats up y'all
 ```
 
 The server response should tell you that you are now registered.
