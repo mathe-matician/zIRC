@@ -8,11 +8,11 @@ import (
 )
 
 type MessageManager struct {
-	Name               string
-	ClientList         *[]*Client
-	ClientMap          *map[string]*Client
-	ChannelMap         *map[string]*Channel
-	ServerList         *[]*IrcServer
+	Name       string
+	ClientList *[]*Client
+	ClientMap  *map[string]*Client
+	ChannelMap *map[string]*Channel
+	// ServerList         *[]*IrcServer
 	WorkerPool         map[string]*Worker
 	worker_tasks       chan []*Task
 	Task_runner        chan []*Task
@@ -21,13 +21,13 @@ type MessageManager struct {
 	ready              bool
 }
 
-func NewMessageManager(client_list *[]*Client, server_list *[]*IrcServer) *MessageManager {
+func NewMessageManager(client_list *[]*Client) *MessageManager {
 	init_worker_count := G_Config.Server.Init_worker_count
 
-	if client_list == nil || server_list == nil {
+	if client_list == nil {
 		// the app's functionality requires the server manager being setup correctly
 		// if its not, panic
-		panic("message_manager: client_list or server_list is null! This cannot be!")
+		panic("message_manager: client_list is null! This cannot be!")
 	}
 
 	channel_list := make(map[string]*Channel)
@@ -40,9 +40,9 @@ func NewMessageManager(client_list *[]*Client, server_list *[]*IrcServer) *Messa
 		results:      make(chan string),
 		ClientList:   client_list,
 		ClientMap:    &client_map,
-		ServerList:   server_list,
-		ChannelMap:   &channel_list,
-		WorkerPool:   make(map[string]*Worker), // TODO - do we even need to keep track of workers?
+		// ServerList:   server_list,
+		ChannelMap: &channel_list,
+		WorkerPool: make(map[string]*Worker), // TODO - do we even need to keep track of workers?
 	}
 
 	// TODO
@@ -74,10 +74,6 @@ func (sm *MessageManager) Run() {
 			sm.worker_tasks <- client_task
 		}
 	}
-}
-
-func (sm *MessageManager) AddServer(server *IrcServer) {
-	*sm.ServerList = append(*sm.ServerList, server)
 }
 
 // TODO - is this fn even needed?

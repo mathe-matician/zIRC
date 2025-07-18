@@ -89,6 +89,8 @@ func TestPASS_Server(t *testing.T) {
 		nil,
 	)
 	g_Server = is
+	// part of the protocol is keeping track of your self in the server graph
+	g_Server._ServerGraph.Graph = append(g_Server._ServerGraph.Graph, is)
 
 	cmd_param_slice := make(map[string]interface{})
 	mockConn := tests.MockConn{}

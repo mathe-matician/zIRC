@@ -14,7 +14,9 @@ import (
 )
 
 var server_manager_commands = map[string]Command{
-	"PASS":     *NewCommand(pass, map[string]string{"cap_req": "sasl"}, true),
+	// TODO PASS probably shouldn't require CAP or SASL
+	// i.e. any connection should be able to send CAP or SASL as part of the server handshake
+	"PASS":     *NewCommand(pass, map[string]string{}, true),
 	"NETINFO":  *NewCommand(netinfo, map[string]string{"cap_req": "sasl"}, true),
 	"UID":      *NewCommand(not_implemented, map[string]string{"cap_req": "sasl"}, true),
 	"CAPAB":    *NewCommand(not_implemented, map[string]string{"cap_req": "sasl"}, true),
@@ -162,7 +164,10 @@ func Connect(connection ServerConnection) {
 
 	// Final Command Sequence (Summary)
 	// PASS <password> <protocol_version> <flags>
+	// CAPAB ?
 	// SERVER <servername> <hopcount> :<description>
+
+	// RUN ONLY AFTER HANDSHAKE IS COMPLETE
 	// NETINFO (If used)
 	// BURST (If TS6 is used)
 	// NICK (For every active user)
@@ -173,7 +178,10 @@ func Connect(connection ServerConnection) {
 	// ENDBURST (If required)
 
 	// TODO
-	// test to
+	// rm once confirmed that there is no race condition between go routines that are
+	// startd on this server
+	// e.g. is the SErverManager ready, are all structs initialized when this runs?
+	//      does it even matter that they are or aren't?
 	time.Sleep(3 * time.Second)
 
 	connect_start_time := time.Now()
@@ -197,6 +205,31 @@ func Connect(connection ServerConnection) {
 	pass_tsk := NewTask(SERVER, pass_cmd, 0.0, conn, g_Server, true, "")
 	tasksToDo = append(tasksToDo, pass_tsk)
 
+	// hybrid s2s command CAPAB && PROTOCTL
+
+	// capab_cmd := fmt.Sprintf("CAPAB :%s%s", g_Server.Config["CAPABILITIES"], CRLF)
+	// capab_tsk := NewTask(SERVER, capab_cmd, 0.0, conn, g_Server, true, "")
+	// tasksToDo = append(tasksToDo, capab_tsk)
+
+	// TODO
+	// PROTOCTL stuff here when i understand it
+	// e.g. PROTOCTL NICKv2 SJOIN EUID SJOIN2 HCN
+	// NICKv2 – Supports TS6-style NICK
+	// EUID – Extended UID format
+	// SJOIN2 – Extended channel join burst
+	// HCN – Hidden channels/names
+	// Some servers (like Charybdis) expect certain combinations of these.
+	// protoctls := ""
+	// protoctl_cmd := fmt.Sprintf("PROTOCTL %s", protoctls)
+	// protoctl_tsk := NewTask(SERVER, protoctl_cmd, 0.0, conn, g_Server, true, "")
+	// tasksToDo = append(tasksToDo, protoctl_tsk)
+
+	// Send ENCAP here?
+	// common for:
+	// Metadata (e.g., METADATA, SAML, LOGIN)
+	// Auth negotiation (e.g., CHALLENGE)
+	// Extensibility: allows newer servers to send novel commands without breaking older ones.
+
 	hopcount := 1 // hopcount 1 since Connect() will always be a direct connection to another server
 	server_cmd := fmt.Sprintf("SERVER %s %d :%s %s", G_Config.Server.Server_name, hopcount, G_Config.Server.Server_description, CRLF)
 	server_cmd_tsk := NewTask(SERVER, server_cmd, 0.0, conn, nil, true, "")
@@ -214,11 +247,9 @@ func Connect(connection ServerConnection) {
 	// all filled out with their respective hop count
 	// where hopcount is 1-based (not zero)
 
-	if len(g_Server.Servers) != 0 {
+	if len(g_Server._ServerGraph.Graph) != 0 {
 		log.Debug().Msg("BURST existing servers")
-		// race condition here
-		// need to ensure that this server's Server list doesn't contain the server it is trying to connect to
-		for _, server := range g_Server.Servers {
+		for _, server := range g_Server._ServerGraph.Graph {
 			srvr_cmd := fmt.Sprintf("SERVER %s %d :%s %s", server.DnsName, server.HopCount+1, server.Description, CRLF)
 			tasksToDo = append(tasksToDo, NewTask(SERVER, srvr_cmd, 0.0, conn, server, true, ""))
 		}
@@ -276,7 +307,7 @@ func Connect(connection ServerConnection) {
 	// }
 
 	connect_end_time := time.Now()
-	log.Debug().Msgf("Server handshake successful. Took: %v", connect_end_time.Sub(connect_start_time))
+	log.Debug().Msgf("Server handshake init started. Took: %v", connect_end_time.Sub(connect_start_time))
 
 	// need to whitelist the IP upon connection for our server connecting to the other
 	// wl := *whiteList

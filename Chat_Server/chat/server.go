@@ -33,6 +33,19 @@ type Status struct {
 	Ready bool
 }
 
+type ServerConnState int
+
+const (
+	NULL ServerConnState = iota
+	HANDSHAKING
+	REGISTERED
+)
+
+type ServerConn struct {
+	Conn  net.Conn
+	State ServerConnState
+}
+
 type IrcServer struct {
 	SID             uuid.UUID
 	DnsName         string
@@ -43,11 +56,12 @@ type IrcServer struct {
 	Description     string
 	HopCount        int
 	Listener        *net.Listener
-	Conn            net.Conn // conn is used to keep track of s2s connections mostly
+	Conn            ServerConn // conn is used to keep track of s2s connections mostly
+	Capabilities    ServerCapabilities
 	_MessageManager *MessageManager
 	_ServerManager  *ServerManager
 	RoutingTable    *RoutingTable
-	Servers         []*IrcServer
+	_ServerGraph    *ServerGraph
 	Clients         []*Client
 	ClientServerMap map[string]string
 	ClientMap       map[string]*Client  // TODO possibly move ClientMap into the Server itself?
@@ -66,16 +80,15 @@ type IrcServer struct {
 
 // }
 
-func NewIrcServer(cfg *Config, hop_count int, server_list *[]*IrcServer, client_list *[]*Client, config *map[string]string) *IrcServer {
+func NewIrcServer(cfg *Config, hop_count int, server_graph *ServerGraph, client_list *[]*Client, config *map[string]string) *IrcServer {
 	err := helpers.VerifyServerMode(cfg.Server.Server_role)
 	if err != nil {
 		log.Error().Msg(err.Error())
 		panic(err.Error())
 	}
 
-	if server_list == nil {
-		sl := make([]*IrcServer, 0)
-		server_list = &sl
+	if server_graph == nil {
+		server_graph = NewServerGraph()
 	}
 
 	if client_list == nil {
@@ -132,17 +145,22 @@ func NewIrcServer(cfg *Config, hop_count int, server_list *[]*IrcServer, client_
 		Role:            cfg.Server.Server_role,
 		Description:     cfg.Server.Server_description,
 		HopCount:        0, // hopcount for self always == 0
+		Conn:            ServerConn{nil, NULL},
+		Capabilities:    ServerCapabilities{}, // TODO
 		Listener:        nil,
 		_MessageManager: nil,
 		_ServerManager:  nil,
 		RoutingTable:    NewRoutingTable(),
-		Servers:         *server_list,
+		_ServerGraph:    server_graph,
 		Clients:         *client_list,
 		ClientServerMap: make(map[string]string),
 		Config:          *config,
 	}
 
-	s_manager := NewMessageManager(&g_Server.Clients, &g_Server.Servers)
+	// add self to server graph
+	g_Server._ServerGraph.Insert(g_Server, nil)
+
+	s_manager := NewMessageManager(&g_Server.Clients)
 	s_manager.Name = cfg.Server.Dns_name
 	g_Server._MessageManager = s_manager
 
@@ -194,8 +212,8 @@ func GetTCPListener(enable_tls bool, tls_cert_path, tls_key_path, tls_port, irc_
 
 // GetServerByConn finds a IrcServer in this server's server list by a net.Conn interface
 func (is *IrcServer) GetServerByConn(c net.Conn) *IrcServer {
-	for _, svr := range is.Servers {
-		if svr.Conn == c {
+	for _, svr := range is._ServerGraph.Graph {
+		if svr.Conn.Conn == c {
 			return svr
 		}
 	}

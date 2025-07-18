@@ -7,6 +7,9 @@ server:
   dns_name: "zzirc.com"
   ts6_enabled: true
   capabilities: "sasl account-registration"
+  # capabilities:
+  # - sasl
+  # - account-registration
   supported_auth_types: "PLAIN,SCRAM-SHA-256,OAUTHBEARER,EXTERNAL"
   # o: IRC operator
   # i: Invisible (user won't appear in channel user lists unless they are in the same channel)
