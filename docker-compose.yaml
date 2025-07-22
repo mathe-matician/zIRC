@@ -81,6 +81,8 @@ services:
     networks:
       zirc_subnet:
         ipv4_address: 172.20.0.2
+    profiles:
+      - nickserv
 
   zirc_db:
     image: postgres:17
@@ -100,6 +102,8 @@ services:
     networks:
       zirc_subnet:
         ipv4_address: 172.20.0.3
+    profiles:
+      - nickserv
 
   zirc_test_client:
     env_file: ./Chat_Server/TestClient/.env

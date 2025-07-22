@@ -35,10 +35,32 @@ type Status struct {
 
 type ServerConnState int
 
+/*
+ServerConnState:
+
+NULL:
+NULL is the initial connection state for any connection.
+
+HANDSHAKING:
+When a server recieves a SERVER command and the server is not already in its
+server tree, it sets the conn state to HANDSHAKING.
+This is a broad state saying that we have started the handshake process, but I have neither
+received any additional SERVER commands (the BURST_RECV state) or sent any of my SERVERs yet (the BURST_SEND state)
+
+BURST_RECV:
+This is set upon first network topology msg received (SERVER). I.e. if the server already exists in our server tree
+and we receive a SERVER command, then we must be
+
+BURST_SEND                  // set after receiving final PING from connecting server
+
+REGISTERED                  // set when handshake is complete
+*/
 const (
-	NULL ServerConnState = iota
-	HANDSHAKING
-	REGISTERED
+	NULL        ServerConnState = iota
+	HANDSHAKING                 // handshake has started
+	BURST_RECV                  // set upon first network topology msg received (SERVER)
+	BURST_SEND                  // set after receiving final PING from connecting server
+	REGISTERED                  // set when handshake is complete
 )
 
 type ServerConn struct {
@@ -46,8 +68,12 @@ type ServerConn struct {
 	State ServerConnState
 }
 
+// TODO
+// rename to Daemon or IrcDaemon
+// IrcServer holds all state that this IRC server knows about. i.e. all state regarding servers, clients, channels
 type IrcServer struct {
 	SID             uuid.UUID
+	Name            string
 	DnsName         string
 	Version         string
 	CreationDate    time.Time
@@ -61,7 +87,7 @@ type IrcServer struct {
 	_MessageManager *MessageManager
 	_ServerManager  *ServerManager
 	RoutingTable    *RoutingTable
-	_ServerGraph    *ServerGraph
+	Servers         *ServerTree
 	Clients         []*Client
 	ClientServerMap map[string]string
 	ClientMap       map[string]*Client  // TODO possibly move ClientMap into the Server itself?
@@ -80,15 +106,15 @@ type IrcServer struct {
 
 // }
 
-func NewIrcServer(cfg *Config, hop_count int, server_graph *ServerGraph, client_list *[]*Client, config *map[string]string) *IrcServer {
+func NewIrcServer(cfg *Config, hop_count int, serverTree *ServerTree, client_list *[]*Client, config *map[string]string) *IrcServer {
 	err := helpers.VerifyServerMode(cfg.Server.Server_role)
 	if err != nil {
 		log.Error().Msg(err.Error())
 		panic(err.Error())
 	}
 
-	if server_graph == nil {
-		server_graph = NewServerGraph()
+	if serverTree == nil {
+		serverTree = NewServerTree(nil, nil)
 	}
 
 	if client_list == nil {
@@ -138,6 +164,7 @@ func NewIrcServer(cfg *Config, hop_count int, server_graph *ServerGraph, client_
 
 	g_Server = &IrcServer{
 		SID:             uuid,
+		Name:            cfg.Server.Server_name,
 		DnsName:         cfg.Server.Dns_name,
 		Version:         cfg.Server.Server_version,
 		CreationDate:    creation_date_time,
@@ -151,14 +178,24 @@ func NewIrcServer(cfg *Config, hop_count int, server_graph *ServerGraph, client_
 		_MessageManager: nil,
 		_ServerManager:  nil,
 		RoutingTable:    NewRoutingTable(),
-		_ServerGraph:    server_graph,
+		Servers:         serverTree,
 		Clients:         *client_list,
 		ClientServerMap: make(map[string]string),
 		Config:          *config,
 	}
 
-	// add self to server graph
-	g_Server._ServerGraph.Insert(g_Server, nil)
+	// add self to server tree
+	g_Server.Servers.Tree[cfg.Server.Server_name] = NewServerNode(
+		WithSID(uuid.String()),
+		WithName(cfg.Server.Server_name),
+		WithDescription(cfg.Server.Server_description),
+		WithDirectlyConnected(false),
+		WithIsMe(true),
+		WithServers(nil),
+		WithHopCount(0), // hopcount is zero-based in relation to self
+		WithConn(nil),   // don't need to keep track of self conn
+		WithParent(nil), // from our perspective we are the root server
+	)
 
 	s_manager := NewMessageManager(&g_Server.Clients)
 	s_manager.Name = cfg.Server.Dns_name
@@ -212,9 +249,10 @@ func GetTCPListener(enable_tls bool, tls_cert_path, tls_key_path, tls_port, irc_
 
 // GetServerByConn finds a IrcServer in this server's server list by a net.Conn interface
 func (is *IrcServer) GetServerByConn(c net.Conn) *IrcServer {
-	for _, svr := range is._ServerGraph.Graph {
-		if svr.Conn.Conn == c {
-			return svr
+	log.Debug().Msg("Starting GetServerByConn")
+	for _, node := range is.Servers.Tree {
+		if node.Server.Conn.Conn == c {
+			return node.Server
 		}
 	}
 

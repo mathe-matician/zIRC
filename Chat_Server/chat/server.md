@@ -1,34 +1,36 @@
 ```
-A → B: PASS hunter2 TS 6 :A                 # A authenticates to B
-A → B: CAPAB :QS EX ...                     # A advertises capabilities
-A → B: SERVER A 1 :Zach's Server            # A introduces itself
+ZOO → ZIRC: PASS hunter2 TS 6 :ZOO                 # ZOO authenticates to ZIRC
+ZOO → ZIRC: CAPAB :QS EX ...                     # ZOO advertises capabilities
+ZOO → ZIRC: SERVER ZOO 1 :Zach's Server            # ZOO introduces itself
 
-🟦 B adds A to its internal server graph:
-     graph.add(serverName="A", hopcount=1, description="Zach's Server", viaConnection=A)
+🟦 ZIRC adds ZOO to its internal server graph
 
-B → A: CAPAB :QS EX ...                     # B replies with its capabilities
+ZIRC → ZOO: CAPAB :QS EX ...                     # ZIRC replies with its capabilities
 
-B → A: SERVER B 1 :Server B Desc            # B introduces itself (as part of burst)
-🟦 A adds B to its internal server graph:
-     graph.add(serverName="B", hopcount=1, description="Server B Desc", viaConnection=B)
+ZIRC: Sets its conn state to BURST_SEND
+ZIRC → ZOO: SERVER ZIRC 1 :Server ZIRC Desc            # ZIRC introduces itself (as part of burst)
+🟦 ZOO adds ZIRC to its internal server graph:
+🟦 ZOO updates its Conn state for ZIRC saying that it is BURST_RECV
 
-B → A: SERVER C 2 :Server C Desc            # B introduces its downstream server
-🟦 A adds C to its server graph:
-     graph.add(serverName="C", hopcount=2, viaConnection=B)
+ZIRC → ZOO: SERVER C 2 :Server C Desc            # ZIRC introduces its downstream server
+🟦 ZOO adds C to its server graph:
 
-B → A: UID userC 2 ... :Charlie             # B introduces a user on C
-🟦 A adds Charlie to user table, associated with C
+ZIRC → ZOO: UID userC 2 ... :Charlie             # ZIRC introduces a user on C
+🟦 ZOO adds Charlie to user table, associated with C
 
-🟩 A now knows the connection to B is accepted
+ZIRC → ZOO: PING ZOO
+Singles to ZOO that bursting is complete
 
-🔁 A → X: SERVER B 1 :Server B Desc          # A propagates B to its downstream server X
-🔁 A → X: SERVER C 2 :Server C Desc          # A propagates C to X
-🔁 A → X: UID userC 2 ... :Charlie           # A propagates Charlie to X
+🟩 ZOO now knows the connection to ZIRC is accepted
 
-📤 A → B: SERVER X 2 :Server X Desc          # A bursts its own topology to B
-🟦 B adds X to its server graph:
-     graph.add(serverName="X", hopcount=2, viaConnection=A)
+🔁 ZOO → X: SERVER ZIRC 1 :Server ZIRC Desc          # ZOO propagates ZIRC to its downstream server X
+🔁 ZOO → X: SERVER C 2 :Server C Desc          # ZOO propagates C to X
+🔁 ZOO → X: UID userC 2 ... :Charlie           # ZOO propagates Charlie to X
 
-📤 A → B: UID userX 2 ... :Xander            # A introduces a user from X
-🟦 B adds Xander to user table, associated with X
+📤 ZOO → ZIRC: SERVER X 2 :Server X Desc          # ZOO bursts its own topology to ZIRC
+🟦 ZIRC adds X to its server graph:
+     graph.add(serverName="X", hopcount=2, viaConnection=ZOO)
+
+📤 ZOO → ZIRC: UID userX 2 ... :Xander            # ZOO introduces a user from X
+🟦 ZIRC adds Xander to user table, associated with X
 ```

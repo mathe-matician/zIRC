@@ -197,9 +197,6 @@ func (w *Worker) s2s_comm(message_manager *MessageManager, task *Task) {
 	// 	return
 	// }
 
-	// TODO
-	// I think we need to persist this connection? I don't think that is happening
-
 	c := task.ClientConn
 	log.Info().EmbedObject(w).Msgf("Tasks received")
 	_, err := c.Write([]byte(task.Task))

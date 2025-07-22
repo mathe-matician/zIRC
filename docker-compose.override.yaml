@@ -1,14 +1,21 @@
 services:
   zirc_chat_server:
+    # command: "--listen=:4000"
     build:
       target: dev
     ports:
       - 4000:4000 # debugger port
 
   zirc_animalhouse:
+    # command: "--listen=:4001"
     build:
       target: dev
+    ports:
+      - 4001:4000 # debugger port
 
   zirc_zoo:
+    # command: "--listen=:4002"
     build:
       target: dev
+    ports:
+      - 4002:4000 # debugger port

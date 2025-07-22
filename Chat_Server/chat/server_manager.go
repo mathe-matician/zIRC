@@ -193,8 +193,28 @@ func Connect(connection ServerConnection) {
 		log.Error().Msgf("Failed to connect to server: %s", addr)
 		return
 	}
+
+	////////////////////////////////////////////////////////////////////////////////////////////////
 	// DO NOT defer connection close as these server connections
-	// need to persist and are then stored in this server's server graph
+	// need to persist and are then stored in this server's server tree
+	// we need a way to continue to receive messages from this socket
+	// if we don't handle this connection then we are missing the other side of this socket
+	// to receive communication in the handshake
+	// e.g. data will come into that socket, it just doesn't go anywhere as it is lost
+	// 		after this function
+	newNode := NewServerNode(
+		WithDirectlyConnected(true),
+		WithIsMe(false),
+		WithHopCount(1),
+		WithServers(nil),
+		WithConn(&ServerConn{conn, HANDSHAKING}),
+		WithParent(g_Server.Servers.Tree[g_Server.Name]),
+	)
+	g_Server.Servers.Pending[conn] = newNode
+	// only add to my known servers once I know the SID or name
+	// g_Server.Servers.Tree[g_Server.Name].Servers = append(g_Server.Servers.Tree[g_Server.Name].Servers, newNode)
+	go handleConnection(conn, true)
+	////////////////////////////////////////////////////////////////////////////////////////////////
 
 	tasksToDo := make([]*Task, 0)
 	task_runner := g_Server._MessageManager.Task_runner
@@ -230,7 +250,11 @@ func Connect(connection ServerConnection) {
 	// Auth negotiation (e.g., CHALLENGE)
 	// Extensibility: allows newer servers to send novel commands without breaking older ones.
 
-	hopcount := 1 // hopcount 1 since Connect() will always be a direct connection to another server
+	// hopcount 0 as we always send SERVER commands with hopcount from the perspective of the server sending it
+	// the hopcount is then adjusted on the receiving server side for its own internal view
+	// e.g. the receiving server of this SERVER command below will then update it to 0
+	// 		as the sender is actually 1 hop away from their perspective
+	hopcount := 0
 	server_cmd := fmt.Sprintf("SERVER %s %d :%s %s", G_Config.Server.Server_name, hopcount, G_Config.Server.Server_description, CRLF)
 	server_cmd_tsk := NewTask(SERVER, server_cmd, 0.0, conn, nil, true, "")
 	log.Debug().Msgf("s2s(CONNECT): sending PASS and SERVER commands")
@@ -247,12 +271,13 @@ func Connect(connection ServerConnection) {
 	// all filled out with their respective hop count
 	// where hopcount is 1-based (not zero)
 
-	if len(g_Server._ServerGraph.Graph) != 0 {
-		log.Debug().Msg("BURST existing servers")
-		for _, server := range g_Server._ServerGraph.Graph {
-			srvr_cmd := fmt.Sprintf("SERVER %s %d :%s %s", server.DnsName, server.HopCount+1, server.Description, CRLF)
-			tasksToDo = append(tasksToDo, NewTask(SERVER, srvr_cmd, 0.0, conn, server, true, ""))
-		}
+	if len(g_Server.Servers.Tree) != 0 {
+		// log.Debug().Msg("BURST existing servers")
+		// for _, item := range g_Server.Servers.Tree {
+		// 	srvr_cmd := fmt.Sprintf("SERVER %s %d :%s %s", item.Server.DnsName, item.Server.HopCount+1, item.Server.Description, CRLF)
+		// 	tasksToDo = append(tasksToDo, NewTask(SERVER, srvr_cmd, 0.0, conn, item.Server, true, ""))
+		// }
+		// g_Server.Servers.ServerBurstSend()
 	}
 
 	// must send all commands together to the task runner as if sent separately
@@ -477,6 +502,10 @@ func (sm *ServerManager) Run() {
 			continue
 		}
 
+		// TODO
+		// do we need to check if the server exists already in the tree?
+		// i.e. we already created a connection to handle?
+
 		go handleConnection(conn, true)
 	}
 }
@@ -496,6 +525,8 @@ func (sm *ServerManager) whiteListedServerIp(ip string) bool {
 	}
 
 	if _, ok := sm.serverIpWhitelist[server_ip]; !ok {
+		// TODO
+		// race condition here
 		log.Error().Msgf("ServerManager not a whitelisted server ip!: %s", server_ip)
 		return false
 	}

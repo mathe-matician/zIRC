@@ -8,6 +8,12 @@ import (
 	"github.com/phuslu/log"
 )
 
+type HandshakeArgs struct {
+	Name        string
+	Description string
+	HopCount    int
+}
+
 // server command can be thought of as us as a server receiving a SERVER command from another server NOT sending it / syncing a new server
 // In the case of a server connection, this command can be used for server-to-server communications (typically not used by clients).
 //
@@ -41,37 +47,20 @@ func server(params map[string]interface{}) Response {
 		return ERR_NEEDMOREPARAMS("")
 	}
 
-	log.Debug().EmbedObject(client).Msgf("CMD(SERVER): args: %v", args)
+	log.Debug().EmbedObject(client).Msgf("CMD(SERVER): before split_msg := cmd_re.FindStringSubmatch(args)")
 
 	split_msg := cmd_re.FindStringSubmatch(args)
 
+	log.Debug().EmbedObject(client).Msgf("CMD(SERVER): before len(split_msg) != 3")
 	// required numb of args
 	if len(split_msg) != 3 {
 		log.Error().Msg("CMD(SERVER) not enought args")
 		return ERR_NEEDMOREPARAMS("")
 	}
 
-	ircServer := g_Server.GetServerByConn(client.ClientConn)
+	ircServer := g_Server.Servers.GetServerByConn(client.ClientConn)
 	task_runner := g_Server._MessageManager.Task_runner
 
-	if ircServer == nil {
-		// if this server isn't in our server graph
-		// then it is attempting to handshake with us
-		return handleServerHandshake(client, ircServer, task_runner, split_msg)
-	}
-
-	// if this server IS in our server graph
-	// then we are getting some update from the server
-	// generally it is the server giving us its network topology
-	return handleServerNetworkTopology(client, ircServer, task_runner)
-}
-
-// handleServerHandshake at a high level does the following:
-// 1. Since the server didn't exist in its server graph, it add the server
-// 2. Sends a CAPAB command back to the sender to introduce itself
-// 2. Sends a PROTOCTL command back to the sender to introduce itself
-// 2. Sends a SERVER command back to the sender to introduce itself
-func handleServerHandshake(client *Client, ircServer *IrcServer, task_runner chan []*Task, split_msg []string) Response {
 	serverName := split_msg[1]
 	_hopCount := cmd_re.FindStringSubmatch(strings.Trim(split_msg[2], " "))
 
@@ -85,69 +74,87 @@ func handleServerHandshake(client *Client, ircServer *IrcServer, task_runner cha
 	}
 	serverDescription := strings.Trim(description[2], " ")
 
-	// connState := NULL
-	// if ircServer.Conn.State == HANDSHAKING {
-	// 	// if the server is currently handshaking, don't reset the connState back to NULL
-	// 	connState = HANDSHAKING
-	// }
-
-	newServer := IrcServer{
-		DnsName:      serverName,
-		HopCount:     hopCount,
-		Description:  serverDescription,
-		Conn:         ServerConn{client.ClientConn, HANDSHAKING},
-		_ServerGraph: NewServerGraph(),
-		Clients:      make([]*Client, 0),
+	handshakeArgs := HandshakeArgs{
+		Name:        serverName,
+		HopCount:    hopCount,
+		Description: serverDescription,
 	}
 
-	// add server to this server's internal graph
-	g_Server._ServerGraph.Graph = append(g_Server._ServerGraph.Graph, &newServer)
-	log.Debug().EmbedObject(client).Msgf("CMD(SERVER): storing name: %s, hopcount: %d, description: %s", serverName, hopCount, serverDescription)
+	if ircServer == nil {
+		return handleServerHandshake(client, task_runner, handshakeArgs)
+	}
 
-	//////////////
-	// Steps
-	//////////////
-	// Reply with CAPAB
-	// Reply with this server's SERVER command
+	// if this server IS in our server tree
+	// then we are getting some update from the server
+	// generally it is the server giving us its network topology during BURST_SEND
+	// though, it can probably be any update to the network topology
+	return handleServerNetworkTopology(client, ircServer, task_runner, handshakeArgs)
+}
+
+// handleServerHandshake at a high level does the following:
+// 1. Since the server didn't exist in its server tree, it add the server
+// 2. Sends a CAPAB command back to the sender to introduce itself
+// 2. Sends a PROTOCTL command back to the sender to introduce itself
+// 2. Sends a SERVER command back to the sender to introduce itself
+func handleServerHandshake(client *Client, task_runner chan []*Task, serverArgs HandshakeArgs) Response {
+	log.Debug().Msgf("Starting Server handshake")
+
+	// add server to our server table
+	// since we are handshaking this server is directly reaching out to us
+	// this means that this server is their parent and we will be directly connected
+	serverName := serverArgs.Name
+	hopCount := serverArgs.HopCount
+	serverDescription := serverArgs.Description
+
+	log.Debug().EmbedObject(client).Msgf("CMD(SERVER): storing name: %s, hopcount: %d, description: %s", serverName, hopCount, serverDescription)
+	// 1. Add the server to server tree
+	svrNode, ok := g_Server.Servers.Pending[client.ClientConn]
+	if ok {
+		// if found in pending servers
+		// remove it as we will now put it into the server Tree since we have the SID and name
+		delete(g_Server.Servers.Pending, client.ClientConn)
+		svrNode.SID = "" // TODO update SID
+		svrNode.Name = serverName
+	} else {
+		svrNode = NewServerNode(
+			WithSID(""),
+			WithName(serverName),
+			WithDirectlyConnected(true),
+			WithIsMe(false),
+			WithDescription(serverDescription),
+			WithHopCount(hopCount),
+			WithServers(nil),
+			WithConn(&ServerConn{client.ClientConn, HANDSHAKING}),
+			WithParent(g_Server.Servers.Tree[g_Server.Name]),
+		)
+	}
+
+	g_Server.Servers.Tree[serverName] = svrNode
+	g_Server.Servers.Tree[g_Server.Name].Servers = append(g_Server.Servers.Tree[g_Server.Name].Servers, svrNode)
+	log.Debug().Msgf("Existing map: %v", g_Server.Servers.Tree)
+
+	// 2. TODO Reply with CAPAB / PROTOCTL
+	// 3. Reply with this server's SERVER command
 	//   You must traverse this server's graph in order and send it as a reply to the other server
 	//   i.e. starting with self (hopcount 0) send SERVER me
 
-	// 2. send individual SERVER command to THIS SERVER'S _DIRECTLY_ connected servers, and increment the hopcount
-	// EXCEPT for the server that is sending this SERVER command
-	hopCount++
-	msg := fmt.Sprintf("SERVER %s %d :%s \r\n", serverName, hopCount, serverDescription)
+	// 4. Reply with all of my known servers via SERVER commands
+	//    these must be sent in tree order
+	g_Server.Servers.ServerBurstSend(g_Server.Servers.Tree[g_Server.Name], client.ClientConn)
+	// --------
 
-	// these need to be sent IN ORDER
-	// e.g. need to traverse the graph and send servers in order
-	for _, server := range g_Server._ServerGraph.Graph {
-		log.Debug().EmbedObject(client).Msg("CMD(SERVER): sending my servers!")
-		if server.Conn.Conn == client.ClientConn || server.Conn.Conn == g_Server.Conn.Conn {
-			// do not send this server command back to the same server that just sent it to us to prevent SERVER loops in the graph
-			log.Debug().EmbedObject(client).Msg("CMD(SERVER): skipping - server is either the conn that initiated the command or is self")
-			continue
-		}
-
-		log.Debug().Msgf("Sending: %s to %s", msg, server.DnsName)
-		if server.Conn.Conn == nil {
-			log.Error().Msgf("%s connection is nil for %s", msg, server.DnsName)
-			// TODO
-			// clean up conn?
-			// reconnect? idk
-			continue
-		}
-		server_cmd_tsk := NewTask(SERVER, msg, 0.0, server.Conn.Conn, nil, true, "")
-		task_runner <- []*Task{
-			server_cmd_tsk,
-		}
-	}
+	// PING is what "signals" that this server has completed its burst phase
+	// endPing := fmt.Sprintf("PING  \r\n", g_Server.DnsName)
+	log.Debug().Msg("handshake complete")
 	return EMPTY_RESPONSE()
 }
 
-func handleServerNetworkTopology(client *Client, server *IrcServer, task_runner chan []*Task) Response {
+func handleServerNetworkTopology(client *Client, server *ServerNode, task_runner chan []*Task, serverArgs HandshakeArgs) Response {
 	// otherwise this server already exists
 	// and this is the other _type_ of SERVER command
 	// and we should be receiving the topology of the sending server (i.e. the server graph)
-	log.Debug().EmbedObject(client).Msgf("CMD(SERVER): server already exists in list: %v", server.DnsName)
+	log.Debug().Msg("handleServerNetworkTopology()")
+	log.Debug().EmbedObject(client).Msgf("CMD(SERVER): server already exists in list: %v", server.Name)
 	// i.e. this is our REPLY back to the sender of the SERVER command
 	//      as the sender is already registered as a server we know
 	// CAPAB
@@ -155,8 +162,37 @@ func handleServerNetworkTopology(client *Client, server *IrcServer, task_runner 
 	// UID of users
 	// etc
 
-	for _, mysvr := range g_Server._ServerGraph.Graph {
-		msg := fmt.Sprintf("SERVER %s %d :%s \r\n", mysvr.DnsName, mysvr.HopCount+1, mysvr.Description)
+	if server.Conn.State == REGISTERED {
+		log.Debug().Msg("Server is already s2s registered. This must be an update...")
+		// if we are already registered with this server, i.e. we already went through connection / handshake phase
+		// then either:
+		//   - something went wrong and we have stale state for this server
+		//   - this server is sending an update SERVER command after the handshake
+
+		// idk if we need to do something special at this point like set the state to
+		// something new or reuse BURST_RECV
+	} else {
+		server.Conn.State = BURST_SEND
+	}
+
+	svrNode := NewServerNode(
+		WithSID(""),
+		WithName(serverArgs.Name),
+		WithDirectlyConnected(false),
+		WithIsMe(false),
+		WithDescription(serverArgs.Description),
+		WithHopCount(serverArgs.HopCount),
+		WithServers(nil),
+		// WithConn(&ServerConn{nil, HANDSHAKING}),
+		WithParent(g_Server.Servers.Tree[g_Server.Name]),
+	)
+
+	g_Server.Servers.Tree[serverArgs.Name] = svrNode
+	// TODO
+	// infer what node to add svrNode as a child?
+
+	for _, myitem := range g_Server.Servers.Tree {
+		msg := fmt.Sprintf("SERVER %s %d :%s \r\n", myitem.Server.DnsName, myitem.Server.HopCount, myitem.Server.Description)
 
 		log.Debug().EmbedObject(client).Msg("CMD(SERVER): sending my servers!")
 		if server.Conn.Conn == client.ClientConn {
@@ -165,9 +201,9 @@ func handleServerNetworkTopology(client *Client, server *IrcServer, task_runner 
 			continue
 		}
 
-		log.Debug().Msgf("Sending: %s to %s", msg, mysvr.DnsName)
+		log.Debug().Msgf("Sending: %s to %s", msg, myitem.Server.DnsName)
 		if server.Conn.Conn == nil {
-			log.Error().Msgf("%s connection is nil", msg, mysvr.DnsName)
+			log.Error().Msgf("%s connection is nil for message: %s", myitem.Server.DnsName, msg)
 			// TODO
 			// clean up conn?
 			// reconnect? idk

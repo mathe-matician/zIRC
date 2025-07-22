@@ -70,7 +70,6 @@ func (sm *MessageManager) Run() {
 	for {
 		select {
 		case client_task := <-sm.Task_runner:
-			log.Info().Msgf("client_tasks: %v, len: %d", client_task, len(client_task))
 			sm.worker_tasks <- client_task
 		}
 	}

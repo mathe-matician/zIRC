@@ -1,6 +1,6 @@
 server:
   server_version: "v1.0.0"
-  server_role: "leaf" # one of leaf, hub, hybrid
+  server_role: "leaf" # one of leaf, hub, hybrid ... or root?
   super_admin_password_file: "/run/secrets/super_admin_password"
   server_name: "ZZ.IRC"
   server_description: "super fun zzirc server"
