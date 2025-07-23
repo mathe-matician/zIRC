@@ -31,6 +31,8 @@ COPY --from=builder /chat_server /chat_server
 
 
 
+
+
 # ENTRYPOINT [ "/go/bin/dlv", "--continue", "--headless=true", "--log=true", "--accept-multiclient", "--api-version=2", "exec", "./zirc" ]
 CMD [ "/chat_server/zirc" ]
 
