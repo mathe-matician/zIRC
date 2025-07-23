@@ -1,5 +1,7 @@
 services:
   zirc_chat_server:
+    # entrypoint: ["/bin/sh", "-c"]
+    # command: ["tail -f /dev/null"]
     # command: "--listen=:4000"
     build:
       target: dev
