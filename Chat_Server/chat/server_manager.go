@@ -23,8 +23,8 @@ var server_manager_commands = map[string]Command{
 	"SERVER":   *NewCommand(server, map[string]string{"cap_req": "sasl"}, true),
 	"CAP":      *NewCommand(not_implemented, map[string]string{"cap_req": "sasl"}, true),
 	"SJOIN":    *NewCommand(not_implemented, map[string]string{"cap_req": "sasl"}, true),
-	"PING":     *NewCommand(not_implemented, map[string]string{"cap_req": "sasl"}, true),
-	"PONG":     *NewCommand(not_implemented, map[string]string{"cap_req": "sasl"}, true),
+	"PING":     *NewCommand(ping, map[string]string{"cap_req": "sasl"}, true),
+	"PONG":     *NewCommand(pong, map[string]string{"cap_req": "sasl"}, true),
 	"SQUIT":    *NewCommand(not_implemented, map[string]string{"cap_req": "sasl"}, true),
 	"CONNECT":  *NewCommand(not_implemented, map[string]string{"cap_req": "sasl"}, true),
 	"BURST":    *NewCommand(not_implemented, map[string]string{"cap_req": "sasl"}, true),
@@ -207,6 +207,7 @@ func Connect(connection ServerConnection) {
 		WithIsMe(false),
 		WithHopCount(1),
 		WithServers(nil),
+		WithPingPongChan(),
 		WithConn(&ServerConn{conn, HANDSHAKING}),
 		WithParent(g_Server.Servers.Tree[g_Server.Name]),
 	)
@@ -260,6 +261,10 @@ func Connect(connection ServerConnection) {
 	log.Debug().Msgf("s2s(CONNECT): sending PASS and SERVER commands")
 	tasksToDo = append(tasksToDo, server_cmd_tsk)
 
+	// we now expect this connection to be bursting to us
+	// the rest of the handshake will be completed in handleServerNetworkTopology
+	newNode.Conn.SetStateBurstSend()
+
 	// Then burst all _KNOWN_ servers via individual SERVER cmds
 	// given E-D-A and B-C
 	// if A connects to B, resulting in E-D-A-B-C
@@ -271,21 +276,31 @@ func Connect(connection ServerConnection) {
 	// all filled out with their respective hop count
 	// where hopcount is 1-based (not zero)
 
-	if len(g_Server.Servers.Tree) != 0 {
-		// log.Debug().Msg("BURST existing servers")
-		// for _, item := range g_Server.Servers.Tree {
-		// 	srvr_cmd := fmt.Sprintf("SERVER %s %d :%s %s", item.Server.DnsName, item.Server.HopCount+1, item.Server.Description, CRLF)
-		// 	tasksToDo = append(tasksToDo, NewTask(SERVER, srvr_cmd, 0.0, conn, item.Server, true, ""))
-		// }
-		// g_Server.Servers.ServerBurstSend()
-	}
+	// if len(g_Server.Servers.Tree) != 0 {
+	// log.Debug().Msg("BURST existing servers")
+	// for _, item := range g_Server.Servers.Tree {
+	// 	srvr_cmd := fmt.Sprintf("SERVER %s %d :%s %s", item.Server.DnsName, item.Server.HopCount+1, item.Server.Description, CRLF)
+	// 	tasksToDo = append(tasksToDo, NewTask(SERVER, srvr_cmd, 0.0, conn, item.Server, true, ""))
+	// }
+	// g_Server.Servers.ServerBurstSend()
+	// }
+
+	/////////////////////////
+	// STEP 4
+	/////////////////////////
+
+	// wait for PING command from this connection to signal burst complete
+	// this will block until we receive a PONG back from the server
+
+	// pingToken, pingTask := s2sPingToken(newNode)
+	// tasksToDo = append(tasksToDo, pingTask)
 
 	// must send all commands together to the task runner as if sent separately
 	// they may be picked up in any order resulting in the receiving server receiving the commands out of order
 	task_runner <- tasksToDo
 
 	/////////////////////////
-	// STEP 3
+	// STEP 5
 	/////////////////////////
 
 	// at this point IF using ts6 (ts6_enabled)

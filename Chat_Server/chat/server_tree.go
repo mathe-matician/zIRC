@@ -84,6 +84,11 @@ func (st *ServerTree) Remove(server *ServerNode) {
 	delete(st.Tree, server.Name)
 }
 
+func (st *ServerTree) RemovePending(conn net.Conn) {
+	defer conn.Close()
+	delete(st.Pending, conn)
+}
+
 func (st *ServerTree) GetServerByConn(c net.Conn) *ServerNode {
 	for _, s := range st.Tree {
 		if s.IsMe {
@@ -102,6 +107,20 @@ func (st *ServerTree) GetServerByConn(c net.Conn) *ServerNode {
 		}
 	}
 
+	return nil
+}
+
+func (st *ServerTree) GetPendingByConn(c net.Conn) *ServerNode {
+	for _, s := range st.Pending {
+		if s == nil {
+			st.RemovePending(c)
+			continue
+		}
+
+		if s.Conn.Conn == c {
+			return s
+		}
+	}
 	return nil
 }
 

@@ -19,13 +19,16 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: '1.22'
+        go-version: '1.24.2'
         cache-dependency-path: Chat_Server/go.sum
 
     # - name: Build
     #   run: go build -v ./...
 
     - name: Test
+      working-directory: Chat_Server
+      env:
+        CONFIG_FILE: ${{ github.workspace }}/Chat_Server/config.yaml
       run: |
         cd Chat_Server/chat
         go test -v ./...

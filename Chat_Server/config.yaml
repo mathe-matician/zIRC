@@ -42,6 +42,10 @@ server:
   ping_pong_timeout: 2
   ping_pong_timeout_duration: "minute"
   ping_pong_enabled: false
+  pingpong:
+    enabled: true
+    timeout: 2
+    timeout_duration: minute
 
 db:
   enabled: false

@@ -47,18 +47,15 @@ func server(params map[string]interface{}) Response {
 		return ERR_NEEDMOREPARAMS("")
 	}
 
-	log.Debug().EmbedObject(client).Msgf("CMD(SERVER): before split_msg := cmd_re.FindStringSubmatch(args)")
-
 	split_msg := cmd_re.FindStringSubmatch(args)
 
-	log.Debug().EmbedObject(client).Msgf("CMD(SERVER): before len(split_msg) != 3")
 	// required numb of args
 	if len(split_msg) != 3 {
 		log.Error().Msg("CMD(SERVER) not enought args")
 		return ERR_NEEDMOREPARAMS("")
 	}
 
-	ircServer := g_Server.Servers.GetServerByConn(client.ClientConn)
+	serverNode := g_Server.Servers.GetServerByConn(client.ClientConn)
 	task_runner := g_Server._MessageManager.Task_runner
 
 	serverName := split_msg[1]
@@ -80,7 +77,13 @@ func server(params map[string]interface{}) Response {
 		Description: serverDescription,
 	}
 
-	if ircServer == nil {
+	// if serverNode == nil && g_Server.Servers.GetPendingByConn(client.ClientConn) == nil {
+	// 	//
+	// 	return handleServerHandshake(client, task_runner, handshakeArgs)
+	// }
+
+	if serverNode == nil {
+		//
 		return handleServerHandshake(client, task_runner, handshakeArgs)
 	}
 
@@ -88,7 +91,7 @@ func server(params map[string]interface{}) Response {
 	// then we are getting some update from the server
 	// generally it is the server giving us its network topology during BURST_SEND
 	// though, it can probably be any update to the network topology
-	return handleServerNetworkTopology(client, ircServer, task_runner, handshakeArgs)
+	return handleServerNetworkTopology(client, serverNode, task_runner, handshakeArgs)
 }
 
 // handleServerHandshake at a high level does the following:
@@ -124,6 +127,7 @@ func handleServerHandshake(client *Client, task_runner chan []*Task, serverArgs 
 			WithDescription(serverDescription),
 			WithHopCount(hopCount),
 			WithServers(nil),
+			WithPingPongChan(),
 			WithConn(&ServerConn{client.ClientConn, HANDSHAKING}),
 			WithParent(g_Server.Servers.Tree[g_Server.Name]),
 		)
@@ -140,11 +144,15 @@ func handleServerHandshake(client *Client, task_runner chan []*Task, serverArgs 
 
 	// 4. Reply with all of my known servers via SERVER commands
 	//    these must be sent in tree order
+	// this server is now going to be receving the burst from us
+	svrNode.Conn.State = BURST_RECV
 	g_Server.Servers.ServerBurstSend(g_Server.Servers.Tree[g_Server.Name], client.ClientConn)
 	// --------
 
 	// PING is what "signals" that this server has completed its burst phase
-	// endPing := fmt.Sprintf("PING  \r\n", g_Server.DnsName)
+	// at most this will block this connection's goroutine for whatever the pingpong timeout duration is set to
+	ping_s2s(svrNode, true)
+
 	log.Debug().Msg("handshake complete")
 	return EMPTY_RESPONSE()
 }

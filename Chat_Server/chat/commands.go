@@ -37,7 +37,7 @@ var command_map = map[string]Command{
 	"USER":         *NewCommand(user, make(map[string]string), false),
 	"WHO":          *NewCommand(who, map[string]string{"auth_req": "true"}, false),
 	"QUIT":         *NewCommand(not_implemented, make(map[string]string), false),
-	// "PING":         *NewCommand(ping, make(map[string]string), false),
+	"PING":         *NewCommand(ping, map[string]string{"auth_req": "true"}, false),
 	// "WEBIRC":       *NewCommand(webirc, make(map[string]string), false),
 }
 

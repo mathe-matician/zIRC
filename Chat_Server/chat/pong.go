@@ -1,6 +1,8 @@
 package chat
 
-import "github.com/phuslu/log"
+import (
+	"github.com/phuslu/log"
+)
 
 func pong(params map[string]interface{}) Response {
 	// msg := "Running PONG..."
@@ -11,7 +13,6 @@ func pong(params map[string]interface{}) Response {
 		log.Error().Msg("Client not passed to PONG command!!")
 		return ERR_UNKNOWNERROR("")
 	}
-	client := _client.(*Client)
 
 	_cmd_params := params["params"]
 	if _cmd_params == nil {
@@ -27,7 +28,17 @@ func pong(params map[string]interface{}) Response {
 		return ERR_NEEDMOREPARAMS("")
 	}
 
-	client.PingPongChan <- cmd_params
+	switch c := _client.(type) {
+	case *Client:
+		client := _client.(*Client)
+		client.PingPongChan <- cmd_params
+	case *ServerNode:
+		server := _client.(*ServerNode)
+		server.PingPongChan <- cmd_params
+	default:
+		log.Error().Msgf("Not a valid pong type: %T", c)
+		return ERR_UNKNOWNERROR("")
+	}
 
 	return EMPTY_RESPONSE()
 }

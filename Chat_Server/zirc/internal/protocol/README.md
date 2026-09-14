@@ -1,0 +1,1 @@
+Used for message parsing, formatting, protocol handling

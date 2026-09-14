@@ -1,6 +1,10 @@
 package chat
 
-import "github.com/phuslu/log"
+import (
+	"net"
+
+	"github.com/phuslu/log"
+)
 
 // ServerNode is a "snapshot" view of a server with all the information needed
 // for routing messages to remote servers
@@ -14,7 +18,21 @@ type ServerNode struct {
 	Parent            *ServerNode
 	Conn              *ServerConn
 	Servers           []*ServerNode
-	Server            *IrcServer // optional - could probably delete
+	PingPongChan      chan string // buffered channel
+	Server            *IrcServer  // optional - could probably delete
+}
+
+func (sn *ServerNode) IsTarget() {}
+func (sn *ServerNode) GetConn() net.Conn {
+	return sn.Conn.Conn
+}
+
+func (sn *ServerNode) GetPingPongChan() chan string {
+	return sn.PingPongChan
+}
+
+func (sn *ServerNode) MarshalObject(e *log.Entry) {
+	e.Str("SID", sn.SID).Str("name", sn.Name).Str("description", sn.Description).Int("hopcount", sn.HopCount)
 }
 
 type ServerNodeOption func(*ServerNode)
@@ -26,6 +44,12 @@ func NewServerNode(opts ...ServerNodeOption) *ServerNode {
 		opt(sn)
 	}
 	return sn
+}
+
+func WithPingPongChan() ServerNodeOption {
+	return func(sn *ServerNode) {
+		sn.PingPongChan = make(chan string, 1) // buffered channel
+	}
 }
 
 func WithSID(sid string) ServerNodeOption {

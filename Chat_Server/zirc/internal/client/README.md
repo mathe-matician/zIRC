@@ -1,0 +1,1 @@
+Used for client connections and session management

@@ -1,6 +1,7 @@
 package chat
 
 import (
+	"net"
 	"regexp"
 	"slices"
 	"strings"
@@ -88,7 +89,11 @@ func NewChannel(name, topic, topic_details, channel_password, status, duration s
 
 // func (c *Channel) IsTarget() {}
 
-func (c Channel) IsTarget() {}
+func (c Channel) IsTarget()         {}
+func (c Channel) GetConn() net.Conn { return nil }
+func (c Channel) GetPingPongChan() chan string {
+	return nil
+}
 
 func (c *Channel) FmtModes() string {
 	modes := ""

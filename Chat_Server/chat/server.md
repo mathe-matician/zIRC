@@ -7,10 +7,8 @@ ZOO → ZIRC: SERVER ZOO 1 :Zach's Server            # ZOO introduces itself
 
 ZIRC → ZOO: CAPAB :QS EX ...                     # ZIRC replies with its capabilities
 
-ZIRC: Sets its conn state to BURST_SEND
 ZIRC → ZOO: SERVER ZIRC 1 :Server ZIRC Desc            # ZIRC introduces itself (as part of burst)
 🟦 ZOO adds ZIRC to its internal server graph:
-🟦 ZOO updates its Conn state for ZIRC saying that it is BURST_RECV
 
 ZIRC → ZOO: SERVER C 2 :Server C Desc            # ZIRC introduces its downstream server
 🟦 ZOO adds C to its server graph:
@@ -29,7 +27,6 @@ Singles to ZOO that bursting is complete
 
 📤 ZOO → ZIRC: SERVER X 2 :Server X Desc          # ZOO bursts its own topology to ZIRC
 🟦 ZIRC adds X to its server graph:
-     graph.add(serverName="X", hopcount=2, viaConnection=ZOO)
 
 📤 ZOO → ZIRC: UID userX 2 ... :Xander            # ZOO introduces a user from X
 🟦 ZIRC adds Xander to user table, associated with X

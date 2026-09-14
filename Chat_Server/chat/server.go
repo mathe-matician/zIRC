@@ -68,6 +68,26 @@ type ServerConn struct {
 	State ServerConnState
 }
 
+func (sc *ServerConn) SetStateNull() {
+	sc.State = NULL
+}
+
+func (sc *ServerConn) SetStateHandshaking() {
+	sc.State = HANDSHAKING
+}
+
+func (sc *ServerConn) SetStateBurstRecv() {
+	sc.State = BURST_RECV
+}
+
+func (sc *ServerConn) SetStateBurstSend() {
+	sc.State = BURST_SEND
+}
+
+func (sc *ServerConn) SetStateRegistered() {
+	sc.State = REGISTERED
+}
+
 // TODO
 // rename to Daemon or IrcDaemon
 // IrcServer holds all state that this IRC server knows about. i.e. all state regarding servers, clients, channels
@@ -204,6 +224,9 @@ func NewIrcServer(cfg *Config, hop_count int, serverTree *ServerTree, client_lis
 	server_manager := NewServerManager(nil)
 	g_Server._ServerManager = server_manager
 
+	log.Debug().Msgf("Server init: ServerList Pending: %v", g_Server.Servers.Pending)
+	log.Debug().Msgf("Server init: ServerList Tree: %v", g_Server.Servers.Tree)
+
 	// TODO - how do you connect to become brock_rockjaw? probably need the NickServ for this
 	superadmin, session_timestamp, err := NewClient(
 		"brock_rockjaw",
@@ -262,6 +285,13 @@ func (is *IrcServer) GetServerByConn(c net.Conn) *IrcServer {
 // satisfy the Target interface to be used to identify this struct type during
 // s2s communication in worker.go
 func (is *IrcServer) IsTarget() {}
+func (is *IrcServer) GetConn() net.Conn {
+	return is.Conn.Conn
+}
+
+func (is *IrcServer) GetPingPongChan() chan string {
+	return nil
+}
 
 func (is *IrcServer) MarshalObject(e *log.Entry) {
 	e.Str("dns", is.DnsName).Str("version", is.Version).Str("addr", is.Addr)
@@ -420,16 +450,15 @@ func handleConnection(conn net.Conn, isServer bool) {
 		max_buffer_size = 8192
 	}
 
-	log.Debug().EmbedObject(client).Msg("Starting forever loop for client")
 	for {
 		// connBuffReader := bufio.NewReaderSize(conn, max_buffer_size)
 		// recv_buf := make([]byte, max_buffer_size)
 		// byteCount, err := connBuffReader.Read(recv_buf) // also ReadString('\n') but has too many edge cases
 
 		recv_buf := make([]byte, max_buffer_size)
-		byteCount, err := conn.Read(recv_buf) // should block until data comes in
+		_, err := conn.Read(recv_buf) // should block until data comes in
 
-		log.Debug().EmbedObject(client).Msgf("After conn reader. Read %v bytes", byteCount)
+		// log.Debug().EmbedObject(client).Msgf("After conn reader. Read %v bytes", byteCount)
 		// OLD (keeping around just in case i need it)
 		// block on read until the buffer has at least 1 byte.
 		// just a hacky way for this to block as Read() doesn't block on its own

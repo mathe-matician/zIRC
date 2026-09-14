@@ -128,7 +128,7 @@ func nick(params map[string]interface{}) Response {
 		g_Server.ClientServerMap[client.nick] = g_Server.DnsName
 
 		if G_Config.Server.Ping_pong_enabled {
-			go ping(client)
+			go ping_send(client)
 		}
 	}
 

@@ -1,0 +1,1 @@
+Used for extensible features for ircv3 like SASL, capabilities, etc

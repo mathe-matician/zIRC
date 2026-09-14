@@ -48,8 +48,6 @@ type Task struct {
 	SenderPrefix        string // :nick!username@hostname
 	Target              Target
 	MultiCastSendToSelf bool
-	// Src        Location
-	// Dest       Location
 }
 
 func (t *Task) MarshalObject(e *log.Entry) {

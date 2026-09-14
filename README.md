@@ -2,6 +2,22 @@
 
 A Chat Application based on IRC v3 protocol spec.
 
+## Purpose
+
+This project was a learning exercise for myself to practice implementing RFCs to code and understanding network protocols better. Part of the objectives were to hand write all code, but use AI to understand the IRC spec and get direction where needed.
+
+### What I'd do differently
+
+If I were starting this project again, I'd change the following:
+
+1. Global state. I have a number of areas where I basically designed myself into relying on global state (`g_` or `G_` prefixed state). Starting from scratch, I would focus on designing this cleaner; passing that required state for each owning component instead of accessing it globally.
+
+2. Reliance on `map[string]interface{}` for one-place-get-all for state passed to commands. This ultimately made for really clunky interactions for every single command. I essentially originally did this by trying to be too generic in the main handler to pass arbitrary state to commands. It then also led to missed type assertions which could lead to issues down the road - not to mention it isn't really readable. Starting from scratch, I wouldn't have focused so much on making one generic callable entrypoint for all commands.
+
+3. Structs holding `sync.Mutex` are being copied by value, so they don't actually guard the shared data. Starting from scratch, things like `command_map`, `server_manager_commands`, and `ctcp_map` should be `map[string]*Command` instead of `map[string]Command`.
+
+4. Significantly more TDD / test focus. It would have been better to understand the protocol more and write some tests first instead of doing large implementation chunks and then only then deciding I wanted to write tests.
+
 ## Install
 
 ### Prereqs

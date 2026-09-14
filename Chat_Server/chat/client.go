@@ -164,6 +164,13 @@ func NewSession() (*Session, error) {
 }
 
 func (c *Client) IsTarget() {}
+func (c *Client) GetConn() net.Conn {
+	return c.ClientConn
+}
+
+func (c *Client) GetPingPongChan() chan string {
+	return c.PingPongChan
+}
 
 func (c *Client) MarshalObject(e *log.Entry) {
 	e.Str("nick", c.nick).Str("user", c.user).Str("session_id", c.session.id.String()).Str("host", c.conn.Host).Str("ip", c.conn.Ip).Str("port", c.conn.Port)
@@ -246,10 +253,6 @@ func (c *Client) HasCapability(cap string) bool {
 		return false
 	}
 	return true
-}
-
-func (c *Client) GetConn() *rc.RemoteConn {
-	return c.conn
 }
 
 func (c *Client) Nick() string {
