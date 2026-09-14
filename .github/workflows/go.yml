@@ -26,9 +26,7 @@ jobs:
     #   run: go build -v ./...
 
     - name: Test
-      working-directory: Chat_Server
+      working-directory: Chat_Server/chat
       env:
         CONFIG_FILE: ${{ github.workspace }}/Chat_Server/config.yaml
-      run: |
-        cd Chat_Server/chat
-        go test -v ./...
+      run: go test -v ./...
